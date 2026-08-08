@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest something linkpage should do
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before writing, please skim
+        [what will be rejected](../blob/main/CONTRIBUTING.md#what-will-be-rejected).
+        Several obvious features — analytics, contact forms, multi-page sites, anything
+        needing a server — are ruled out on purpose, and the reasoning is written down.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is the business owner trying to do?
+      description: >
+        Describe the situation, not the feature. "A customer scans the flyer and lands on a
+        page that doesn't say whether we're open on Sundays" tells us more than "add a
+        schedule widget".
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like linkpage to do about it?
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Does it fit the constraints?
+      description: >
+        Every one of these has to stay true. If your idea breaks one, say so anyway — it may
+        point at a version that fits.
+      options:
+        - label: It needs no server, no account, and no login
+        - label: The exported page still works as a single file with no network
+        - label: It adds no JavaScript to the exported page
+        - label: A non-technical business owner could understand it without help

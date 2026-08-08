@@ -1,0 +1,50 @@
+name: Bug report
+description: Something in the builder or the exported page doesn't work
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The project is in its design phase — there is no released builder yet, so bugs
+        will mostly come from contributors running it locally.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where does it go wrong?
+      options:
+        - The builder (the editing app)
+        - The exported index.html
+        - Local dev setup (install, build, tests)
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you got instead.
+      placeholder: |
+        1. Added an hours block
+        2. Exported
+        3. Opened the file — the hours table was empty
+    validations:
+      required: true
+
+  - type: textarea
+    id: export
+    attributes:
+      label: The exported file or project.json, if relevant
+      description: >
+        Paste the relevant part, or attach the file. Remove anything you don't want public —
+        a real address or phone number, for instance.
+      render: html
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "Firefox 141 on Windows 11 / Node 24.19, pnpm 9.5 on Ubuntu"
+    validations:
+      required: true

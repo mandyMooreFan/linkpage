@@ -1,0 +1,25 @@
+{
+  "name": "@linkpage/renderer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "//exports": "Internal package: consumers resolve the TypeScript source, so nothing has to be built before the builder typechecks. The renderer is not published to npm in v1 (issue #4); if that changes, point these at dist/ and build first.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "//dependencies": "Dependency-free by design. The empty block below is load-bearing and an invariant test asserts it stays empty — note that pnpm deletes empty blocks when it rewrites this file, so put it back after running `pnpm add` here. See CONTRIBUTING.md.",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}
