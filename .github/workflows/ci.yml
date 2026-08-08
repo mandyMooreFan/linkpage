@@ -17,8 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Active LTS and Current. The floor declared in package.json is 22 — bump that
-        # before dropping it from this matrix.
+        # Active LTS and Current. The floor declared in package.json is 22.12 (Vite 8's
+        # requirement) — bump that before dropping a line from this matrix.
         node: [24, 26]
     steps:
       - uses: actions/checkout@v4

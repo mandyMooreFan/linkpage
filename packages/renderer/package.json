@@ -15,11 +15,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
-  "//dependencies": "Dependency-free by design. The empty block below is load-bearing and an invariant test asserts it stays empty — note that pnpm deletes empty blocks when it rewrites this file, so put it back after running `pnpm add` here. See CONTRIBUTING.md.",
+  "//dependencies": "Dependency-free by design. The empty block below is load-bearing and an invariant test asserts it stays empty \u2014 note that pnpm deletes empty blocks when it rewrites this file, so put it back after running `pnpm add` here. See CONTRIBUTING.md.",
   "dependencies": {},
   "devDependencies": {
     "@types/node": "^26.2.0",
-    "typescript": "^5.5.4",
-    "vitest": "^2.0.5"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   }
 }

@@ -81,7 +81,7 @@ packages/builder    React + Vite, GitHub Pages           →  replaceable chrome
 
 ## Getting set up
 
-You need **Node 22 or newer** (`.nvmrc` pins the active LTS, 24) and pnpm via Corepack:
+You need **Node 22.12 or newer** (`.nvmrc` pins the active LTS, 24) and pnpm via Corepack:
 
 ```bash
 corepack enable          # one time; ships with Node

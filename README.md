@@ -56,7 +56,7 @@ pnpm install
 pnpm dev
 ```
 
-Node 22+ (`.nvmrc` pins 24). By participating you agree to the
+Node 22.12+ (`.nvmrc` pins 24). By participating you agree to the
 [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## License
