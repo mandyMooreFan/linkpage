@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Design decisions for v1
+    url: https://github.com/mandyMooreFan/linkpage/issues/1
+    about: What has been decided, what is still open, and what is out of scope.
