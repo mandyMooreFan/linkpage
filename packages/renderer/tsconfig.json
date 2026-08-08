@@ -1,4 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Only the invariant test needs Node — it reads this package's own package.json to
+    // check the dependencies block. TypeScript 6 no longer picks @types/* up implicitly.
+    "types": ["node"]
+  },
   "include": ["src"]
 }

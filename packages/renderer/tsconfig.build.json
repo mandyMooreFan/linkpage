@@ -3,7 +3,9 @@
   "compilerOptions": {
     "outDir": "dist",
     "declaration": true,
-    "rootDir": "src"
+    "rootDir": "src",
+    // The shipped renderer runs in a browser and must not reach for anything Node-shaped.
+    "types": []
   },
   "exclude": ["src/**/*.test.ts"]
 }
