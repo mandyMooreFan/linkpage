@@ -2,8 +2,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { render } from "./render.js";
-import { SCHEMA_VERSION, type Project } from "./project.js";
+import { FIXTURES as fixtures, MINIMAL as sample } from "./fixtures.js";
 import { ICON_NAMES, ICONS, SOCIAL_MARKS, SOCIAL_PLATFORMS, glyphSvg } from "./icons.js";
+import type { Project } from "./project.js";
 
 /**
  * The three guards that encode the decisions in issue #4. They are the reason this
@@ -16,29 +17,6 @@ import { ICON_NAMES, ICONS, SOCIAL_MARKS, SOCIAL_PLATFORMS, glyphSvg } from "./i
  * recorded in SPEC.md §5.3 were failures *of the guard*, not of the renderer, and a guard
  * with no tests of its own is how they survived.
  */
-
-/**
- * A minimal well-formed v1 project: the two required inputs (brand colour and business
- * name) plus the fields the schema does not make optional. This is exactly what a first run
- * produces before the owner answers anything else — see SPEC.md §7.2.
- */
-const sample: Project = {
-  version: SCHEMA_VERSION,
-  lang: "en",
-  style: {
-    brand: "#c2185b",
-    shape: "centred",
-    type: "classic",
-    corners: 0.6,
-    mode: "light",
-    advanced: { enabled: false, colors: {} },
-  },
-  header: { name: "Ada's Bakery", logo: null },
-  links: [],
-};
-
-/** Every project fixture the invariants are checked against. Grow this as blocks land. */
-const fixtures: Project[] = [sample];
 
 // ---------------------------------------------------------------------------
 // The checks
@@ -233,11 +211,10 @@ describe("invariant 3: the renderer declares no dependencies", () => {
  * (SPEC.md §2.4), so they get checked against the real guards rather than against a
  * restatement of them in `icons.test.ts`.
  *
- * They are checked here rather than through `render` because §2.4 landed ahead of the
- * sections that place them (#26). When those land, the fixtures above start carrying icons
- * and this block becomes belt as well as braces — which is the right order, since a glyph
- * that breaches an invariant should fail on the day it is vendored, not on the day it is
- * first rendered.
+ * Now that the sections place them (#26), the fixtures above carry icons and this block is
+ * belt as well as braces. It is kept, and covers every glyph rather than only the rendered
+ * ones, because a glyph that breaches an invariant should fail on the day it is vendored
+ * rather than on the day some project first happens to use it.
  */
 describe("the vendored icon set satisfies invariants 1 and 2", () => {
   const glyphs = [
