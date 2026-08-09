@@ -1,19 +1,19 @@
 # Deploys the builder to GitHub Pages.
 #
-# DORMANT ON PURPOSE. During the design phase there is no builder worth publishing, so this
-# runs only when someone presses "Run workflow" — it will not fire on a merge, and no public
-# URL appears until you want one.
+# Live: every push to `main` publishes. It was dormant through the design phase, when there was
+# no builder worth publishing; v1 is built, so it deploys.
 #
-# To make it live, once the builder is real:
-#   1. uncomment the `push` trigger below;
-#   2. Settings → Pages → Source: "GitHub Actions";
-#   3. confirm `base` in packages/builder/vite.config.ts still matches the repo path.
+# The URL is a *project* page — https://<user>.github.io/linkpage/ — which is why
+# `packages/builder/vite.config.ts` sets `base: "/linkpage/"`. If this repo is ever renamed or
+# moved to a user page, that constant moves with it or every asset 404s.
+#
+# `workflow_dispatch` stays so a deploy can be forced without an empty commit.
 name: Deploy builder to Pages
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [main]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
