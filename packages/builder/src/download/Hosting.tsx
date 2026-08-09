@@ -1,76 +1,84 @@
 import type { JSX } from "react";
 
 /**
- * Section one's hosting guidance — and the reason it is a placeholder. `SPEC.md` §8, §6.3.
+ * Section one of the Download sheet: getting the page online. `SPEC.md` §8, §6.4.
  *
- * > **This section is deliberately incomplete in v1 of this spec.**
+ * **This describes the shape of the problem and names no host, and that is the design rather than
+ * a placeholder.** An earlier version of this file was a placeholder, waiting on someone walking a
+ * drop path so the steps could be written. The steps are now ruled out entirely.
  *
- * §8 says that of itself, in its own first line, and this component is the shipped form of it.
- * **The structure is settled and the walkthrough is not**: the guidance is section one of the
- * Download sheet, above the project file (§7.7), and the step-by-step copy waits on #19 and #20.
- * Two questions set the step count and neither has been answered — whether a logged-out drop
- * yields a publicly viewable URL, and whether the path works at all on a phone — and the second
- * matters disproportionately, because §7.6 makes mobile editing first-class and a broken mobile
- * path would walk owners to a dead end.
+ * Three reasons, in order of weight:
  *
- * **So this ships an honest placeholder rather than a fabricated walkthrough.** Writing
- * verified-sounding steps from documentation alone is the specific failure §8 exists to avoid,
- * and the owner reading this is the florist of `CONTRIBUTING.md` — the person least able to
- * tell a step that was walked from a step that was read. Saying "we have not done this yet" to
- * them costs a paragraph. Saying it wrong costs them an afternoon and their page.
+ * 1. **Steps rot and we cannot maintain them.** Every host redesigns its uploader, moves its free
+ *    tier and rewrites its terms on its own schedule without telling us. Instructions in here are
+ *    wrong from some unannounced date, and the owner reading them cannot tell a step we got wrong
+ *    from a step that used to work. Copy with no steps in it cannot go stale.
+ * 2. **Naming a host is a recommendation**, and a recommendation carries a shelf life and tells a
+ *    business owner where to put their livelihood on the strength of terms we read once.
+ * 3. **We never walked them** — the original reason, and now the least important, because a walked
+ *    path would rot too.
  *
- * **Every claim below is one §8 already establishes**, and nothing else is here:
+ * So the copy carries the one idea that outlasts every host: **the file just has to sit somewhere
+ * that hands it to anyone who asks.** Every option is that idea wearing different clothes. An owner
+ * who understands it can recognise a workable answer when someone offers them one, which is worth
+ * more than a procedure that expires.
  *
- * - A single dropped `index.html` is accepted by at least one major drop-style host. Determined
- *   by reading shipped uploader code, and it *contradicts that host's own prose documentation*
- *   — undocumented behaviour that can be withdrawn without notice, so it is described as
- *   fragile and the host is not named. Naming it would be the recommendation §8 withholds.
- * - Two obvious hosts are disqualified on licence terms rather than capability: one free tier
- *   is non-commercial only with a definition that explicitly covers advertising a service,
- *   another forbids using it "to run your online business". Both exclude exactly this
- *   product's users. Neither is named, for the same reason, and note the asymmetry — the same
- *   host may be perfectly legitimate for hosting *the builder*.
- * - "Send it to your web person" is a first-class route, not an afterthought. It is first here
- *   because it is the only one of the four that needs no verification at all: it works today,
- *   for the many small businesses that have someone who does their website.
- * - Shared links preview as text, permanently (§6.3). `og:image` is structurally impossible for
- *   any single-file tool, so this must be explained rather than quietly accepted — and the
- *   Download sheet is where the owner is about to go and find out.
+ * **The check is the load-bearing part.** Telling someone to ask an AI assistant for steps is only
+ * safe if they can grade the result, and this owner — the florist of `CONTRIBUTING.md` — cannot
+ * audit confident, outdated, plausible instructions. So the copy ends on an outcome test that is
+ * independent of every step that preceded it: *open the address on someone else's phone.* Someone
+ * else's, because their own browser may be showing them a file from their own computer. An owner
+ * who applies it cannot be quietly left with a page only they can see.
  *
- * **When #19 and #20 land, this file is what they replace.** The seam is deliberately a whole
- * component rather than a string, so the walkthrough can be as long as the walking turns out to
- * require without anything else on the sheet moving.
+ * Two things are said outright because both are traps the owner cannot see coming: free hosts whose
+ * terms forbid a business (§8), and the permanently plain link preview, which is `og:image` being
+ * structurally impossible for a single-file tool (§6.4) rather than a bug.
+ *
+ * **This is not a step toward a deploy button.** Constraint 6 makes the last mile guidance rather
+ * than integration, because deploying needs credentials, somewhere to keep them and someone to
+ * answer when it breaks — a hosting business rather than a feature.
  */
 export function Hosting(): JSX.Element {
   return (
     <div className="hosting">
-      <p className="hosting__note">
-        <strong>We have not written the step-by-step yet.</strong> We would have to follow it
-        ourselves first — on a phone as well as on a computer — and we have not. Rather than give
-        you steps that might not work, here is what we can tell you today.
+      <p className="hosting__idea">
+        Your page is one file. To put it online, it needs to sit somewhere that will hand it to
+        anyone who asks for it — that is all hosting is. There is nothing to install and nothing
+        running anywhere.
       </p>
 
       <ul className="hosting__routes">
         <li>
-          <strong>Send it to whoever looks after your website.</strong> If someone built your
-          website or set up your email, this file is all they need. It is an ordinary web page.
+          <strong>Ask whoever looks after your website.</strong> If someone built your website or
+          set up your email, this file is all they need. It is an ordinary web page and it will take
+          them a minute.
         </li>
         <li>
-          <strong>Some hosts take a single file.</strong> There are services you drag a file onto
-          and it is online. At least one of them accepts a lone <code>index.html</code> — but that
-          is not something it documents, so it could stop working without warning. That is the part
-          we want to walk ourselves before we tell you to do it.
+          <strong>Or use a service you drag a file onto.</strong> Several are free, and this is the
+          quickest way to do it yourself. Search for one, or ask an AI assistant which to use and
+          how — they change often enough that we would rather you got current instructions than
+          ours.
+        </li>
+      </ul>
+
+      <p className="hosting__check">
+        <strong>
+          You will know it worked when you have a web address, and opening it on someone
+          else&rsquo;s phone shows your page.
+        </strong>{" "}
+        Someone else&rsquo;s, because your own phone may be showing you the copy already on it.
+      </p>
+
+      <ul className="hosting__cautions">
+        <li>
+          <strong>Free does not always mean allowed.</strong> Some well-known free hosts will run
+          this page perfectly and forbid it in their terms — one is for personal use only, another
+          rules out running a business on it. Worth a look before you settle somewhere.
         </li>
         <li>
-          <strong>Free does not always mean allowed.</strong> Two well-known free hosts would run
-          this page perfectly well and forbid it in their terms — one is for non-commercial use
-          only, the other rules out running your business on it. We would rather send you somewhere
-          you are allowed to be.
-        </li>
-        <li>
-          <strong>Your link will look plain when you share it.</strong> Paste it into a message or a
-          post and you will get the address as text, with no picture. That is how a one-file page
-          works, and nothing is wrong.
+          <strong>Your link will look plain when you share it.</strong> Paste the address into a
+          message and you will get text with no picture. That is how a one-file page works, and
+          nothing is broken.
         </li>
       </ul>
     </div>
