@@ -71,18 +71,44 @@ describe("reading the version", () => {
     expect(readProjectFile(JSON.stringify({ version: 0 })).ok).toBe(true);
   });
 
-  it("treats a version that is not a number as absent, and so loads it", () => {
-    // Everywhere else in the schema a wrong-typed value reads as absent (§4.4, §4.6) and
-    // `version` gets no exemption: only a genuine number can be *beyond us*. A hand-typed
-    // "2" therefore loads, which is the deliberate cost of not having a second rule here.
-    expect(readVersion({ version: "2" })).toBe(1);
-    expect(readProjectFile('{"version":"2"}').ok).toBe(true);
+  it("reads an explicit null as absent, since JSON's null is how you write no value", () => {
+    // §4.2: null carries no version information, so there is nothing to lose by reading it as
+    // the claim it is — none.
+    expect(readVersion({ version: null })).toBe(1);
     expect(readProjectFile('{"version":null}').ok).toBe(true);
-    expect(readProjectFile('{"version":{"n":2}}').ok).toBe(true);
   });
 
-  it("refuses a fractional version above ours rather than rounding it away", () => {
-    expect(readProjectFile('{"version":1.5}').ok).toBe(false);
+  it("refuses a stringified version rather than letting a v2 file in through a type error", () => {
+    // §4.2, and the whole of #46: absent and unreadable are different claims. Read `"2"` as
+    // absent and it reads as 1 and loads — a v2 file walking past §4.3's forwards refusal on a
+    // type error rather than a version check, straight into the partial-load-then-autosave data
+    // loss §4.3 exists to make unreachable.
+    const result = readProjectFile(
+      JSON.stringify({ version: "2", lang: "en", header: { name: "Ada" } }),
+    );
+    expect(result.ok).toBe(false);
+    expect(readVersion({ version: "2" })).toBeNull();
+
+    const refusal = refusalFor('{"version":"2"}');
+    expect(refusal?.reason).toBe("damaged");
+    expect(refusal?.message).toBe(REFUSAL_MESSAGES.damaged);
+    // The disclosure quotes it as JSON, so the hand-editor can see the quotes are the problem.
+    expect(refusal?.detail).toContain('"2"');
+  });
+
+  it("refuses every other version we cannot read, with no new message", () => {
+    // A claim we cannot read is a claim all the same: fractional, negative, or not a number.
+    for (const text of [
+      '{"version":1.5}',
+      '{"version":-1}',
+      '{"version":{"n":2}}',
+      '{"version":[2]}',
+      '{"version":true}',
+      '{"version":"1"}',
+    ]) {
+      expect(refusalFor(text)?.reason, text).toBe("damaged");
+      expect(Object.values(REFUSAL_MESSAGES), text).toContain(refusalFor(text)?.message);
+    }
   });
 });
 
