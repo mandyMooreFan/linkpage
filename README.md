@@ -2,64 +2,50 @@
 
 Build a business link page in your browser. Export **one self-contained HTML file**. Put it anywhere.
 
-> **Status: design complete, implementation not started.** No usable software exists yet.
-> **[SPEC.md](./SPEC.md) is the complete v1 design** — enough to build from without reading
-> anything else. The repo also holds a scaffold that builds and tests: the renderer emits a
-> placeholder page and the builder is an empty shell. The [wayfinder map](../../issues/1)
-> indexes how each decision was reached, and the reasoning behind every rejected option.
+![The builder: a review list on the left, the live page on the right](./docs/images/builder.png)
 
-## What this will be
+- **No accounts, no backend, nothing to install.** There are no servers, so there is nothing to sign
+  up for and nothing to shut down.
+- **One file out.** CSS and images inlined, **zero JavaScript**. Drag it onto a free host, or email
+  it to whoever runs your website.
+- **Works offline**, opens straight from a folder, and cannot break later.
+- **Built for businesses**, not just creators: hours, address, phone and social alongside the links.
 
-A free, MIT-licensed visual builder for the kind of one-page link site a small business
-needs — the page you put in an Instagram bio, on a printed flyer, or behind a QR code on
-the counter.
+> **Status:** v1 is built and tested — 1,200+ tests and a browser end-to-end that downloads the
+> file and opens it with the network off. **Not deployed yet**, so there is no public URL to try.
 
-It is aimed at business owners with very little technical knowledge:
+## Run it
 
-- **Nothing to install.** It runs in your browser.
-- **No account, no signup, no subscription.** Your page is never on our servers, because
-  there are no servers.
-- **One file out.** Export produces a single `index.html` with the styling and the images
-  inside it. Drag it onto a free host, or email it to whoever runs your website.
-- **No JavaScript in your page.** What you get is plain HTML and CSS, so it loads instantly,
-  works with the network off, and has nothing in it that can break later.
-- **Built for businesses,** not just creators: hours, address, phone, and social links
-  alongside your link buttons.
+```bash
+corepack enable && pnpm install && pnpm dev
+```
 
-## What this will not be
+Node 22.12+ (`.nvmrc` pins 24).
 
-Deliberately out of scope, so the tool stays simple and stays free:
+## What it exports
 
-- Click analytics or visitor tracking
-- Contact or lead-capture forms
-- Custom domain setup
-- Multi-page websites
+<img src="./docs/images/page.png" alt="The exported page on a phone" width="300">
 
-## How it is put together
+One `index.html`. That screenshot is the whole file — there is no second request.
+
+## Deliberately not doing
+
+Click analytics, contact forms, custom domains, multi-page sites — each ruled out by the no-backend
+constraint rather than by taste. [CONTRIBUTING.md](./CONTRIBUTING.md) has the reasoning, plus the
+three invariants CI enforces.
+
+## How it fits together
 
 ```
 packages/renderer   render(project) → the complete text of your index.html.
-                    Plain TypeScript, zero dependencies. This is the artifact contract.
-packages/builder    React + Vite editing app, deployed to GitHub Pages.
-                    Previews by putting the renderer's output in an iframe, so the
-                    preview is the export rather than an imitation of it.
+                    Plain TypeScript, zero dependencies. The artifact contract.
+packages/builder    React + Vite editing app. Previews by putting the renderer's
+                    output in an iframe, so the preview is the export.
 ```
 
-## Contributing
-
-Contributions are welcome, and the constraints above are firm — a few obvious features are
-ruled out on purpose. [CONTRIBUTING.md](./CONTRIBUTING.md) covers what gets rejected and
-why, the three invariants CI enforces, and how to get running:
-
-```bash
-corepack enable
-pnpm install
-pnpm dev
-```
-
-Node 22.12+ (`.nvmrc` pins 24). By participating you agree to the
-[Code of Conduct](./CODE_OF_CONDUCT.md).
+**[SPEC.md](./SPEC.md) is the complete design** — enough to rebuild v1 from, including why each
+rejected option was rejected.
 
 ## License
 
-[MIT](./LICENSE)
+[MIT](./LICENSE). By participating you agree to the [Code of Conduct](./CODE_OF_CONDUCT.md).
