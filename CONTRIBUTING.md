@@ -132,6 +132,29 @@ CI runs it as a separate job on one Node version, so the Node 24/26 matrix keeps
 retry to be green, fix it or delete it — a flaky browser test costs more than the guarantee it
 nominally protects, because every future change starts by suspecting itself.
 
+## Translations — the one place we actively want to be corrected
+
+The exported page writes exactly eight words of its own: the seven weekday abbreviations and
+the word for a closed day. Everything else on it is the owner's text. Those eight live in
+`packages/renderer/src/locale.ts`, keyed by language tag, and they are vendored rather than
+produced by `Intl` — see SPEC.md §2.5 for why, and please read that before proposing `Intl`.
+
+The abbreviations come from Unicode CLDR and can be checked against a version number. **The
+word for a closed day cannot.** No locale database holds the word a shop puts on its door, so
+each one is hand-authored here, and the only way to check it is to ask someone who speaks the
+language. So:
+
+- **If you speak one of the languages in that table and the closed word is not what a business
+  in your language would write, please open a PR.** That is the single highest-value
+  contribution this file can receive, and "I speak it and this is wrong" is sufficient
+  justification — no issue needed first.
+- **To add a language**, add its CLDR abbreviated weekday names and the closed word, and say in
+  the PR where the closed word comes from. Adding or correcting a language is additive: it does
+  not change `project.json`, so it is never a schema version bump (SPEC.md §4.8).
+- **A language that is not in the table renders English**, deliberately. A visible limitation
+  beats a guess — the wrong word in the owner's own language is worse than the honest foreign
+  one.
+
 ## Proposing a change
 
 1. **Open an issue first** for anything beyond a typo or an obvious bug fix. During the

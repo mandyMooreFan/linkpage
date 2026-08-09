@@ -29,6 +29,8 @@ export {
   socialLabel,
 } from "./icons.js";
 export type { Glyph, IconName, SocialGlyph, SocialPlatform } from "./icons.js";
+export { VOCABULARIES, dayName, direction, languageTag, vocabulary } from "./locale.js";
+export type { DayNames, Vocabulary } from "./locale.js";
 export type {
   Address,
   Advanced,

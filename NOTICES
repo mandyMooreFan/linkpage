@@ -3,21 +3,24 @@ linkpage — third-party notices
 
 linkpage itself is MIT licensed; see LICENSE.
 
-This file covers the artwork vendored into `packages/renderer/src/icons.ts`. The renderer
-declares no dependencies (SPEC.md §5.1), so it cannot import an icon library — every glyph it
-uses is copied into its source, and this file is where those copies are attributed.
+This file covers the third-party material vendored into the renderer's source: the artwork in
+`packages/renderer/src/icons.ts` and the weekday abbreviations in
+`packages/renderer/src/locale.ts`. The renderer declares no dependencies (SPEC.md §5.1), so it
+cannot import an icon library or a locale library — whatever it uses is copied into its source,
+and this file is where those copies are attributed.
 
 Two consequences worth stating plainly, because they are the reason these particular sources
-were chosen (SPEC.md §2.4):
+were chosen (SPEC.md §2.4, §2.5):
 
   * **Font Awesome Free was specifically avoided.** Its CC BY 4.0 licence attaches an
     attribution obligation that would follow every page linkpage exports, onto every site
     those pages are published to. Nothing an owner exports from this tool carries an
     attribution requirement.
 
-  * **Nothing below requires attribution in an exported `index.html`.** ISC and MIT ask that
-    their notice accompany copies of *the software*, which this file provides for this
-    repository; CC0 asks for nothing. The exported page is the owner's, outright.
+  * **Nothing below requires attribution in an exported `index.html`.** ISC, MIT and the
+    Unicode licence ask that their notice accompany copies of *the software*, which this file
+    provides for this repository; CC0 asks for nothing. The exported page is the owner's,
+    outright.
 
 
 --------------------------------------------------------------------------------
@@ -114,3 +117,58 @@ marks do here.
 LinkedIn is deliberately absent: Simple Icons removed the mark at LinkedIn's request. A
 LinkedIn URL in a project still renders, with the generic link glyph, by the same mechanism
 that carries any platform the set does not name (SPEC.md §4.4).
+
+
+--------------------------------------------------------------------------------
+Unicode CLDR — weekday abbreviations
+--------------------------------------------------------------------------------
+
+https://cldr.unicode.org
+https://github.com/unicode-org/cldr
+Vendored from Unicode CLDR 48.
+
+The seven weekday abbreviations for each language in `packages/renderer/src/locale.ts` are
+CLDR's `format`/`abbreviated` weekday names, extracted once and frozen into the source. They
+are the same data `Intl.DateTimeFormat` would return; what SPEC.md §2.5 rules out is reading
+them at render time from whichever ICU build happens to be running, because that would make the
+exported bytes depend on the host rather than on the project (§6.7) and could make the owner's
+preview differ from their file (§5.2).
+
+**The word for a closed day is NOT from CLDR.** There is no locale database of the word a shop
+puts on its door; that one string per language is hand-authored in this repository and is
+governed by §2.5's growth rule, not by anything below. Corrections from speakers are welcome —
+see CONTRIBUTING.md.
+
+UNICODE LICENSE V3
+
+COPYRIGHT AND PERMISSION NOTICE
+
+Copyright (c) 1991-2025 Unicode, Inc.
+
+NOTICE TO USER: Carefully read the following legal agreement. BY DOWNLOADING, INSTALLING,
+COPYING OR OTHERWISE USING DATA FILES, AND/OR SOFTWARE, YOU UNEQUIVOCALLY ACCEPT, AND AGREE TO
+BE BOUND BY, ALL OF THE TERMS AND CONDITIONS OF THIS AGREEMENT. IF YOU DO NOT AGREE, DO NOT
+DOWNLOAD, INSTALL, COPY, DISTRIBUTE OR USE THE DATA FILES OR SOFTWARE.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of data files and
+any associated documentation (the "Data Files") or software and any associated documentation
+(the "Software") to deal in the Data Files or Software without restriction, including without
+limitation the rights to use, copy, modify, merge, publish, distribute, and/or sell copies of
+the Data Files or Software, and to permit persons to whom the Data Files or Software are
+furnished to do so, provided that either (a) this copyright and permission notice appear with
+all copies of the Data Files or Software, or (b) this copyright and permission notice appear in
+associated Documentation.
+
+THE DATA FILES AND SOFTWARE ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR HOLDERS INCLUDED IN THIS NOTICE BE LIABLE FOR ANY CLAIM, OR ANY SPECIAL INDIRECT OR
+CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+CONNECTION WITH THE USE OR PERFORMANCE OF THE DATA FILES OR SOFTWARE.
+
+Except as contained in this notice, the name of a copyright holder shall not be used in
+advertising or otherwise to promote the sale, use or other dealings in these Data Files or
+Software without prior written authorization of the copyright holder.
+
+The canonical text is at https://www.unicode.org/license.txt

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CLOSED_LABEL, formatTime, hoursView } from "./hours.js";
+import { formatTime, hoursView } from "./hours.js";
+import { vocabulary } from "./locale.js";
 
 /**
  * `hours.ts` is the only section with real logic in it, so it is tested as logic — on the rows
@@ -7,6 +8,13 @@ import { CLOSED_LABEL, formatTime, hoursView } from "./hours.js";
  * care most about is SPEC.md §2.3's: **a day absent is unspecified, a day present with an
  * empty array is closed**, and those must not collapse into each other.
  */
+
+/**
+ * The words are `locale.ts`'s now (#48), so every call has to say which language it is in. Most
+ * of these tests use English because the distinction they are about is not the language.
+ */
+const EN = vocabulary("en");
+const CY = vocabulary("cy");
 
 describe("formatTime", () => {
   it("pads the 24-hour form so a column of times aligns", () => {
@@ -43,11 +51,10 @@ describe("formatTime", () => {
 
 describe("hoursView", () => {
   it("leaves an unspecified day out and gives a closed day a row", () => {
-    const view = hoursView({
-      clock: "24h",
-      weekStart: "mon",
-      days: { mon: [["09:00", "17:00"]], sun: [] },
-    });
+    const view = hoursView(
+      { clock: "24h", weekStart: "mon", days: { mon: [["09:00", "17:00"]], sun: [] } },
+      EN,
+    );
 
     expect(view?.rows).toEqual([
       { day: "mon", label: "Mon", intervals: ["09:00 – 17:00"] },
@@ -56,27 +63,30 @@ describe("hoursView", () => {
   });
 
   it("keeps every interval a day holds, in file order", () => {
-    const view = hoursView({
-      clock: "24h",
-      days: {
-        sat: [
-          ["11:00", "14:00"],
-          ["17:00", "21:00"],
-        ],
+    const view = hoursView(
+      {
+        clock: "24h",
+        days: {
+          sat: [
+            ["11:00", "14:00"],
+            ["17:00", "21:00"],
+          ],
+        },
       },
-    });
+      EN,
+    );
 
     expect(view?.rows[0]?.intervals).toEqual(["11:00 – 14:00", "17:00 – 21:00"]);
   });
 
   it("rotates the week for weekStart without changing what is stored", () => {
     const days = { mon: [], sun: [], wed: [] };
-    expect(hoursView({ weekStart: "mon", days })?.rows.map((r) => r.day)).toEqual([
+    expect(hoursView({ weekStart: "mon", days }, EN)?.rows.map((r) => r.day)).toEqual([
       "mon",
       "wed",
       "sun",
     ]);
-    expect(hoursView({ weekStart: "sun", days })?.rows.map((r) => r.day)).toEqual([
+    expect(hoursView({ weekStart: "sun", days }, EN)?.rows.map((r) => r.day)).toEqual([
       "sun",
       "mon",
       "wed",
@@ -84,49 +94,81 @@ describe("hoursView", () => {
   });
 
   it("falls back to the default for an unrecognised clock or weekStart (§4.4)", () => {
-    const view = hoursView({
-      clock: "sundial",
-      weekStart: "thursday",
-      days: { mon: [["13:00", "14:00"]], sun: [] },
-    });
+    const view = hoursView(
+      { clock: "sundial", weekStart: "thursday", days: { mon: [["13:00", "14:00"]], sun: [] } },
+      EN,
+    );
 
     expect(view?.rows.map((r) => r.day)).toEqual(["mon", "sun"]);
     expect(view?.rows[0]?.intervals).toEqual(["13:00 – 14:00"]);
   });
 
   it("drops a half-readable interval rather than showing an open end", () => {
-    const view = hoursView({
-      days: {
-        mon: [
-          ["09:00", "wheneverish"],
-          ["13:00", "17:00"],
-        ],
+    const view = hoursView(
+      {
+        days: {
+          mon: [
+            ["09:00", "wheneverish"],
+            ["13:00", "17:00"],
+          ],
+        },
       },
-    });
+      EN,
+    );
     expect(view?.rows[0]?.intervals).toEqual(["13:00 – 17:00"]);
   });
 
   it("reads a wrong-typed day as unspecified, never as closed", () => {
     // Claiming a business is shut is a claim. `"closed"` where an array belongs is damage,
     // and damage must not be able to make that claim.
-    const view = hoursView({ days: { mon: "closed", tue: 0, wed: null, thu: [] } });
+    const view = hoursView({ days: { mon: "closed", tue: 0, wed: null, thu: [] } }, EN);
     expect(view?.rows.map((r) => r.day)).toEqual(["thu"]);
   });
 
   it("carries the free-text note", () => {
-    expect(hoursView({ days: {}, note: "  By appointment on Mondays.  " })).toEqual({
+    expect(hoursView({ days: {}, note: "  By appointment on Mondays.  " }, EN)).toEqual({
       rows: [],
+      closed: "Closed",
       note: "By appointment on Mondays.",
     });
   });
 
   it("is nothing at all when there is neither a day nor a note", () => {
     for (const value of [undefined, null, {}, { days: {} }, { days: "x", note: "   " }, [], 7]) {
-      expect(hoursView(value)).toBeUndefined();
+      expect(hoursView(value, EN)).toBeUndefined();
     }
   });
 
-  it("names the label a closed day is rendered with", () => {
-    expect(CLOSED_LABEL).toBe("Closed");
+  /**
+   * #48: the eight words the renderer writes are the page's, not English's. This is the
+   * Cardiff bakery from the issue — `lang="cy"`, so `Llun` and `Ar gau`, and *only* those:
+   * the times either side of them are the owner's stored values formatted by rule, and they
+   * do not move.
+   */
+  it("labels the days and the closed row in the page's language", () => {
+    const view = hoursView(
+      { clock: "24h", weekStart: "mon", days: { mon: [["09:00", "17:00"]], sun: [] } },
+      CY,
+    );
+
+    expect(view?.rows).toEqual([
+      { day: "mon", label: "Llun", intervals: ["09:00 – 17:00"] },
+      { day: "sun", label: "Sul", intervals: [] },
+    ]);
+    expect(view?.closed).toBe("Ar gau");
+  });
+
+  it("puts the closed word on the view, so nothing downstream has to pick one", () => {
+    expect(hoursView({ days: { mon: [] } }, EN)?.closed).toBe("Closed");
+    expect(hoursView({ days: { mon: [] } }, vocabulary("ja"))?.closed).toBe("定休日");
+  });
+
+  it("rotates a translated week the same way it rotates an English one", () => {
+    const days = { mon: [], sun: [], wed: [] };
+    expect(hoursView({ weekStart: "sun", days }, CY)?.rows.map((r) => r.label)).toEqual([
+      "Sul",
+      "Llun",
+      "Mer",
+    ]);
   });
 });

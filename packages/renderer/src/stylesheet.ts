@@ -26,6 +26,13 @@
  * combinations are not twelve stylesheets: a type pairing and the corner slider are entirely
  * token-valued, and only three of the four shapes add rules at all. See `chrome.ts` for why
  * that split is the design rather than an optimisation.
+ *
+ * **Nothing here names a physical side**, so the page follows `<html dir>` on its own (§4.1,
+ * #48). The grid and the flex rows already lay out along the inline axis; `text-align:end` on
+ * the times column is the one declaration that had to be written logically rather than as
+ * `right`, and `chrome.ts`'s `ruledLeft` shape was written that way from the start. A new rule
+ * reaching for `left`, `right`, `margin-left` or `padding-right` is how a page with `lang="ar"`
+ * quietly goes back to being laid out the wrong way round.
  */
 
 import { shapeRules, radius, typeTokens, type Chrome } from "./chrome.js";
@@ -95,7 +102,7 @@ a:focus-visible{outline:2px solid var(--lp-accent-ink);outline-offset:3px}
 .lp-panel{margin:0;padding:1rem 1.125rem;border:1px solid var(--lp-rule);border-radius:var(--lp-radius);background:var(--lp-surface)}
 .lp-hours{display:grid;grid-template-columns:auto 1fr;gap:0.375rem 1rem;margin:0;font-variant-numeric:tabular-nums}
 .lp-day{margin:0;color:var(--lp-ink-muted)}
-.lp-times{margin:0;display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+.lp-times{margin:0;display:flex;flex-direction:column;align-items:flex-end;text-align:end}
 .lp-note{margin:1rem 0 0;color:var(--lp-ink-muted);font-size:0.875rem}
 .lp-note:first-child{margin-top:0}
 .lp-rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.625rem}
