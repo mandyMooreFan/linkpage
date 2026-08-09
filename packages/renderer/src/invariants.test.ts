@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { render } from "./render.js";
-import { FIXTURES as fixtures, MINIMAL as sample } from "./fixtures.js";
+import { FIXTURES as fixtures, MINIMAL as sample, POPULATED as full } from "./fixtures.js";
 import { ICON_NAMES, ICONS, SOCIAL_MARKS, SOCIAL_PLATFORMS, glyphSvg } from "./icons.js";
 import type { Project } from "./project.js";
 
@@ -426,9 +426,33 @@ describe("the renderer is total", () => {
       expectSelfContained(html!);
     }
   });
+});
 
-  it("renders the same bytes twice for the same input", () => {
-    // SPEC.md §6.6 — same project, byte-identical output, no timestamps.
-    expect(render(sample)).toBe(render(sample));
+// ---------------------------------------------------------------------------
+// Invariant 1, at the one place a structured-data format would breach it
+// ---------------------------------------------------------------------------
+
+/**
+ * §6.3 chose microdata over JSON-LD *because of* invariant 1: JSON-LD ships inside a
+ * `<script type="application/ld+json">`, and invariant 1 forbids a `<script>` tag with no
+ * exception for one that only holds data. The guard above already fails on any `<script`, so
+ * the choice is enforced. What is worth stating separately is that the alternative was
+ * actually taken — that the structured data is *present*, as attributes, rather than absent.
+ */
+describe("§6.3's structured data is attributes, not a script", () => {
+  it("describes the page as a LocalBusiness without a script tag", () => {
+    const html = render(sample);
+    expect(html).toContain('itemscope itemtype="https://schema.org/LocalBusiness"');
+    expect(html).not.toMatch(/ld\+json/i);
+    expectNoScript(html);
+  });
+
+  it("hangs every property on an element that was already there", () => {
+    // No element exists only to carry an itemprop: a `<meta itemprop content="…">` would be
+    // invisible content, which is the shape §6.3 avoided by keeping the address free text.
+    const html = render(full);
+    for (const { tag, attr } of attributes(html)) {
+      if (attr === "itemprop") expect(tag).not.toBe("meta");
+    }
   });
 });

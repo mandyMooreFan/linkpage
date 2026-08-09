@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { escapeHtml, render, safeUrl } from "./render.js";
 import { MINIMAL as base, POPULATED as full, POPULATED_DARK as dark } from "./fixtures.js";
+import { SHAPES } from "./chrome.js";
 import type { Project } from "./project.js";
 
 /**
@@ -18,7 +19,7 @@ import type { Project } from "./project.js";
 /** The page itself, without the stylesheet — the unit a section snapshot is about. */
 function page(project: Project): string {
   const html = render(project);
-  const start = html.indexOf('<main class="lp-page">');
+  const start = html.indexOf('<main class="lp-page"');
   return html.slice(start, html.indexOf("</main>") + "</main>".length);
 }
 
@@ -390,7 +391,141 @@ describe("safeUrl", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Determinism (SPEC.md §6.6 — #28 owns the full guarantee)
+// Provenance (SPEC.md §6.6)
+// ---------------------------------------------------------------------------
+
+/**
+ * Determinism and the size budget — the other half of §6.6 and the whole of §6.4 — are
+ * measured on the bytes and live in `size.test.ts`.
+ */
+describe("provenance", () => {
+  it("says what made the file, in a comment and a meta tag", () => {
+    const html = render(base);
+    expect(html).toContain("<!-- Built with linkpage: https://github.com/mandyMooreFan/linkpage");
+    expect(html).toContain('<meta name="generator" content="linkpage">');
+  });
+
+  it("puts the comment where a reader opening the file will see it", () => {
+    // Second line, between the doctype and `<html>` — legal there, and ahead of the charset
+    // declaration only by ASCII, so nothing has to be guessed at to read it.
+    const lines = render(base).split("\n");
+    expect(lines[1]).toMatch(/^<!--/);
+    expect(lines[1]).toMatch(/^[\x20-\x7e]*$/);
+  });
+
+  it("credits nothing visibly, in any form", () => {
+    // §6.6 is absolute about this, so the check is on the whole document with the two
+    // permitted mentions taken out rather than on the places a credit is expected.
+    const html = render(full)
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(/<meta name="generator"[^>]*>/g, "");
+    expect(html.toLowerCase()).not.toContain("linkpage");
+  });
+
+  it("embeds no round-trip payload, which v1 does not offer (§6.6)", () => {
+    expect(render(full)).not.toContain(JSON.stringify(full.links));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Meta (SPEC.md §6.3)
+// ---------------------------------------------------------------------------
+
+describe("the head's meta", () => {
+  it("describes the page with the owner's tagline, and omits it when there is none", () => {
+    expect(render(full)).toContain(
+      '<meta name="description" content="Sourdough &amp; pastries since 1994">',
+    );
+    expect(render(base)).not.toContain('name="description"');
+  });
+
+  it("fakes no og:image, and no other og tag either (§6.3)", () => {
+    // A scraper needs a fetchable URL and the export is one file, so shared links preview as
+    // text, permanently. The remaining og tags would only restate <title> and the description,
+    // which every scraper already falls back to.
+    const html = render(full);
+    expect(html).not.toMatch(/og:/i);
+    expect(html).not.toMatch(/twitter:/i);
+  });
+
+  it("claims no canonical URL, because it does not know one", () => {
+    expect(render(full)).not.toMatch(/rel="canonical"/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Microdata (SPEC.md §6.3)
+// ---------------------------------------------------------------------------
+
+describe("LocalBusiness microdata", () => {
+  it("scopes the page as a LocalBusiness", () => {
+    expect(render(base)).toContain(
+      '<main class="lp-page" itemscope itemtype="https://schema.org/LocalBusiness">',
+    );
+  });
+
+  it("carries name and description from the header", () => {
+    const html = page(full);
+    expect(html).toContain('<h1 class="lp-name" itemprop="name">');
+    expect(html).toContain('<p class="lp-tagline" itemprop="description">');
+  });
+
+  it("claims no logo property, because a data: URI is not a logo anyone can fetch", () => {
+    // The same sentence §6.3 writes about og:image, arriving in a different attribute:
+    // validator.schema.org extracts an https logo and silently drops the identical markup with
+    // a data: URI. See `headerSection`.
+    expect(page(full)).toContain('<img class="lp-logo" src="data:image/png');
+    expect(page(full)).not.toContain('itemprop="logo"');
+    expect(page(full)).not.toContain('itemprop="image"');
+  });
+
+  it("takes telephone and email from the text, not from the normalised href", () => {
+    // On an <a>, microdata reads the href — which would publish `tel:+442071234567`, our
+    // normalisation, where schema.org asks for the number the owner wrote.
+    const html = page(full);
+    expect(html).toContain('<span itemprop="telephone">020 7123 4567</span>');
+    expect(html).toContain('<span itemprop="email">hello@adasbakery.example</span>');
+    expect(html).not.toContain('<a class="lp-row" itemprop=');
+  });
+
+  it("keeps the properties when a detail cannot be turned into a link", () => {
+    const project = { ...base, contact: { phone: "call the shop", email: "ask inside" } };
+    const html = page(project as Project);
+    expect(html).toContain('<span itemprop="telephone">call the shop</span>');
+    expect(html).toContain('<span itemprop="email">ask inside</span>');
+  });
+
+  it("publishes the address as text and the directions link as hasMap", () => {
+    const html = page(full);
+    expect(html).toContain('itemprop="hasMap" href="https://maps.example/?q=12+Baker+Street"');
+    expect(html).toContain('<span itemprop="address">12 Baker Street<br>\nLondon<br>\nNW1 6XE');
+  });
+
+  it("keeps the address property when there is no directions URL", () => {
+    const project = { ...base, address: { lines: ["12 Baker Street"] } };
+    expect(page(project as Project)).toContain('<span itemprop="address">12 Baker Street</span>');
+  });
+
+  it("marks social profiles sameAs and link buttons nothing", () => {
+    const html = page(full);
+    expect(html).toContain(
+      '<a class="lp-social-link" itemprop="sameAs" href="https://instagram.com/adasbakery">',
+    );
+    expect(html).not.toContain('<a class="lp-link" itemprop=');
+  });
+
+  it("emits the same microdata in every shape, because the markup does not know the shape", () => {
+    const props = (project: Project): string[] =>
+      [...render(project).matchAll(/itemprop="([a-zA-Z]+)"/g)].map((m) => m[1]!);
+    const centred = props(full);
+    for (const shape of SHAPES) {
+      expect(props({ ...full, style: { ...full.style!, shape } })).toEqual(centred);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Determinism (SPEC.md §6.6 — measured on the bytes in `size.test.ts`)
 // ---------------------------------------------------------------------------
 
 describe("determinism", () => {
