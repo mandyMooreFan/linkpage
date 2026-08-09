@@ -5,7 +5,7 @@ import type { Project } from "./project.js";
 
 /**
  * The two guarantees the export makes about itself as a *file* rather than as a page: it is
- * the same file every time (`SPEC.md` §6.6), and its chrome fits in 30 KB (§6.4).
+ * the same file every time (`SPEC.md` §6.7), and its chrome fits in 30 KB (§6.5).
  *
  * They are one suite because they are measured the same way — on the bytes — and because each
  * is the other's precondition. A size assertion on output that varied run to run would be a
@@ -17,7 +17,7 @@ import type { Project } from "./project.js";
 // ---------------------------------------------------------------------------
 
 /**
- * **Encoded bytes**, which §6.4 is explicit about: "the actual size of `index.html` on disk …
+ * **Encoded bytes**, which §6.5 is explicit about: "the actual size of `index.html` on disk …
  * That is the file the owner emails, drops onto a host, and sees in a downloads folder, and it
  * is what CI counts. Any other reading puts the spec and the test in disagreement."
  *
@@ -30,7 +30,7 @@ function bytes(text: string): number {
 }
 
 /**
- * The `data:` image payloads, which are the logo and are budgeted separately (§6.4: chrome
+ * The `data:` image payloads, which are the logo and are budgeted separately (§6.5: chrome
  * ≤ 30 KB, logo ~120 KB, total ≤ 150 KB).
  *
  * Replaced with an empty payload rather than deleted so what remains is still the real
@@ -43,7 +43,7 @@ function chromeBytes(html: string): number {
   return bytes(html.replace(IMAGE_PAYLOAD, "$1"));
 }
 
-/** §6.4's chrome line, in the unit §6.4 measures in. */
+/** §6.5's chrome line, in the unit §6.5 measures in. */
 const CHROME_BUDGET = 30 * 1024;
 
 /**
@@ -62,10 +62,10 @@ const CHROME_BUDGET = 30 * 1024;
 const CHROME_TRIPWIRE = 26 * 1024;
 
 // ---------------------------------------------------------------------------
-// §6.4 — the chrome budget
+// §6.5 — the chrome budget
 // ---------------------------------------------------------------------------
 
-describe("the chrome budget (§6.4)", () => {
+describe("the chrome budget (§6.5)", () => {
   /**
    * The assertion the issue asks CI for. `MAXIMAL` is the worst *realistic* case — see the
    * reasoning on the fixture — and it is the one that matters, because a budget only tells you
@@ -84,7 +84,7 @@ describe("the chrome budget (§6.4)", () => {
   });
 
   /**
-   * §6.4 is **a budget, not a gate**, "enforced by bounding the inputs, never by refusing to
+   * §6.5 is **a budget, not a gate**, "enforced by bounding the inputs, never by refusing to
    * export" — a hard cap is the worst possible failure for this user, because refusing would
    * strand an owner from their own page. So a project past the budget still renders a complete,
    * correct document; what it does not do is stay silent, and the number is the builder's
@@ -101,8 +101,8 @@ describe("the chrome budget (§6.4)", () => {
    * The logo is not chrome, and this is the assertion that keeps the split honest: grow the
    * encoded image by 100 KB and the file grows by 100 KB while the chrome does not move a byte.
    *
-   * It also states where §6.6's determinism stops. The renderer was handed this string; the
-   * pipeline that produced it ran once, in the builder, at upload time (§6.5), and the same
+   * It also states where §6.7's determinism stops. The renderer was handed this string; the
+   * pipeline that produced it ran once, in the builder, at upload time (§6.6), and the same
    * source image encoded on iOS and on desktop Chrome does not agree. "Same `project.json` →
    * same `index.html`" is the guarantee; "same source logo → same file" is not one this tool
    * offers, and the difference lives entirely inside the payload stripped here.
@@ -122,10 +122,10 @@ describe("the chrome budget (§6.4)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// §6.6 — determinism
+// §6.7 — determinism
 // ---------------------------------------------------------------------------
 
-describe("determinism (§6.6)", () => {
+describe("determinism (§6.7)", () => {
   /**
    * Render twice, diff. The plainest statement of the guarantee, over every fixture including
    * the damaged one — a file nobody wrote on purpose has to produce the same page twice too,
@@ -145,7 +145,7 @@ describe("determinism (§6.6)", () => {
   });
 
   /**
-   * **No timestamps** — the half of §6.6 that a diff of two adjacent renders cannot see,
+   * **No timestamps** — the half of §6.7 that a diff of two adjacent renders cannot see,
    * because two calls a millisecond apart agree about the date.
    *
    * Tested by moving the clock eleven years rather than by scanning the output for something
@@ -174,7 +174,7 @@ describe("determinism (§6.6)", () => {
    * fails on the *call*, on the day someone writes it.
    *
    * `Intl` is the near miss worth naming: it reads no clock, so nothing here would catch it,
-   * and it would still break §6.6 — its output tracks the host's ICU data, so the same project
+   * and it would still break §6.7 — its output tracks the host's ICU data, so the same project
    * would render differently on two Node versions and, worse for §5.2, differently in the
    * owner's browser than in the export. That is why #48 rules it out for weekday names.
    */
@@ -192,7 +192,7 @@ describe("determinism (§6.6)", () => {
   });
 
   /**
-   * **No round-trip payload in v1** (§6.6). Embedding `project.json` in the export would double
+   * **No round-trip payload in v1** (§6.7). Embedding `project.json` in the export would double
    * the logo bytes past the budget and serve the owner who never needed it — retrieving a
    * published file is harder than keeping the one you downloaded. It stays addable later
    * without breaking existing exports, which is only true while nothing is embedded now.

@@ -1,5 +1,5 @@
 /**
- * The constants and the arithmetic of `SPEC.md` §6.5 — everything the pipeline decides that
+ * The constants and the arithmetic of `SPEC.md` §6.6 — everything the pipeline decides that
  * does not require looking at a pixel or touching a canvas.
  *
  * It is a separate module from `intake.ts` because these are the numbers a reader comes
@@ -18,13 +18,13 @@ export type Encoding = "image/png" | "image/jpeg";
  * version, and the canvas fallback is *silent*: ask `toBlob`/`toDataURL` for
  * `image/webp` and you are handed a PNG with no error and no warning. Since iOS never gets
  * WebP, the working branch would serve desktop owners and the broken one would serve the
- * phone-first users this product is built around (§6.5). AVIF has no cross-browser canvas
+ * phone-first users this product is built around (§6.6). AVIF has no cross-browser canvas
  * encode at all. `browser.ts` checks `blob.type` regardless — see the note there.
  */
 export const ENCODINGS: readonly Encoding[] = ["image/png", "image/jpeg"];
 
 /**
- * The `accept` attribute for the file input: the explicit list, never `image/*` (§6.5).
+ * The `accept` attribute for the file input: the explicit list, never `image/*` (§6.6).
  *
  * On desktop this greys a designer's `.ai` and `.eps` out of the picker, so the failure never
  * happens rather than being reported well. `accept` is a hint to the picker and never a gate:
@@ -34,36 +34,36 @@ export const ENCODINGS: readonly Encoding[] = ["image/png", "image/jpeg"];
  * **Media types only, no file extensions.** Listing both is the usual advice, and it is the
  * wrong trade here: extensions buy a little on old desktop pickers, and on iOS an `accept`
  * carrying extensions has been reported to disable the Photo Library option outright — which
- * on a phone-first product is the picker. §6.5's stated benefit is a desktop one, and media
+ * on a phone-first product is the picker. §6.6's stated benefit is a desktop one, and media
  * types already deliver it there.
  *
  * On iOS this is also the lever on HEIC. See `SPEC.md` §11 item 1 for what is known.
  */
 export const LOGO_ACCEPT = "image/png,image/jpeg,image/svg+xml";
 
-/** The column the logo sits in: `min(100%, 25rem)`, so 400 CSS px at the default root size (§6.8). */
+/** The column the logo sits in: `min(100%, 25rem)`, so 400 CSS px at the default root size (§6.2). */
 export const COLUMN_CSS_PX = 400;
 
-/** Raster pixels per CSS pixel the logo is sized for (§6.5). */
+/** Raster pixels per CSS pixel the logo is sized for (§6.6). */
 export const LOGO_DENSITY = 3;
 
 /**
- * The longest edge of the stored raster: 3 × 400 = **1200 px** (§6.5, §6.8).
+ * The longest edge of the stored raster: 3 × 400 = **1200 px** (§6.6, §6.2).
  *
- * Confirmed rather than chosen by §6.8, and load-bearing in both directions: the column is
+ * Confirmed rather than chosen by §6.2, and load-bearing in both directions: the column is
  * pinned because §5.2 and §7.6 depend on it, so if 3× turns out to be too little the
  * constant moves and the column does not. §11 item 3 is that question.
  */
 export const LOGO_MAX_EDGE = COLUMN_CSS_PX * LOGO_DENSITY;
 
 /**
- * The logo's share of §6.4's page budget, in bytes of `index.html`.
+ * The logo's share of §6.5's page budget, in bytes of `index.html`.
  *
  * Measured against the length of the `data:` URI, because that is the string that ends up in
- * the file and §6.4 is explicit that the budget counts encoded bytes on disk. base64's +33%
+ * the file and §6.5 is explicit that the budget counts encoded bytes on disk. base64's +33%
  * is therefore inside this number rather than something to correct for.
  *
- * **A budget, not a gate** (§6.4). Exceeding it resizes; it never refuses. A pipeline that
+ * **A budget, not a gate** (§6.5). Exceeding it resizes; it never refuses. A pipeline that
  * refused would strand an owner from their own page.
  */
 export const LOGO_BUDGET_BYTES = 120 * 1024;
@@ -74,7 +74,7 @@ export const LOGO_BUDGET_BYTES = 120 * 1024;
  *
  * Below this the logo is soft on every screen made this decade, and shrinking further trades
  * something the owner can see for bytes nobody counted. If an image is still over budget
- * here, it ships over budget — §6.4 is a budget, not a gate.
+ * here, it ships over budget — §6.5 is a budget, not a gate.
  */
 export const MIN_LOGO_EDGE = COLUMN_CSS_PX;
 
@@ -84,15 +84,15 @@ export const MAX_ENCODE_ATTEMPTS = 6;
 /**
  * JPEG quality, fixed.
  *
- * **Dimension is the lever that enforces the budget, not format** (§6.5) — and not quality
+ * **Dimension is the lever that enforces the budget, not format** (§6.6) — and not quality
  * either. A quality slider driven by a byte target produces an image whose softness varies
- * with how big the owner's file happened to be, which is exactly the unpredictability §6.5
+ * with how big the owner's file happened to be, which is exactly the unpredictability §6.6
  * is avoiding. 0.82 is the shoulder of the quality/bytes curve for photographic content.
  */
 export const JPEG_QUALITY = 0.82;
 
 /**
- * The guard on the uploaded source file, in bytes (§6.5).
+ * The guard on the uploaded source file, in bytes (§6.6).
  *
  * Secure static mode stops scripts; it does not stop a pathologically large document from
  * hanging the tab, and the tab in question belongs to someone on a phone. 20 MB clears every
@@ -122,7 +122,7 @@ export const SNIFF_BYTES = 512;
 export type LogoFailure = "undecodable" | "too-large";
 
 /**
- * The owner-facing half of a failure. The first is verbatim from §6.5.
+ * The owner-facing half of a failure. The first is verbatim from §6.6.
  *
  * Neither names a format we could not parse, a byte count or a limit. What the owner can act
  * on is *which file to pick next*, and both sentences are about that.
@@ -137,7 +137,7 @@ export const LOGO_MESSAGES: Record<LogoFailure, string> = {
 };
 
 /**
- * The one thing the pipeline ever says about a *successful* upload, verbatim from §6.5.
+ * The one thing the pipeline ever says about a *successful* upload, verbatim from §6.6.
  *
  * Note what is not in it: no kilobytes, no percentage, and the word "compression" nowhere.
  * The owner is not being asked to evaluate a trade-off, they are being told the one thing
@@ -210,7 +210,7 @@ export function halve(size: Size): Size {
  * **This is not a gate and not a format check.** Nothing is accepted or rejected on the
  * strength of it: it selects which size guard applies and whether the raster may be enlarged.
  * Whether the file decodes is still decided by handing it to the decoder, because media types
- * and extensions both lie (§6.5).
+ * and extensions both lie (§6.6).
  */
 export function looksLikeMarkup(head: string): boolean {
   // A byte-order mark ahead of the declaration is common enough in exported SVG to be worth

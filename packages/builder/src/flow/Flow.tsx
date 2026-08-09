@@ -171,7 +171,7 @@ export function Flow({
         return (
           <LogoQuestion
             logo={working.header.logo}
-            // Straight to the draft, so the preview is the feedback (§6.5). A refusal applies
+            // Straight to the draft, so the preview is the feedback (§6.6). A refusal applies
             // nothing — `applyIntake` takes the whole result for exactly that reason.
             onPick={(result) => {
               const next = applyIntake(working, result);

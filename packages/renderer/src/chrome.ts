@@ -19,7 +19,7 @@
  * - Only the **shape** adds rules, and only the three non-default ones do: `centred` *is* the
  *   base layout, so it adds nothing, and each of the other three is a short override block.
  *
- * So the emitted chrome is always `base + tokens + at most one delta`, and §6.4's 30 KB budget
+ * So the emitted chrome is always `base + tokens + at most one delta`, and §6.5's 30 KB budget
  * sees the same page whichever of the twelve the owner picked. Growing this file by adding a
  * fifth shape costs one delta; growing it by giving each combination its own sheet would cost
  * twelve, which is the mistake this shape of the module exists to make hard.
@@ -99,7 +99,7 @@ function corners(value: unknown): number {
 /**
  * The radius the slider's top end reaches, in `rem`.
  *
- * `rem` for the same reason §6.8 puts the column in it: a reader who has raised their default
+ * `rem` for the same reason §6.2 puts the column in it: a reader who has raised their default
  * text size gets buttons whose corners stay in proportion to the type inside them, instead of
  * a fixed curve that flattens as the type grows.
  *
@@ -114,7 +114,7 @@ const MAX_RADIUS_REM = 1.25;
  * The slider's position as a CSS length.
  *
  * Rounded to three decimals before it reaches the string, which is what keeps the export
- * deterministic (§6.6): `0.7 * 1.25` is not exactly `0.875` in binary floating point, and the
+ * deterministic (§6.7): `0.7 * 1.25` is not exactly `0.875` in binary floating point, and the
  * full expansion of that would otherwise be a hundred bytes of noise in the stylesheet and a
  * diff nobody can read.
  */
@@ -130,7 +130,7 @@ export function radius(corners: number): string {
 /**
  * One pairing, as the four token values it resolves to.
  *
- * **System stacks only** (§6.2). No webfont, so no bytes on the wire, no embedding licence to
+ * **System stacks only** (§6.3). No webfont, so no bytes on the wire, no embedding licence to
  * read and nothing for the page to fetch — invariant 2 would forbid the fetch anyway. The
  * accepted cost is that the glyphs differ across platforms: a page set in `friendly` is
  * rounded on a Mac, Trebuchet on Windows and whatever the system sans is on Linux. That is not
@@ -227,7 +227,7 @@ export function typeTokens(pairing: TypePairing): string[] {
  * `var(--lp-ink)` and `var(--lp-rule)` are roles the palette already filled in, and `none`,
  * `0` and `inherit` are the rest of the vocabulary.
  *
- * **None of them touches the column.** §6.8's `min(100%, 25rem)` is load-bearing for §5.2 and
+ * **None of them touches the column.** §6.2's `min(100%, 25rem)` is load-bearing for §5.2 and
  * §7.6 — a wider column would reflow the buttons and change the size the logo renders at, so a
  * desktop visitor would see a page the owner never previewed. A shape lays out *within* the
  * column. `floatingCard` is the one that comes closest, and it pads inwards: `box-sizing:

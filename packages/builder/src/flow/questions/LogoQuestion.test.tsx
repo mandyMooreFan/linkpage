@@ -12,7 +12,7 @@ import {
 import { LogoQuestion } from "./LogoQuestion.js";
 
 /**
- * The logo screen — four lines calling #31's pipeline, and the three rules of §6.5 that show
+ * The logo screen — four lines calling #31's pipeline, and the three rules of §6.6 that show
  * up at the surface.
  *
  * The pipeline itself is tested in `../../logo`; what is tested here is the seam. In
@@ -46,7 +46,7 @@ function view(logo: Logo | null, result: LogoIntake) {
 }
 
 describe("the logo step", () => {
-  it("greys designer files out of the picker rather than failing on them (§6.5)", () => {
+  it("greys designer files out of the picker rather than failing on them (§6.6)", () => {
     view(null, { ok: true, logo: LOGO, encoding: "image/png", notice: null });
     expect(picker().getAttribute("accept")).toBe(LOGO_ACCEPT);
     expect(LOGO_ACCEPT).not.toContain("image/*");
@@ -70,7 +70,7 @@ describe("the logo step", () => {
     expect(document.querySelector(".notice")).toBeNull();
   });
 
-  it("speaks only when the result is visibly worse (§6.5)", async () => {
+  it("speaks only when the result is visibly worse (§6.6)", async () => {
     const { onPick } = view(null, {
       ok: true,
       logo: LOGO,

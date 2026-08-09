@@ -28,7 +28,7 @@ export const SCHEMA_VERSION = 1;
 /** Layout and emphasis. Carries structure only, never a palette (§3.2). */
 export type Shape = "centred" | "colourBlock" | "floatingCard" | "ruledLeft";
 
-/** Resolves to a system font stack; the export ships no webfonts (§6.2). */
+/** Resolves to a system font stack; the export ships no webfonts (§6.3). */
 export type TypePairing = "classic" | "modern" | "friendly";
 
 export type Mode = "light" | "dark";
@@ -61,7 +61,7 @@ export type ColorOverrides = Record<string, string>;
  * The advanced tier: a separate, losslessly reversible override layer (§3.4).
  *
  * Opening it is the owner's acknowledgement that the readability guarantee no longer
- * applies — which is why the guarantee is "AA **by default**", not "always" (§6.7).
+ * applies — which is why the guarantee is "AA **by default**", not "always" (§6.8).
  */
 export interface Advanced {
   enabled: boolean;
@@ -87,7 +87,7 @@ export interface Style {
 }
 
 /**
- * The logo, after the builder's intake pipeline has run (§6.5).
+ * The logo, after the builder's intake pipeline has run (§6.6).
  *
  * This is the one place the file stores a *result* rather than an intent, unavoidably: the
  * renderer cannot decode or resize anything, and keeping a 4 MB original is not an option.

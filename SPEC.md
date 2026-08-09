@@ -203,7 +203,47 @@ preset suggestion, so the set grows when §7.3 does and not otherwise.
 | **Corner softness** | slider, 0 (sharp) … 1 (rounded)                                      |
 | **Light / dark**    | `light` \| `dark`                                                    |
 
-That is the entire default surface.
+Those six are unconditional: every page has them, and they are what _How it looks_ opens with.
+
+**Two further controls appear only when a section that uses them does.** `clock` (12h/24h) and
+`weekStart` are display preferences belonging to opening hours (§2.3), and they live at the foot of
+the same step, shown when the page has hours and absent when it does not. They are listed apart from
+the six deliberately — the six are the styling model, these two are settings that had nowhere better
+to live. The distinction is what stops the screen accreting a ninth.
+
+#### What the four shapes are
+
+A shape decides where content sits on its axis, which block carries the page's one piece of emphasis,
+and whether a section reads as a box, a card or a rule. **None of them touches the column** (§6.2) and
+none of them names a colour (§3.2) — each selects among the roles the palette already derived.
+
+| Shape              | What it does                                                                                                                                                                                                                                                                                 |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`centred`**      | The base layout: a centred column of full-width buttons and bordered panels. The other three are expressed as deltas from it.                                                                                                                                                                |
+| **`colourBlock`**  | The header becomes the page's one filled block and the buttons step back to outlines, so the emphasis lands once rather than five times. Inside the block the tagline inherits the fill's own ink — muted ink is derived against the _ground_ and would fail contrast on the fill.           |
+| **`floatingCard`** | The whole column lifts onto one surface and the sections stop being boxes, divided by the hairline instead. A card of cards is a page with a border drawn round every paragraph. It pads inwards, so the outer width stays exactly at the cap.                                               |
+| **`ruledLeft`**    | Everything hangs off one axis, marked by a rule in the button fill rather than the hairline — this rule identifies a section, and §3.3 guarantees the fill clears 3:1 where the hairline deliberately does not. Set in logical properties, so the axis follows the page's writing direction. |
+
+#### What the three type pairings are
+
+Each resolves to system font stacks (§6.3) and contributes **no rules at all** — a pairing is five
+token values: a body stack, a display stack, a weight, a tracking and a line height.
+
+| Pairing        | What it is                                                                                                                                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`classic`**  | A serif display face over a system sans. The only pairing that is literally two faces, and the one that reads as a business that existed before the web did.                                                       |
+| **`modern`**   | One grotesque, set tight and heavy. The pairing is between the display _setting_ and the text setting rather than between two families, which is how a modern identity is usually built and costs no second stack. |
+| **`friendly`** | A rounded sans, set open. Includes a Japanese rounded gothic, so the pairing still means something on a page whose `lang` is not Latin.                                                                            |
+
+#### Corner softness
+
+The slider maps linearly to a radius: **0 → `0rem`, 1 → `1.25rem`**, in `rem` for §6.2's reason, and
+rounded to three decimal places so §6.7's byte-determinism holds. Out-of-range values are clamped
+rather than refused (§4.4).
+
+**The default is `0.6`** — a gently rounded button rather than a sharp one. Sharp is a deliberate
+look, and a page that arrived there by accident would read as unfinished, whereas softened reads as
+the tool's own default, which is what a missing value means.
 
 ### 3.2 Derivation
 
@@ -268,7 +308,7 @@ reversible** override layer.
     "name": "Ada's Bakery", // required
     "tagline": "Sourdough and very good coffee",
     "logo": {
-      // null when absent — see §6.5
+      // null when absent — see §6.6
       "src": "data:image/png;base64,…",
       "width": 1200,
       "height": 1200,
@@ -326,7 +366,7 @@ file_ and needs **ordering**; a provenance stamp answers _when was this made_ an
 job. A hash can only compare for equality, collapsing the policy into "any change at all → refuse".
 A timestamp would also break the property that two owners who reach the same page have byte-identical
 files, and it records how the file was _born_ rather than the owner's intent. If provenance is ever
-wanted, its home is the exported `index.html` (§6.6), which is disposable.
+wanted, its home is the exported `index.html` (§6.7), which is disposable.
 
 ### 4.3 Compatibility, both directions
 
@@ -399,7 +439,7 @@ Stated as testable guarantees:
   normalised around them.
 
 Implementable by keeping the raw parsed object alongside the typed view and merging on write. This
-applies to `project.json` only — unknown keys never reach `index.html`, so export determinism (§6.6)
+applies to `project.json` only — unknown keys never reach `index.html`, so export determinism (§6.7)
 is untouched.
 
 ### 4.6 Malformed and hand-edited input
@@ -527,7 +567,7 @@ implementation:
   `<image>` element uses `href` and is not a `<link>`, so `<image href="https://…">` passes.
 
 Neither is reachable from anything v1 generates, because no inline `<svg>` from a logo ever reaches
-the export (§6.5). The false negative is nonetheless a genuine hole in the offline guarantee and
+the export (§6.6). The false negative is nonetheless a genuine hole in the offline guarantee and
 should be fixed.
 
 ---
@@ -541,12 +581,63 @@ One `index.html`. CSS in a `<style>` block. Images as `data:` URIs. Nothing else
 **The filename `index.html` is fixed and load-bearing.** Beyond being what every host serves at a
 directory root, at least one drop-style host skips its file-rename prompt specifically for that name.
 
-### 6.2 Type
+### 6.2 The column
+
+**The page is a single column of `min(100%, 25rem)` — 400 CSS px at the browser's default text size —
+sitting inside a page gutter.** Below the cap the column is fluid. The cap therefore does nothing on a
+phone; it exists to stop the page sprawling on everything wider than one.
+
+**The number is a phone's content width, not a desktop measure.** Phones in use sit between roughly
+360 and 430 CSS px of viewport, which is 330–400 px of content once a gutter is taken off. A cap at
+400 sits at the top of that range, so on every phone the column runs the full width the reader has,
+and the page never leaves a strip of unused screen beside itself. Capping lower — 360, say — would
+give a large phone margins it did not ask for, which is the one screen this product cannot afford to
+waste.
+
+**Not wider, because §5.2 and §7.6 already spent this decision.** §7.6 drops a "see it on a laptop"
+control on the grounds that a wide screen shows "the identical page with more whitespace", and §5.2
+makes the preview _be_ the export. Both sentences are true only while the cap is about a phone's
+width. A 640 px column would reflow the buttons, change the measure and change the size the logo
+renders at, so a desktop visitor would see a page the owner never previewed — the second rendering
+§5.2 exists to forbid, arriving through the stylesheet instead of through React.
+
+**Not wider, on the content.** The 45–75 character measure that justifies a wide column is a rule for
+paragraphs, and this page has none: six sections of labels, hours rows, an address and at most a
+tagline (§2.1). What it does have is a stack of full-width tap targets, and a button much past 400 px
+stops reading as a button and starts reading as a rule drawn across the page.
+
+**Not wider, on bytes.** §6.6 sizes the logo at 3× the column, so the raster's pixel count grows with
+the _square_ of this number. At 400 the logo is 1200 px and sits inside §6.5's ~120 KB line with
+roughly 10× headroom for a real wordmark; at 600 it would be 1800 px and 2.25× the pixels. **The
+column width is an input to the size budget**, not just to the layout.
+
+**`rem` rather than `px`, deliberately.** Expressed as `25rem`, the cap tracks the reader's default
+text size: someone who has raised it gets a proportionally wider column and keeps the same number of
+characters per line, instead of a measure that tightens as the type grows. Page zoom scales `px` and
+`rem` alike, so the two choices differ only under the default-font-size setting — which is precisely
+the setting a reader with low vision uses.
+
+> The consequence, recorded rather than left to be discovered: §6.6's logo constant is derived from
+> the default root size, so for a reader who has enlarged their default text the logo raster falls
+> below 3×. The logo is decorative and carries `alt=""` (§6.6). Trading its density for text that
+> scales is the right way round.
+
+**The cap is on the content column; the gutter sits outside it.** So "the column width" and "the
+maximum CSS width the logo can occupy" (§6.6) are the same 400 px, with no padding to subtract. The
+gutter's own size is a shape concern (§3) and is free to differ per shape without moving this number.
+
+**§6.6's provisional 1200 px is confirmed, not replaced.** 3 × 400 = 1200 on the longest edge. Because
+the column is capped at the widest phone's content width and is _narrower_ than that on every other
+phone, the fixed constant behaves as a floor rather than a target: a 1200 px raster across a 358 px
+column on a 390 px phone is 3.35×. The constant is at its stated 3× only in the one case it was sized
+for, and better everywhere else.
+
+### 6.3 Type
 
 **Type pairings resolve to system font stacks.** No webfonts — so no bytes and no embedding licence,
 accepting that glyphs differ across platforms.
 
-### 6.3 Structured data
+### 6.4 Structured data
 
 **`LocalBusiness` ships as microdata attributes**, not JSON-LD. JSON-LD requires a `<script>` tag,
 which invariant 1 forbids. schema.org accepts the free-text address as plain text, so §2.3's decision
@@ -556,7 +647,7 @@ costs nothing here.
 URL and there is no second file to point at. **Shared links preview as text, permanently.** This must
 be explained to owners rather than quietly accepted.
 
-### 6.4 Size
+### 6.5 Size
 
 **A budget, not a gate.**
 
@@ -577,7 +668,7 @@ binary. The file is bigger than the image it contains; the page is not slower.
 **Enforced by bounding the inputs, never by refusing to export.** A hard cap is the worst possible
 failure for this user — refusing would strand an owner from their own page.
 
-### 6.5 Images and logos
+### 6.6 Images and logos
 
 There is exactly one image in the product: `header.logo`. Icons are vendored (§2.4) and link buttons
 never carry uploaded images.
@@ -588,14 +679,25 @@ on desktop it greys designer files out of the picker so the failure never happen
 **Everything becomes a raster.** The pipeline runs entirely in the builder:
 
 1. **SVG is accepted and rasterised.** No SVG ever reaches the export.
-2. **Format by content:** flat art → **PNG**, photographic → **JPEG**. Detected by counting unique
-   colours in a downsampled copy — wordmarks have tens, photographs have thousands.
+2. **Format by content:** flat art → **PNG**, photographic → **JPEG**. Detected by counting distinct
+   colours in a 64 × 64 point sample, at full colour depth and without smoothing — both of those
+   came out the opposite way round from the obvious guess and are measured, see §11 item 2.
+   **The two classes overlap**, and the heuristic works on an asymmetry rather than on a gap:
+   what sits in the overlap is detailed illustration, for which JPEG is a defensible encoding
+   anyway, while the error a reader can _see_ — ringing around crisp type — did not occur once in
+   a 205-image corpus. Read §11 before reaching for §11's stated retreat: it would incur the
+   costly case on every photograph rather than on a twelfth of them.
 3. **Alpha is never sacrificed.** JPEG has no alpha, so anything with meaningful transparency stays
    PNG regardless of content. Compositing onto a background is unavailable: there is a light _and_ a
    dark mode, and baking one in produces a logo visibly wrong in the other.
 4. **Dimension is the lever that enforces the budget, not format.** Resize to **3× the maximum CSS
-   width the logo can occupy, bounding the longest edge.** 3× covers every phone shipping today.
-   §6.8 fixes that width at 400 CSS px, so **the constant is 1200 px**.
+   width the logo can occupy, bounding the longest edge.** §6.2 fixes that width at 400 CSS px, so
+   **the constant is 1200 px**. Note 3× does _not_ cover every phone: flagships reporting a
+   device-pixel ratio of 3.5 want about 1330 physical pixels for a 380 px column and get 1200 —
+   90% of the device's resolution. Whether that is visible on a wordmark is unmeasured and needs a
+   device; §11 item 3 carries the arithmetic and the reasoning. **If it is visible, raise the
+   constant, not the column** — §6.2's number is load-bearing for §5.2 and §7.6, and §6.5's budget
+   absorbs the difference without noticing.
 5. Store the result in `project.json` as `{ src, width, height }`.
 
 **Why rasterise SVG rather than embed it.** The export is the artifact we make guarantees about.
@@ -654,7 +756,7 @@ is a question they cannot answer well, and "logo" is worse than empty.
 **Emit `width` and `height` on the `<img>`.** The builder knows both at normalisation time, it costs
 about 20 bytes, and it prevents layout shift while the data URI decodes.
 
-### 6.6 Provenance and determinism
+### 6.7 Provenance and determinism
 
 **Provenance is an HTML comment and a `generator` meta tag, and no visible credit in any form.**
 
@@ -675,61 +777,10 @@ bytes past the budget, and retrieving a published file is harder than keeping th
 so it serves the user who never needed it. A comment payload stays addable later without breaking
 existing exports.
 
-### 6.7 Accessibility
+### 6.8 Accessibility
 
 The exported page claims **WCAG 2.2 AA by default**. "By default" is precise: the advanced tier (§3.4)
 can be used to produce a page that does not, and it reports contrast rather than preventing it.
-
-### 6.8 The column
-
-**The page is a single column of `min(100%, 25rem)` — 400 CSS px at the browser's default text size —
-sitting inside a page gutter.** Below the cap the column is fluid. The cap therefore does nothing on a
-phone; it exists to stop the page sprawling on everything wider than one.
-
-**The number is a phone's content width, not a desktop measure.** Phones in use sit between roughly
-360 and 430 CSS px of viewport, which is 330–400 px of content once a gutter is taken off. A cap at
-400 sits at the top of that range, so on every phone the column runs the full width the reader has,
-and the page never leaves a strip of unused screen beside itself. Capping lower — 360, say — would
-give a large phone margins it did not ask for, which is the one screen this product cannot afford to
-waste.
-
-**Not wider, because §5.2 and §7.6 already spent this decision.** §7.6 drops a "see it on a laptop"
-control on the grounds that a wide screen shows "the identical page with more whitespace", and §5.2
-makes the preview _be_ the export. Both sentences are true only while the cap is about a phone's
-width. A 640 px column would reflow the buttons, change the measure and change the size the logo
-renders at, so a desktop visitor would see a page the owner never previewed — the second rendering
-§5.2 exists to forbid, arriving through the stylesheet instead of through React.
-
-**Not wider, on the content.** The 45–75 character measure that justifies a wide column is a rule for
-paragraphs, and this page has none: six sections of labels, hours rows, an address and at most a
-tagline (§2.1). What it does have is a stack of full-width tap targets, and a button much past 400 px
-stops reading as a button and starts reading as a rule drawn across the page.
-
-**Not wider, on bytes.** §6.5 sizes the logo at 3× the column, so the raster's pixel count grows with
-the _square_ of this number. At 400 the logo is 1200 px and sits inside §6.4's ~120 KB line with
-roughly 10× headroom for a real wordmark; at 600 it would be 1800 px and 2.25× the pixels. **The
-column width is an input to the size budget**, not just to the layout.
-
-**`rem` rather than `px`, deliberately.** Expressed as `25rem`, the cap tracks the reader's default
-text size: someone who has raised it gets a proportionally wider column and keeps the same number of
-characters per line, instead of a measure that tightens as the type grows. Page zoom scales `px` and
-`rem` alike, so the two choices differ only under the default-font-size setting — which is precisely
-the setting a reader with low vision uses.
-
-> The consequence, recorded rather than left to be discovered: §6.5's logo constant is derived from
-> the default root size, so for a reader who has enlarged their default text the logo raster falls
-> below 3×. The logo is decorative and carries `alt=""` (§6.5). Trading its density for text that
-> scales is the right way round.
-
-**The cap is on the content column; the gutter sits outside it.** So "the column width" and "the
-maximum CSS width the logo can occupy" (§6.5) are the same 400 px, with no padding to subtract. The
-gutter's own size is a shape concern (§3) and is free to differ per shape without moving this number.
-
-**§6.5's provisional 1200 px is confirmed, not replaced.** 3 × 400 = 1200 on the longest edge. Because
-the column is capped at the widest phone's content width and is _narrower_ than that on every other
-phone, the fixed constant behaves as a floor rather than a target: a 1200 px raster across a 358 px
-column on a 390 px phone is 3.35×. The constant is at its stated 3× only in the one case it was sized
-for, and better everywhere else.
 
 ---
 
@@ -762,6 +813,19 @@ owner had to connect for themselves.
 Step one is the preset question (§7.3). After that, the flow asks for each thing the owner has not
 covered. **Every step carries an always-present "not for us" escape.** Answer it and you have the
 section; skip it and you don't.
+
+**Two steps are the exception, and the exception follows from §4.6 rather than being a carve-out.**
+The business name and the brand colour are the two required inputs (§3.1, §4.1), and §4.6 forbids
+inventing either — a file missing `style.brand` is collected _by the flow_ precisely because
+defaulting it would be worse. A step that must be answered cannot offer a way past it. Anyone later
+tempted to make the escape truly universal should note that the skip would have to write something,
+and there is nothing right to write.
+
+**The flow also asks for the header's own fields — the tagline and the logo — which §7.3's preset
+table does not cover**, because neither is a preset-selected section; they are header fields (§2.3).
+They always run, and no preset selects them. Without them §7.1's promise that you never face a blank
+field you weren't walked into would fail for the header, and the logo pipeline (§6.6) would have no
+caller.
 
 Required fields missing from an imported file are collected here (§4.6) rather than reported.
 
@@ -961,7 +1025,7 @@ file.
   asymmetry: the same host may be perfectly legitimate for hosting _the builder_.
 - **"Send it to your web person" is a first-class route**, not an afterthought — many small businesses
   have someone who does their website.
-- **Shared links will preview as text** (§6.3), and owners should be told so rather than surprised.
+- **Shared links will preview as text** (§6.4), and owners should be told so rather than surprised.
 
 **What must not be written until it has been walked:** step-by-step instructions. The two questions
 that set the step count — whether a logged-out drop yields a publicly viewable URL, and whether the
@@ -990,8 +1054,8 @@ Ruled out on purpose. The first contributor to ask "why not?" has a written answ
 | **Publishing on the owner's behalf**        | Constraint 6. There is no backend to publish from.                                                                                           |
 | **Tracking whether the file was uploaded**  | §7.7.                                                                                                                                        |
 | **Editing directly on the previewed page**  | §5.2 — it costs the preview-is-the-export guarantee.                                                                                         |
-| **WebP / AVIF export**                      | §6.5.                                                                                                                                        |
-| **Round-trip payload in the exported HTML** | §6.6.                                                                                                                                        |
+| **WebP / AVIF export**                      | §6.6.                                                                                                                                        |
+| **Round-trip payload in the exported HTML** | §6.7.                                                                                                                                        |
 | **Publishing the renderer to npm**          | Not in v1.                                                                                                                                   |
 
 ---
@@ -1025,7 +1089,7 @@ written in the register of a measurement that was not taken is worse than no fin
 person stops looking.
 
 1. **The iOS `accept` behaviour.** Whether a restrictive `accept` list causes the iOS photo library to
-   hand over a JPEG rather than a HEIC, and under which value. §6.5 assumes it helps; it is a hint
+   hand over a JPEG rather than a HEIC, and under which value. §6.6 assumes it helps; it is a hint
    either way, since "All files" is always one tap away.
 
    > **Reasoned, not measured — no iOS device was available.** The documented platform behaviour is
@@ -1037,19 +1101,19 @@ person stops looking.
    > **What did change is that `accept` now carries media types only, and no file extensions.** The
    > usual advice is to list both. On iOS an `accept` containing extensions has been reported to
    > disable the Photo Library option outright, and on a phone-first product that is not a degraded
-   > picker, it is the picker. §6.5's stated benefit — greying a designer's `.ai` out on desktop — is
+   > picker, it is the picker. §6.6's stated benefit — greying a designer's `.ai` out on desktop — is
    > delivered by the media types alone.
    >
    > **The consequence of being wrong is bounded, which is why this stayed a hint.** iOS can decode
-   > HEIC in an `<img>`, so a HEIC that arrives on an iPhone rasterises normally; §6.5's decode-or-fail
+   > HEIC in an `<img>`, so a HEIC that arrives on an iPhone rasterises normally; §6.6's decode-or-fail
    > path already covers the same file arriving anywhere else. **Still to check on a device:** whether
    > the Photo Library option survives this list, which is the one failure that would be silent.
 
-2. **The flat-vs-photo heuristic's reliability.** §6.5. If unique-colour counting proves flaky, the
+2. **The flat-vs-photo heuristic's reliability.** §6.6. If unique-colour counting proves flaky, the
    honest retreat is **PNG-only plus aggressive resizing** — simpler, no detection, correct for every
    logo that is actually a logo, and wrong only for the photograph case.
 
-   > **Measured. The retreat was not taken — but §6.5's stated reason for the heuristic is wrong, and
+   > **Measured. The retreat was not taken — but §6.6's stated reason for the heuristic is wrong, and
    > the real one is different.**
    >
    > 205 images were classified by the shipped counting code: 35 photographs, 6 wordmarks set in 3
@@ -1059,7 +1123,7 @@ person stops looking.
    > corpus and the sampler were assembled for the purpose and run in Node, **not in a browser**: what
    > this measures is the statistic and its thresholds, not a canvas.
    >
-   > **§6.5 says "wordmarks have tens, photographs have thousands". Half of that is true.** Wordmarks
+   > **§6.6 says "wordmarks have tens, photographs have thousands". Half of that is true.** Wordmarks
    > measured 29–510 distinct colours in a 64 × 64 point sample, across every provocation above.
    > Photographs measured 523–3844 — hundreds, often, and not thousands. **The two classes overlap**,
    > and what sits in the overlap is not a wordmark: it is detailed illustration flattened onto white,
@@ -1069,7 +1133,7 @@ person stops looking.
    > 135 opaque flat images were sent to JPEG — every one of them an illustration, never a wordmark —
    > and 3 of 35 photographs were sent to PNG. **The error that a reader can see, ringing around
    > crisp type, did not occur once, with a margin of better than two to one at the worst.** The error
-   > that does occur costs bytes, which §6.4 absorbs by resizing, and which the retreat would have
+   > that does occur costs bytes, which §6.5 absorbs by resizing, and which the retreat would have
    > cost on _every_ photograph rather than on a twelfth of them. Detection is therefore strictly
    > better than the retreat here, not merely defensible.
    >
@@ -1089,17 +1153,17 @@ person stops looking.
    > neither seems likely to move the answer, and both would move it in a direction the threshold's
    > placement already allows for.
 
-3. **Whether 3× is enough at the highest device-pixel ratios.** The column is now pinned (§6.8) and
-   the logo constant with it: **1200 px on the longest edge**. §6.5 claims 3× covers every phone
+3. **Whether 3× is enough at the highest device-pixel ratios.** The column is now pinned (§6.2) and
+   the logo constant with it: **1200 px on the longest edge**. §6.6 claims 3× covers every phone
    shipping today, and the case to check is the Android flagships running a device-pixel ratio of
    3.5 — a 380 px column there asks for about 1330 physical pixels, and 1200 is short of it. If the
    softness is visible on a wordmark, **the honest fix is to raise the constant, not the column**:
-   §6.8's number is load-bearing for §5.2 and §7.6, and §6.4's budget has the headroom.
+   §6.2's number is load-bearing for §5.2 and §7.6, and §6.5's budget has the headroom.
 
    > **Half measured, half not — and the half that matters is the half nobody can settle without a
    > phone.**
    >
-   > **§6.5's claim that "3× covers every phone shipping today" is false, and this is arithmetic
+   > **§6.6's claim that "3× covers every phone shipping today" is false, and this is arithmetic
    > rather than opinion.** A device-pixel ratio of 3.5 is what the Pixel Pro line and the Galaxy S
    > Ultra line at full resolution report, so a 1200 px raster is short of the device's pixels
    > wherever the column is wider than 1200 ÷ 3.5 = **343 CSS px** — which is every phone the column
@@ -1112,13 +1176,13 @@ person stops looking.
    > reasoned estimate and is written here as one.
    >
    > **The cost of removing the question entirely is small enough to record.** 1400 px is 3.5 × 400
-   > and 1.36× the pixel count, which on a real wordmark is single-digit kilobytes against §6.4's
+   > and 1.36× the pixel count, which on a real wordmark is single-digit kilobytes against §6.5's
    > ~120 KB line — the budget cannot feel it. **This was not done**, because the constant appears in
-   > §6.5 and again in §6.8 as a confirmed number and moving it is a spec change rather than an
+   > §6.6 and again in §6.2 as a confirmed number and moving it is a spec change rather than an
    > implementation detail. It is a one-token change in the builder, where the constant is written as
    > the column times a density rather than as 1200.
    >
-   > The second-order case §6.8 already records — a reader who has raised their default text size gets
+   > The second-order case §6.2 already records — a reader who has raised their default text size gets
    > a proportionally wider column while the constant stays derived from the default root — compounds
    > with this one rather than being separate from it.
 
@@ -1139,7 +1203,7 @@ person stops looking.
    > is bounded by the constant, so the largest canvas it ever allocates is 1200 × 1200 ≈ 1.4
    > megapixels, better than ten times under the figure above. **The ceiling therefore binds on
    > decoding the source, not on anything this code allocates**, which is a different limit and one
-   > the source-file size guard (§6.5) is the lever on.
+   > the source-file size guard (§6.6) is the lever on.
    >
    > **The silent-empty-result behaviour is handled by construction rather than by staying under a
    > number.** Every draw is read back and checked for having drawn nothing before it is encoded; a
@@ -1149,9 +1213,11 @@ person stops looking.
    > this is the one guard here that costs something on every upload: a full pixel read-back per
    > draw, which is also item 4's territory.
 
-6. **The final icon and social-platform lists.** The mechanism is decided (§2.4); the contents are
-   transcription — but the list must cover every glyph the preset suggestions in §7.3 imply, plus the
-   generic fallback link glyph.
+6. **The final icon and social-platform lists.** ~~The mechanism is decided (§2.4); the contents are
+   transcription.~~ **Settled** — both lists are enumerated in §2.4, along with the membership rule
+   that keeps them honest: a glyph earns its place only by serving a preset suggestion in §7.3, and
+   that is asserted in both directions, so an unserved suggestion and an unused glyph each fail the
+   build.
 
 ---
 

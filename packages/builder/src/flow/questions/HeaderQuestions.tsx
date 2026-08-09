@@ -7,7 +7,7 @@ import { Field, Question } from "./Question.js";
  * **The name has no escape and that is not an oversight.** §7.2 puts an always-present "not
  * for us" on every step, and it is the two required fields that the sentence cannot reach: a
  * page with no name has nothing to be, `alt=""` on the logo is correct *only* while the name
- * is required and rendered (§6.5), and §4.6 forbids inventing one. So the escape's job — "skip
+ * is required and rendered (§6.6), and §4.6 forbids inventing one. So the escape's job — "skip
  * it and you don't have it" — has no meaning here, and offering one would either produce a
  * nameless page or a made-up name. The tagline beside it is optional and carries the escape in
  * full.
