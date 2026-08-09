@@ -1018,22 +1018,137 @@ Ruled out on purpose. The first contributor to ask "why not?" has a written answ
 These are facts the design depends on that were reasoned about but not measured. None of them changes
 a decision above; each could change a constant or a code path.
 
+**Four of them were taken up when the logo pipeline was built (#31), and the findings are recorded
+under each.** They are labelled **measured** or **reasoned**, and the labels are load-bearing: the
+work was done headless, with no browser and no device, so nothing that needs one was run. A finding
+written in the register of a measurement that was not taken is worse than no finding, because the next
+person stops looking.
+
 1. **The iOS `accept` behaviour.** Whether a restrictive `accept` list causes the iOS photo library to
    hand over a JPEG rather than a HEIC, and under which value. §6.5 assumes it helps; it is a hint
    either way, since "All files" is always one tap away.
+
+   > **Reasoned, not measured — no iOS device was available.** The documented platform behaviour is
+   > that a photo-library item is transcoded to JPEG on the way out unless the page's `accept` names
+   > a HEIC media type, and that a file reached through _Browse_ rather than _Photo Library_ is handed
+   > over untouched. Both point the same way: the explicit list is worth keeping and is worth **not**
+   > naming HEIC in.
+   >
+   > **What did change is that `accept` now carries media types only, and no file extensions.** The
+   > usual advice is to list both. On iOS an `accept` containing extensions has been reported to
+   > disable the Photo Library option outright, and on a phone-first product that is not a degraded
+   > picker, it is the picker. §6.5's stated benefit — greying a designer's `.ai` out on desktop — is
+   > delivered by the media types alone.
+   >
+   > **The consequence of being wrong is bounded, which is why this stayed a hint.** iOS can decode
+   > HEIC in an `<img>`, so a HEIC that arrives on an iPhone rasterises normally; §6.5's decode-or-fail
+   > path already covers the same file arriving anywhere else. **Still to check on a device:** whether
+   > the Photo Library option survives this list, which is the one failure that would be silent.
+
 2. **The flat-vs-photo heuristic's reliability.** §6.5. If unique-colour counting proves flaky, the
    honest retreat is **PNG-only plus aggressive resizing** — simpler, no detection, correct for every
    logo that is actually a logo, and wrong only for the photograph case.
+
+   > **Measured. The retreat was not taken — but §6.5's stated reason for the heuristic is wrong, and
+   > the real one is different.**
+   >
+   > 205 images were classified by the shipped counting code: 35 photographs, 6 wordmarks set in 3
+   > faces and delivered 8 ways each (PNG, JPEG at q72 and q40, on white, on transparency, with a drop
+   > shadow, over a full-frame gradient, and blurred-and-speckled to imitate a photographed sign), 40
+   > SVG logos rasterised at the constant both flattened and transparent, and 30 icon files. The
+   > corpus and the sampler were assembled for the purpose and run in Node, **not in a browser**: what
+   > this measures is the statistic and its thresholds, not a canvas.
+   >
+   > **§6.5 says "wordmarks have tens, photographs have thousands". Half of that is true.** Wordmarks
+   > measured 29–510 distinct colours in a 64 × 64 point sample, across every provocation above.
+   > Photographs measured 523–3844 — hundreds, often, and not thousands. **The two classes overlap**,
+   > and what sits in the overlap is not a wordmark: it is detailed illustration flattened onto white,
+   > for which JPEG at this size is a defensible encoding anyway.
+   >
+   > So the heuristic survives on an asymmetry rather than on a gap. At a threshold of **1200**, 5 of
+   > 135 opaque flat images were sent to JPEG — every one of them an illustration, never a wordmark —
+   > and 3 of 35 photographs were sent to PNG. **The error that a reader can see, ringing around
+   > crisp type, did not occur once, with a margin of better than two to one at the worst.** The error
+   > that does occur costs bytes, which §6.4 absorbs by resizing, and which the retreat would have
+   > cost on _every_ photograph rather than on a twelfth of them. Detection is therefore strictly
+   > better than the retreat here, not merely defensible.
+   >
+   > Two parameters came out the opposite way round from the obvious guess, both measured:
+   >
+   > - **Quantising the colour before counting makes the separation worse.** Five bits per channel —
+   >   the obvious defence against a resampler inventing colours along an antialiased edge — collapses
+   >   a low-key photograph (a rose, a sunset, an overcast street) into a handful of buckets far
+   >   faster than it collapses an edge. Counting at full depth separates the classes best.
+   > - **The sample must be drawn without smoothing, and 64 × 64 beats 128 × 128.** An averaging
+   >   resampler invents colours along every edge and loses them in the middle of a photograph, moving
+   >   both classes toward each other.
+   >
+   > **What was not measured:** a browser canvas's own downscaling, which is what the sample is drawn
+   > with in production and which is not identical to the sampler used here; and a corpus of real
+   > small-business logos, which does not exist to hand. The wordmark margin is wide enough that
+   > neither seems likely to move the answer, and both would move it in a direction the threshold's
+   > placement already allows for.
+
 3. **Whether 3× is enough at the highest device-pixel ratios.** The column is now pinned (§6.8) and
    the logo constant with it: **1200 px on the longest edge**. §6.5 claims 3× covers every phone
    shipping today, and the case to check is the Android flagships running a device-pixel ratio of
    3.5 — a 380 px column there asks for about 1330 physical pixels, and 1200 is short of it. If the
    softness is visible on a wordmark, **the honest fix is to raise the constant, not the column**:
    §6.8's number is load-bearing for §5.2 and §7.6, and §6.4's budget has the headroom.
+
+   > **Half measured, half not — and the half that matters is the half nobody can settle without a
+   > phone.**
+   >
+   > **§6.5's claim that "3× covers every phone shipping today" is false, and this is arithmetic
+   > rather than opinion.** A device-pixel ratio of 3.5 is what the Pixel Pro line and the Galaxy S
+   > Ultra line at full resolution report, so a 1200 px raster is short of the device's pixels
+   > wherever the column is wider than 1200 ÷ 3.5 = **343 CSS px** — which is every phone the column
+   > was sized for. On a 412 px viewport with a 16 px gutter each side the column is 380 px, wants
+   > 1330 physical pixels, and gets 1200: **90% of the device's resolution, an upscale of about 11%.**
+   >
+   > **Whether 11% is visible on a wordmark was not measured and cannot be, headless.** The reasoning
+   > that says it is not: at 3.16 raster pixels per CSS pixel the logo still resolves past roughly 450
+   > ppi on such a screen, well beyond where the eye stops resolving at reading distance. That is a
+   > reasoned estimate and is written here as one.
+   >
+   > **The cost of removing the question entirely is small enough to record.** 1400 px is 3.5 × 400
+   > and 1.36× the pixel count, which on a real wordmark is single-digit kilobytes against §6.4's
+   > ~120 KB line — the budget cannot feel it. **This was not done**, because the constant appears in
+   > §6.5 and again in §6.8 as a confirmed number and moving it is a spec change rather than an
+   > implementation detail. It is a one-token change in the builder, where the constant is written as
+   > the column times a density rather than as 1200.
+   >
+   > The second-order case §6.8 already records — a reader who has raised their default text size gets
+   > a proportionally wider column while the constant stays derived from the default root — compounds
+   > with this one rather than being separate from it.
+
 4. **Real encode and decode timing** for a large image on a genuinely low-end Android and an older
    iPhone. No trustworthy data was found, and none is assumed above.
+
 5. **The iOS canvas-area ceiling** and its silent-empty-result behaviour, which bounds how large a
    source image can be decoded before resizing.
+
+   > **The ceiling itself: reasoned. The response to it: implemented and tested.**
+   >
+   > The figure in circulation for modern iOS is about 16.7 million pixels of canvas backing store,
+   > with the failure being a canvas that stays transparent and a `drawImage` that returns normally.
+   > No device was available to confirm either the number or the behaviour.
+   >
+   > **What can be stated without a device is that the pipeline never approaches it.** It draws
+   > exactly twice — once at 64 × 64 to look at the content, once at the output size — and the output
+   > is bounded by the constant, so the largest canvas it ever allocates is 1200 × 1200 ≈ 1.4
+   > megapixels, better than ten times under the figure above. **The ceiling therefore binds on
+   > decoding the source, not on anything this code allocates**, which is a different limit and one
+   > the source-file size guard (§6.5) is the lever on.
+   >
+   > **The silent-empty-result behaviour is handled by construction rather than by staying under a
+   > number.** Every draw is read back and checked for having drawn nothing before it is encoded; a
+   > blank result at the output size halves the size and retries, and a blank result at 64 × 64 —
+   > where no ceiling can plausibly bind — is reported as a file we cannot read. The recovery is
+   > exercised by unit tests against a decoder that fails exactly this way. It is worth noting that
+   > this is the one guard here that costs something on every upload: a full pixel read-back per
+   > draw, which is also item 4's territory.
+
 6. **The final icon and social-platform lists.** The mechanism is decided (§2.4); the contents are
    transcription — but the list must cover every glyph the preset suggestions in §7.3 imply, plus the
    generic fallback link glyph.
