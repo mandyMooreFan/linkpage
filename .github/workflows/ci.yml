@@ -56,3 +56,66 @@ jobs:
 
       - name: Check formatting
         run: pnpm format:check
+
+  # `SPEC.md` §5.3's single end-to-end: the downloaded file is the preview, and it renders from
+  # `file://` with the network off. It is a job of its own rather than two more steps on the
+  # matrix above, because it is the only thing here that needs a browser and it must not put one
+  # on the critical path — the Node 24/26 lines stay a minute long and stay the fast signal.
+  #
+  # One Node version, one browser, one worker, no retries. See `packages/builder/playwright.config.ts`.
+  e2e:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # The version `.nvmrc` pins. The end-to-end is about the browser, not about Node, so
+          # running it twice would buy nothing and cost a browser download.
+          node-version: 24
+
+      # Same ordering constraint as the matrix job above: Corepack after setup-node.
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-24-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-24-
+
+      - run: pnpm install --frozen-lockfile
+
+      # Keyed on the Playwright version because that is what decides which browser build is
+      # wanted: a bump invalidates the cache, and nothing else needs to.
+      - name: Read the Playwright version
+        id: playwright
+        run: |
+          echo "version=$(node -p "require('./packages/builder/node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
+      # Chromium's headless shell alone — no Firefox, no WebKit, and not the full headed
+      # Chromium either. `--with-deps` runs every time even on a cache hit: the browser binaries
+      # are cached but the runner's apt packages are not, and a browser that fails to launch
+      # reads as flakiness rather than as the missing library it is.
+      - name: Install Chromium
+        run: pnpm --filter @linkpage/builder exec playwright install --with-deps --only-shell chromium
+
+      # Builds the builder and serves `dist` itself — see the `webServer` block in the config.
+      - run: pnpm test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-trace
+          path: packages/builder/test-results/
+          retention-days: 7
