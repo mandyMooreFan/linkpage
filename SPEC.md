@@ -359,7 +359,29 @@ reader, and bumping would make an older builder _refuse_ a file it could have ha
 - `version: 1` covers every additive change until something actually breaks.
 - Breaking = a rename, a type change, a removal, or a change in what an existing value _means_.
 - **A missing `version` reads as `1`** — the lenient assumption, since the only files plausibly
-  omitting it are the oldest ones we can definitely read.
+  omitting it are the oldest ones we can definitely read. An explicit `null` reads the same way:
+  `null` is JSON's own spelling of _no value_, so it makes no claim either.
+- **A `version` that is present but is not a whole number `>= 0` refuses the file** — `"2"`, `1.5`,
+  `-1`, `{}`. This is the one place §4.4's _wrong-typed reads as absent_ does not apply, and the
+  exemption is the point rather than an oversight.
+
+**Absent and unreadable are different claims.** Absent says the file makes no claim about its
+version, and reading it as `1` is safely lenient. A value we cannot read says the file _does_ claim
+a version and we cannot tell which — and reading that as "no claim" throws away the only signal
+there is. Compose leniency with §4.4 and a file carrying `"version": "2"` reads as absent, therefore
+as `1`, therefore **loads**: a v2 file walking past §4.3's forwards refusal on a type error rather
+than a version check, into exactly the partial-load-then-autosave data loss §4.3 exists to make
+unreachable. Everywhere else in the schema a wrong-typed value costs a preference; here it costs the
+file.
+
+Coercion — reading `"2"` as `2` and then refusing it as too new — was considered and rejected. It is
+friendlier for the one hand-edit we can guess at, but coercion rules are a surface that only grows,
+and the refusal already tells the person who hand-edited the file what they did.
+
+The refusal reuses _"This file appears to be damaged."_ (§4.6) — no new message and no new concept,
+since an unreadable `version` is a damaged file by any reading. It also keeps §4.3's **`version` is
+the only thing allowed to refuse anything** literally true, and arguably truer: the refusal follows
+from the version field either way.
 
 **There is no timestamp and no hash.** A compatibility version answers _can this reader read this
 file_ and needs **ordering**; a provenance stamp answers _when was this made_ and does a different
@@ -448,7 +470,7 @@ is untouched.
 apply, never touch the existing project on the way to failing:
 
 1. It is not parseable JSON, or not a JSON object.
-2. Its `version` is beyond us.
+2. Its `version` is one we cannot honour — beyond us, or present and unreadable (§4.2).
 
 **Everything else loads.** A file missing required fields is loaded for what it has, and **anything
 required that is missing is collected by the flow** (§7.2). A file with no `style.brand` is exactly
@@ -456,17 +478,19 @@ the territory the flow exists for, so the owner is walked through the colour que
 ticked a new section. No error, no repair dialog, no invented default.
 
 **Wrong-typed values follow §4.4's rule:** treated as absent for rendering, preserved verbatim in the
-file.
+file. **`version` is the sole exception** (§4.2): a wrong-typed `version` refuses, because reading it
+as absent is how a file too new to load gets loaded anyway.
 
-**Two refusal messages**, because the owner can act differently on each:
+**Three refusal messages**, because the owner can act differently on each:
 
-| Case                | Message                                                                                    |
-| ------------------- | ------------------------------------------------------------------------------------------ |
-| Did not parse       | _"This file appears to be damaged."_                                                       |
-| Parsed, wrong thing | _"This doesn't look like a linkpage file."_                                                |
-| Version too new     | _"This page was made with a newer version of linkpage"_ — with the canonical URL as a link |
+| Case                 | Message                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| Did not parse        | _"This file appears to be damaged."_                                                       |
+| Parsed, wrong thing  | _"This doesn't look like a linkpage file."_                                                |
+| `version` unreadable | _"This file appears to be damaged."_ — the same message; it is the same kind of trouble    |
+| Version too new      | _"This page was made with a newer version of linkpage"_ — with the canonical URL as a link |
 
-Neither names a JSON path. **Technical detail sits behind a disclosure** — invisible to the owner,
+None of them names a JSON path. **Technical detail sits behind a disclosure** — invisible to the owner,
 one click away for whoever hand-edited the file.
 
 Repair-and-report — listing what could not be read — is rejected. It is the most transparent option

@@ -168,7 +168,8 @@ describe("a file from an older builder", () => {
   });
 
   it("leaves a version it can already read exactly as it found it", () => {
-    const document = reopen('{"version": "1", "lang": "en"}');
-    expect(writeDraft(readDraft(document), document)["version"]).toBe("1");
+    // A version below ours is one we can read, so saving does not renumber the file.
+    const document = reopen('{"version": 0, "lang": "en"}');
+    expect(writeDraft(readDraft(document), document)["version"]).toBe(0);
   });
 });

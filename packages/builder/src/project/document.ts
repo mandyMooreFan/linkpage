@@ -8,10 +8,11 @@ import { SCHEMA_VERSION } from "@linkpage/renderer";
  * `schema.ts`, `store.ts`, the screens — is total: it reads what it understands, leaves
  * alone what it does not, and never rejects.
  *
- * **Two refusals, and only two** (§4.6): the text is not a JSON object, or its `version` is
- * beyond us. A file missing required fields is not a refusal — it loads for what it has and
- * the flow collects the rest (§7.2). A file with an unrecognised `shape` is not a refusal —
- * it falls back for rendering and keeps its value in the file (§4.4).
+ * **Two refusals, and only two** (§4.6): the text is not a JSON object, or its `version` is one
+ * we cannot honour — beyond us, or a claim we cannot read at all (§4.2). A file missing required
+ * fields is not a refusal — it loads for what it has and the flow collects the rest (§7.2). A file
+ * with an unrecognised `shape` is not a refusal — it falls back for rendering and keeps its value
+ * in the file (§4.4).
  */
 
 /** A JSON object. The parsed file, exactly as it arrived — including keys we know nothing about. */
@@ -97,16 +98,33 @@ function describe(value: unknown): string {
 }
 
 /**
- * The file's `version`, as a number (§4.2).
+ * A value as it appeared in the file, for the disclosure text.
  *
- * Absent reads as `1`. So does anything that is not a number, because §4.4 and §4.6 treat a
- * wrong-typed value as absent everywhere else in the schema and `version` gets no exemption
- * from that — only a genuine number can be *beyond us*. A hand-typed `"2"` therefore loads,
- * which is the deliberate cost of not having a second rule for one field.
+ * Quoted where JSON quotes it, so `"2"` and `2` are distinguishable on the page — which is the
+ * whole of what the person who hand-edited the file needs to see.
  */
-export function readVersion(document: JsonRecord): number {
+function show(value: unknown): string {
+  return JSON.stringify(value) ?? String(value);
+}
+
+/**
+ * The file's `version` claim (§4.2): the number it claims, or `null` for a claim we cannot read.
+ *
+ * **Absent and unreadable are different claims.** Absent means the file says nothing about its
+ * version, and reading it as `IMPLIED_VERSION` is safely lenient. `null` reads the same way — it
+ * is JSON's own spelling of "no value", and carries no version information to lose. Anything else
+ * present *is* a claim: `"2"`, `1.5`, `-1`, `{}` all say the file has a version while leaving us
+ * unable to tell which. Reading those as absent is how a v2 file walks past §4.3's forwards
+ * refusal on a type error rather than a version check, into the partial-load-then-autosave data
+ * loss §4.3 exists to make unreachable. So they read as `null` and the caller refuses.
+ *
+ * This is the single place §4.4's "wrong-typed reads as absent" does not apply, and it earns the
+ * exemption: everywhere else a wrong-typed value costs a preference, and here it costs the file.
+ */
+export function readVersion(document: JsonRecord): number | null {
   const raw = document["version"];
-  return typeof raw === "number" && Number.isFinite(raw) ? raw : IMPLIED_VERSION;
+  if (raw === undefined || raw === null) return IMPLIED_VERSION;
+  return typeof raw === "number" && Number.isInteger(raw) && raw >= 0 ? raw : null;
 }
 
 /**
@@ -132,6 +150,13 @@ export function readProjectFile(text: string): ReadResult {
   }
 
   const version = readVersion(parsed);
+  if (version === null) {
+    return refuse(
+      "damaged",
+      `The file's version is ${show(parsed["version"])}, not a whole number, so which version ` +
+        `it claims cannot be read.`,
+    );
+  }
   if (version > SCHEMA_VERSION) {
     return refuse(
       "too-new",
