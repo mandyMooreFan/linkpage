@@ -472,6 +472,17 @@ function addressSection(value: unknown): string {
  * example — Simple Icons removed the mark at LinkedIn's request (§2.4), so a LinkedIn profile
  * travels the same path every unnamed platform takes.
  *
+ * **And an unrecognised platform shows its name, where a recognised one does not.** A row of
+ * marks identifies each entry by its mark; an entry with no mark has nothing to identify it,
+ * and *two* of them are two identical chain-links side by side with nothing to tell them apart.
+ * A screen reader was always fine here — the name below is real text either way — so this is
+ * the sighted reader getting what assistive technology already had.
+ *
+ * The name costs nothing to show. It is already computed, already correct, and a platform name
+ * is a proper noun, so unlike §2.5's vocabulary it needs no translation. The asymmetry is
+ * information rather than untidiness: a labelled entry is one we have no mark for, which is
+ * exactly what the owner is looking at.
+ *
  * **The accessible name is real text, not an `aria-label`.** A link whose only visible content
  * is an `aria-hidden` mark still needs a name, and a visually-hidden span is text a translator
  * and a "find in page" can both see. The name is the platform's own spelling where we have one
@@ -499,12 +510,20 @@ function socialLink(value: unknown): string {
   if (href === undefined) return "";
 
   const platform = entry?.platform;
+  const marked = socialLabel(platform) !== "";
   const name = socialLabel(platform) || hostOf(href) || asText(platform) || href;
 
+  // Marked: the mark identifies it and the name is for assistive technology only. Unmarked:
+  // the glyph identifies nothing, so the name is shown and needs no second copy.
+  const nameSpan = marked
+    ? `<span class="lp-sr">${escapeHtml(name)}</span>`
+    : `<span class="lp-social-name">${escapeHtml(name)}</span>`;
+  const linkClass = marked ? "lp-social-link" : "lp-social-link lp-social-link--named";
+
   return (
-    `<li><a class="lp-social-link" itemprop="sameAs" href="${escapeHtml(href)}">` +
+    `<li><a class="${linkClass}" itemprop="sameAs" href="${escapeHtml(href)}">` +
     `${socialIconSvg(platform)}` +
-    `<span class="lp-sr">${escapeHtml(name)}</span></a></li>`
+    `${nameSpan}</a></li>`
   );
 }
 
