@@ -36,10 +36,13 @@ import { asArray, asPositiveInt, asRecord, asText } from "./values.js";
  * and the corner slider (§3.1) reach the page entirely through the stylesheet — see
  * `chrome.ts` — so all twelve combinations emit byte-identical `<main>` content. That is not a
  * coincidence to be preserved by luck: it is what keeps a shape a *presentation* choice, and
- * it means §6.3's microdata and everything else attached to the markup is written once.
+ * it is why §6.3's microdata below is written once and holds for all twelve.
  *
- * One thing deliberately left out, because it belongs to the issue that owns it: the export's
- * structural guarantees — microdata, provenance, the size assertion (#28).
+ * **It is deterministic** (§6.6). The only input is the argument: nothing here reads a clock,
+ * a random source, an environment variable or a file, so the same `project.json` produces a
+ * byte-identical `index.html`. `size.test.ts` renders twice and diffs, and pins the chrome
+ * against §6.4's 30 KB. The guarantee is the renderer's, not the pipeline's — the logo was
+ * encoded once in the builder and arrives here as a string.
  */
 export function render(project: Project): string {
   // `project` is typed, but types are a compile-time promise and this function has to survive
@@ -66,15 +69,17 @@ export function render(project: Project): string {
 
   return [
     "<!doctype html>",
+    PROVENANCE,
     `<html lang="${escapeHtml(language(root?.lang))}">`,
     "<head>",
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     `<title>${escapeHtml(documentTitle(root?.header))}</title>`,
+    ...metaTags(root?.header),
     `<style>${stylesheet(palette, chrome)}</style>`,
     "</head>",
     "<body>",
-    '<main class="lp-page">',
+    `<main class="lp-page" itemscope itemtype="${LOCAL_BUSINESS}">`,
     ...sections,
     "</main>",
     "</body>",
@@ -86,6 +91,80 @@ export function render(project: Project): string {
 // The document
 // ---------------------------------------------------------------------------
 
+/**
+ * The `LocalBusiness` type the page describes itself as, and the whole of §6.3's structured
+ * data mechanism.
+ *
+ * **Microdata attributes, never JSON-LD.** JSON-LD is the shape everyone reaches for and it
+ * requires a `<script type="application/ld+json">` tag, which invariant 1 (§5.3) forbids
+ * absolutely — the export ships zero JavaScript, and the guard does not read `type` before
+ * failing. Microdata carries the same graph as `itemscope` / `itemtype` / `itemprop`
+ * attributes on the elements that are already here, so the whole thing costs a few hundred
+ * bytes, adds no element, and cannot restate the page wrongly: every value a consumer reads is
+ * text a visitor can also see.
+ *
+ * That last property is why there is **no `openingHours`, no `geo` and no `priceRange`**.
+ * Those would need `<meta itemprop content="…">` elements — invisible content, in a format
+ * (`Mo-Fr 09:00-17:00`) that is ours rather than the owner's, restating rows the page already
+ * shows in the owner's chosen clock. §6.3 asks for attributes, and an attribute has to hang on
+ * something the owner wrote.
+ *
+ * `address` is the plain-text one and that is not a compromise: schema.org accepts `Text` for
+ * it, so §2.3's decision to keep the address free text — the decision that spares a UK florist
+ * from a "state" field — costs nothing here.
+ *
+ * **The whole graph, as `validator.schema.org` extracts it from `POPULATED`:** one
+ * `LocalBusiness`, zero errors and zero warnings, carrying `name`, `description`, `telephone`,
+ * `email`, one `sameAs` per social profile, and an `address` promoted to a `PostalAddress`
+ * whose `name` is the owner's lines. `hasMap` is emitted, valid, and not surfaced by that
+ * particular tool — see `addressSection`. `logo` was tried and removed — see `headerSection`.
+ */
+const LOCAL_BUSINESS = "https://schema.org/LocalBusiness";
+
+/**
+ * §6.6's provenance, in the two forms it permits and no third one.
+ *
+ * **No visible credit in any form.** Not a footer, not a link, not the browser tab (see
+ * `documentTitle`), not a comment the CSS reveals. A person who wonders what made this file
+ * opens it and reads line two; a machine reads the `generator` meta. Both are inert.
+ *
+ * Kept to ASCII deliberately: the comment sits ahead of `<meta charset>`, and bytes before the
+ * declaration are bytes a browser has to guess at.
+ */
+const PROVENANCE = "<!-- Built with linkpage: https://github.com/mandyMooreFan/linkpage -->";
+const GENERATOR = '<meta name="generator" content="linkpage">';
+
+/**
+ * The `<head>` meta beyond charset and viewport: a description when the owner wrote one, and
+ * the generator tag.
+ *
+ * **`og:image` is structurally impossible and is not faked** (§6.3). A scraper needs a URL it
+ * can fetch, the export is one file, and there is no second file to point at — a `data:` URI
+ * in `og:image` is rejected by every scraper that matters, so emitting one would be a promise
+ * we know does not hold. **Shared links preview as text, permanently**, and the builder owes
+ * the owner that sentence rather than a tag that looks like it worked.
+ *
+ * **`og:title` and `og:description` are left out too**, for a different reason: they are not
+ * impossible, they are inert. Every scraper falls back to `<title>` and `<meta
+ * name="description">` when the `og:` block is absent, so the pair buys no better preview than
+ * the two tags above it — and a partial `og:` block reads, to the next person editing this
+ * file, like an image tag someone forgot.
+ *
+ * **No `canonical`** either. The whole point of the export is that the owner drops it wherever
+ * they like (§8), so this renderer does not know the page's URL and any value would be a guess
+ * that outranks the real one.
+ *
+ * The description is the tagline and only the tagline. Falling back to the business name would
+ * put the title in the snippet twice, and there is nothing else on the page the owner offered
+ * as a description of themselves.
+ */
+function metaTags(value: unknown): string[] {
+  const tagline = asText(asRecord(value)?.tagline);
+  const description =
+    tagline === undefined ? [] : [`<meta name="description" content="${escapeHtml(tagline)}">`];
+  return [...description, GENERATOR];
+}
+
 /** A BCP 47 tag's shape: subtags of one to eight alphanumerics, joined by hyphens. */
 const LANGUAGE_TAG = /^[A-Za-z]{1,8}(-[A-Za-z0-9]{1,8})*$/;
 
@@ -95,7 +174,13 @@ const LANGUAGE_TAG = /^[A-Za-z]{1,8}(-[A-Za-z0-9]{1,8})*$/;
  * Shape-checked rather than passed through, for the same reason every other value here is: an
  * arbitrary string in an attribute is how a hand-edited file would reach the one place the
  * page's markup is not the owner's content. Anything that is not tag-shaped is absent (§4.7).
- * #28 owns the rest of the export's structural guarantees.
+ *
+ * > **The declaration is honest about the owner's content and not about ours.** The weekday
+ * > abbreviations and "Closed" in `hours.ts` are English on every page whichever tag lands
+ * > here. That gap is real, it is recorded in #48, and it is not fixed by weakening this: a
+ * > page whose content is Welsh should say so. `Intl` is ruled out there because its output
+ * > tracks the host's ICU data, which would cost §6.6's byte-identical guarantee and, with it,
+ * > §5.2's "the preview *is* the export".
  */
 function language(value: unknown): string {
   const tag = asText(value);
@@ -129,6 +214,17 @@ const DATA_IMAGE = /^data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/]+={0,2}$/;
  * available as text. `width` and `height` are emitted because the builder knows both at
  * normalisation time and they prevent layout shift while the data URI decodes.
  *
+ * §6.3's `name` and `description` hang on the two elements that were here already.
+ *
+ * > **There is deliberately no `itemprop="logo"` on the `<img>`, and it was tried.** Microdata
+ * > would take the property's value from `src`, which is a `data:` URI — and put through
+ * > `validator.schema.org`, an `https:` logo is extracted while the identical markup with a
+ * > `data:` URI is silently dropped, no error and no warning. That is §6.3's `og:image`
+ * > sentence arriving in a different attribute: a consumer wants a logo it can fetch and
+ * > display somewhere else, and there is no second file to point it at. Emitting a property
+ * > the tooling discards would buy nothing and would teach the next reader that image URLs
+ * > work here, which is how someone eventually "fixes" `og:image` with a data URI.
+ *
  * > The dependency §6.5 asks to be preserved: `alt=""` is correct only while `name` is
  * > required and rendered. A hand-edited file with a logo and no name is the one case where it
  * > is not, and it is left as-is — inventing alt text for an image we have never seen would be
@@ -142,8 +238,10 @@ function headerSection(value: unknown): string {
 
   const parts = [
     logo,
-    name === undefined ? "" : `<h1 class="lp-name">${escapeHtml(name)}</h1>`,
-    tagline === undefined ? "" : `<p class="lp-tagline">${escapeHtml(tagline)}</p>`,
+    name === undefined ? "" : `<h1 class="lp-name" itemprop="name">${escapeHtml(name)}</h1>`,
+    tagline === undefined
+      ? ""
+      : `<p class="lp-tagline" itemprop="description">${escapeHtml(tagline)}</p>`,
   ].filter((part) => part !== "");
 
   if (parts.length === 0) return "";
@@ -257,23 +355,34 @@ const EMAIL = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+
  * details are content the owner typed, so §4.4's rule that owner data is kept rather than
  * dropped applies: an extension written in prose is worth showing even when it cannot be
  * dialled by tapping.
+ *
+ * §6.3's `telephone` and `email` sit on the `<span>` rather than on the `<a>`, and that is the
+ * one place the choice matters: microdata takes an `<a>`'s value from its `href`, which would
+ * publish `tel:+442071234567` — our normalisation — where schema.org asks for the number.
+ * On the span the property is the text the owner typed, which is also the text on the page, and
+ * it still works for a detail we could not turn into a link at all.
  */
 function contactSection(value: unknown): string {
   const contact = asRecord(value);
   if (!contact) return "";
 
   const rows = [
-    contactRow(asText(contact.phone), telHref(contact.phone), glyphSvg(ICONS.phone)),
-    contactRow(asText(contact.email), mailtoHref(contact.email), glyphSvg(ICONS.mail)),
+    contactRow(asText(contact.phone), telHref(contact.phone), glyphSvg(ICONS.phone), "telephone"),
+    contactRow(asText(contact.email), mailtoHref(contact.email), glyphSvg(ICONS.mail), "email"),
   ].filter((row) => row !== "");
 
   if (rows.length === 0) return "";
   return `<section class="lp-panel">\n<ul class="lp-rows">\n${rows.join("\n")}\n</ul>\n</section>`;
 }
 
-function contactRow(text: string | undefined, href: string | undefined, icon: string): string {
+function contactRow(
+  text: string | undefined,
+  href: string | undefined,
+  icon: string,
+  itemprop: string,
+): string {
   if (text === undefined) return "";
-  const body = `${icon}<span>${escapeHtml(text)}</span>`;
+  const body = `${icon}<span itemprop="${itemprop}">${escapeHtml(text)}</span>`;
   return href === undefined
     ? `<li class="lp-row">${body}</li>`
     : `<li><a class="lp-row" href="${escapeHtml(href)}">${body}</a></li>`;
@@ -317,6 +426,24 @@ function mailtoHref(value: unknown): string | undefined {
  * a subresource and invariant 2 forbids it, so a link out is the only answer to "where are
  * you" — and making the address the link text means the link needs no invented label and its
  * accessible name is the address, which is exactly what it goes to.
+ *
+ * **The two §6.3 properties here split across the two elements the section already had.**
+ * `hasMap` goes on the `<a>`, where microdata reads the `href` and a map URL is exactly what
+ * the property wants. `address` goes on the inner `<span>`, where it reads the text — the
+ * free-text form schema.org accepts as `Text`, which is why §2.3's decision costs nothing. Put
+ * through `validator.schema.org` the address is promoted to a `PostalAddress` whose `name` is
+ * the owner's lines, with no error and no warning.
+ *
+ * > `hasMap` is a `Place` property, it validates, and that same tool does not list it in the
+ * > graph it extracts — measured, not assumed. It is kept anyway: it is seventeen bytes, it is
+ * > true, and a generic microdata reader takes it. That is a different situation from the logo
+ * > in `headerSection`, which is dropped because the value cannot be fetched at all.
+ *
+ * The line break carries a newline as well as a `<br>` so that text is *readable* when read as
+ * a property: `textContent` ignores the `<br>`, and without the newline a consumer would be
+ * handed `12 Baker StreetLondonNW1 6XE` rather than `12 Baker Street London NW1 6XE`.
+ * Whitespace after a forced break is dropped when the page is laid out, so nothing about how it
+ * looks changes.
  */
 function addressSection(value: unknown): string {
   const address = asRecord(value);
@@ -328,13 +455,14 @@ function addressSection(value: unknown): string {
   if (lines.length === 0) return "";
 
   const icon = glyphSvg(ICONS.location);
-  const body = `${icon}<span>${lines.map((line) => escapeHtml(line)).join("<br>")}</span>`;
+  const text = lines.map((line) => escapeHtml(line)).join("<br>\n");
+  const body = `${icon}<span itemprop="address">${text}</span>`;
   const href = safeUrl(address.directionsUrl);
 
   const block =
     href === undefined
       ? `<p class="lp-address">${body}</p>`
-      : `<a class="lp-address" href="${escapeHtml(href)}">${body}</a>`;
+      : `<a class="lp-address" itemprop="hasMap" href="${escapeHtml(href)}">${body}</a>`;
 
   return `<section class="lp-panel">\n${block}\n</section>`;
 }
@@ -356,6 +484,12 @@ function addressSection(value: unknown): string {
  * and a "find in page" can both see. The name is the platform's own spelling where we have one
  * — no rule capitalises `tiktok` into `TikTok` — then the URL's host, which is better material
  * than a capitalisation rule applied to `"my-forum"`.
+ *
+ * **`sameAs` is the last of §6.3's properties**, and the one microdata gets for free: on an
+ * `<a>` the property's value is the `href`, so a row of profile links is already the list of
+ * other places this business is, in the exact form schema.org asks for. The link buttons above
+ * deliberately get nothing — a link to a booking system is not a claim about identity, and
+ * there is no property that fits it without inventing one.
  */
 function socialSection(value: unknown): string {
   const items = asArray(value)
@@ -375,7 +509,8 @@ function socialLink(value: unknown): string {
   const name = socialLabel(platform) || hostOf(href) || asText(platform) || href;
 
   return (
-    `<li><a class="lp-social-link" href="${escapeHtml(href)}">${socialIconSvg(platform)}` +
+    `<li><a class="lp-social-link" itemprop="sameAs" href="${escapeHtml(href)}">` +
+    `${socialIconSvg(platform)}` +
     `<span class="lp-sr">${escapeHtml(name)}</span></a></li>`
   );
 }

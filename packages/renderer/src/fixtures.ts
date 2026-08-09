@@ -9,6 +9,7 @@
  * **Test support, not shipped code** — `tsconfig.build.json` excludes it alongside the tests.
  */
 
+import { ICON_NAMES, SOCIAL_PLATFORMS } from "./icons.js";
 import { SCHEMA_VERSION, type Project, type Style } from "./project.js";
 
 const style: Style = {
@@ -107,5 +108,108 @@ export const DAMAGED = {
   hourz: { mon: "9-5" },
 } as unknown as Project;
 
+/**
+ * The worst realistic case for §6.4's chrome budget: as much page as a real business plausibly
+ * builds, in the combination of controls that emits the most CSS.
+ *
+ * **Realistic, not adversarial.** A hand-edited file can hold ten thousand links and no budget
+ * survives that, which is why §6.4 is "a budget, not a gate" and is "enforced by bounding the
+ * inputs, never by refusing to export" — a hard cap would strand an owner from their own page.
+ * What this fixture claims is the upper end of what the builder's flow produces: every field
+ * filled, every list long enough that the next entry is a rounding error.
+ *
+ * Every number here is chosen against something:
+ *
+ * - **Twelve links**, because §7.5 argues drag-and-drop only beats arrows at "moving item 12 to
+ *   position 3" and calls that a length this list never reaches. Twelve is that ceiling, with
+ *   labels at the length where a button starts wrapping.
+ * - **Every day open twice**, on the 12-hour clock — seven rows of two intervals is the most
+ *   `hours.ts` can produce, and `9:00 AM – 5:00 PM` is longer than `09:00 – 17:00`.
+ * - **Every vendored mark plus one without**, which is both the longest social row available
+ *   and the most inline SVG the page can carry. This is where the page's bytes actually are:
+ *   twenty-six glyphs are about 15 KB of the 24 KB `size.test.ts` measures, against 3.4 KB of
+ *   stylesheet. **The icon set is the chrome budget**, and §2.4's growth rule is what keeps it
+ *   in range.
+ * - **`ruledLeft` and `classic`**, measured rather than assumed to be the expensive pair.
+ *   `ruledLeft` is the longest of the three shape deltas, and `classic` is the only pairing
+ *   that names two font stacks — `friendly` has the longer single stack and still comes out
+ *   smaller. All four shapes and all three pairings land within 400 bytes of each other, which
+ *   is `chrome.ts`'s "base + tokens + at most one delta" showing up in the measurement.
+ * - **No logo**, because the logo is not chrome: §6.4 budgets it separately at ~120 KB, and
+ *   `size.test.ts` measures the two apart for exactly that reason.
+ */
+export const MAXIMAL: Project = {
+  version: SCHEMA_VERSION,
+  lang: "en-GB",
+  style: { ...style, shape: "ruledLeft", type: "classic", corners: 0.7 },
+  header: {
+    name: "The Hebden Bridge Bakehouse & Coffee Room",
+    tagline: "Sourdough, pastries and very good coffee, baked fresh every morning since 1994",
+    logo: null,
+  },
+  links: ICON_NAMES.slice(0, 12).map((icon, i) => ({
+    label: `Order ${icon} online for collection or delivery`,
+    url: `https://hebdenbridgebakehouse.example/order/${i}`,
+    icon,
+  })),
+  hours: {
+    clock: "12h",
+    weekStart: "mon",
+    days: {
+      mon: [
+        ["07:30", "11:45"],
+        ["12:30", "17:15"],
+      ],
+      tue: [
+        ["07:30", "11:45"],
+        ["12:30", "17:15"],
+      ],
+      wed: [
+        ["07:30", "11:45"],
+        ["12:30", "17:15"],
+      ],
+      thu: [
+        ["07:30", "11:45"],
+        ["12:30", "17:15"],
+      ],
+      fri: [
+        ["07:30", "11:45"],
+        ["12:30", "17:15"],
+      ],
+      sat: [
+        ["08:00", "12:00"],
+        ["13:00", "20:30"],
+      ],
+      sun: [
+        ["09:00", "12:00"],
+        ["13:00", "16:00"],
+      ],
+    },
+    note: "Bank holidays vary — we post the week's hours on Instagram every Sunday evening.",
+  },
+  contact: {
+    phone: "+44 (0)1422 555 0199",
+    email: "hello@hebdenbridgebakehouse.example",
+  },
+  address: {
+    lines: [
+      "The Old Weaving Shed",
+      "12 Bridge Street",
+      "Hebden Bridge",
+      "West Yorkshire",
+      "HX7 8AA",
+    ],
+    directionsUrl:
+      "https://maps.example/?q=The+Old+Weaving+Shed%2C+12+Bridge+Street%2C+Hebden+Bridge%2C+HX7+8AA",
+  },
+  social: [
+    ...SOCIAL_PLATFORMS.map((platform) => ({
+      platform,
+      url: `https://${platform}.example/hebdenbridgebakehouse`,
+    })),
+    { platform: "linkedin", url: "https://www.linkedin.com/company/hebdenbridgebakehouse" },
+  ],
+};
+
 /** Every project fixture the invariant guards are checked against. */
-export const FIXTURES: Project[] = [MINIMAL, POPULATED, POPULATED_DARK, DAMAGED];
+export const FIXTURES: Project[] = [MINIMAL, POPULATED, POPULATED_DARK, MAXIMAL, DAMAGED];
