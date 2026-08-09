@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type JSX } from "react";
+import { DownloadSheet } from "./download/index.js";
 import { Flow } from "./flow/Flow.js";
 import { flowEntry, type FlowEntry } from "./flow/plan.js";
 import { answerLang } from "./flow/topics.js";
@@ -21,8 +22,14 @@ import { createProjectStore, type StorageLike } from "./project/index.js";
  * **Import is wired only as far as §7.8's quiet line reaches.** #36 owns the rest: the menu
  * entry on the list, the concrete confirmation when there is a project to lose, and the offer
  * to download the outgoing one first. What is settled here is where a failure appears — in
- * place, under the line, with the preset question above it untouched (§7.9). **Download is
- * #35's** for the same reason; the list already says where the button is.
+ * place, under the line, with the preset question above it untouched (§7.9).
+ *
+ * **Download is a sheet over the list, and one boolean is the whole of its state** (§7.7). It is
+ * held here rather than inside the list because the sheet is a layer over that screen, and
+ * because §7.7's second section is `project.json` — whose write is #36's, and which will be
+ * handed in as `projectDownload` from the same place the store already lives. There is
+ * deliberately no other state: nothing records that a file was written, and nothing compares it
+ * against later edits.
  */
 
 /** §4.1: `lang` defaults to the browser's language at first run, never to a hardcoded `"en"`. */
@@ -55,6 +62,8 @@ export function App({ storage }: AppProps = {}): JSX.Element {
   /** Bumped when the flow finishes, so escaping the last question still lands on the list. */
   const [runs, setRuns] = useState(0);
   const [fileError, setFileError] = useState<string | null>(null);
+  /** Whether §7.7's sheet is open. There is no other download state, here or anywhere. */
+  const [downloading, setDownloading] = useState(false);
 
   const entry: FlowEntry | null =
     request === null ? flowEntry(snapshot.draft) : { kind: "add", topics: request };
@@ -108,5 +117,23 @@ export function App({ storage }: AppProps = {}): JSX.Element {
     );
   }
 
-  return <List draft={draft} onChange={store.update} onAdd={(topic) => setRequest([topic])} />;
+  return (
+    <>
+      <List
+        draft={draft}
+        onChange={store.update}
+        onAdd={(topic) => setRequest([topic])}
+        onDownload={() => setDownloading(true)}
+      />
+      {/*
+       * Mounted only while open, so leaving it and coming back opens the sheet at the top with
+       * the page built from the project as it stands — the same reason the preview drawer
+       * mounts its frame on demand.
+       *
+       * `projectDownload` is #36's and is not passed yet: section two still reads in full, and
+       * its button is unavailable rather than inert.
+       */}
+      {downloading && <DownloadSheet draft={draft} onClose={() => setDownloading(false)} />}
+    </>
+  );
 }
