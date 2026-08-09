@@ -365,7 +365,7 @@ describe("the flow re-enters for anything new (§7.1)", () => {
 
   it("collects a required field an imported file lacked, with no error surface (§4.6)", () => {
     const noBrand = readDraft({ version: 1, lang: "en", header: { name: "Ada's Bakery" } });
-    const flow = harness({ entry: { kind: "add", topics: [] }, draft: noBrand });
+    const flow = harness({ entry: { kind: "resume" }, draft: noBrand });
 
     expect(title()).toBe(COLOUR);
     expect(document.querySelector(".notice")).toBeNull();

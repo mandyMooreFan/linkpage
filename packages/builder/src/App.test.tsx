@@ -45,23 +45,125 @@ beforeEach(() => {
 const title = (): string => screen.getByRole("heading", { level: 1 }).textContent ?? "";
 const submit = (): Element => document.querySelector(".question__submit") as Element;
 const escapeButton = (): Element | null => document.querySelector(".question__escape");
+/** Stated positively, so "the walk ended" cannot be confused with "the walk got stuck". */
+const onList = (): boolean => document.querySelector(".list") !== null;
 
-/** Walk a first run, declining everything optional. */
-function firstRun(name = "Ada's Bakery"): void {
-  fireEvent.click(screen.getByRole("button", { name: /Food & drink/ }));
-  fireEvent.change(screen.getByLabelText(/Business name/), { target: { value: name } });
-  fireEvent.click(submit());
-  for (let guard = 0; guard < 20; guard += 1) {
-    if (title() === "What's your colour?") {
+const PRESET_QUESTION = "What kind of business is this?";
+const NAME = "What's it called?";
+const TAGLINE = "One line about what you do?";
+const LOGO = "Do you have a logo?";
+const COLOUR = "What's your colour?";
+const LINKS = "Which of these do you have?";
+const HOURS = "When are you open?";
+const CONTACT = "How do people reach you?";
+const ADDRESS = "Where are you?";
+const SOCIAL = "Where else are you online?";
+
+/**
+ * Walk the flow from wherever it is standing to the list, declining everything that can be
+ * declined, and **return the heading of every screen it passed through**.
+ *
+ * The itinerary is the return value because asserting it is the point (#65). The walker this
+ * replaces answered the two required questions, escaped everything else and stopped when it ran
+ * out of escapes — so a run that asked for a name, asked for a colour and gave up satisfied it
+ * exactly as well as the whole flow did, and that is what shipped. **A test that walks a flow
+ * without checking where it went is most of the reason.**
+ */
+function walk(preset: RegExp = /Food & drink/, name = "Ada's Bakery"): string[] {
+  const seen: string[] = [];
+
+  for (let guard = 0; guard < 40 && !onList(); guard += 1) {
+    const heading = title();
+    seen.push(heading);
+
+    if (heading === PRESET_QUESTION) {
+      fireEvent.click(screen.getByRole("button", { name: preset }));
+      continue;
+    }
+    if (heading === NAME) {
+      fireEvent.change(screen.getByLabelText(/Business name/), { target: { value: name } });
+      fireEvent.click(submit());
+      continue;
+    }
+    if (heading === COLOUR) {
       fireEvent.click(document.querySelectorAll(".swatches__swatch")[0] as Element);
       fireEvent.click(submit());
       continue;
     }
+    // §7.2: every other step carries an always-present "not for us" escape. A step that has
+    // none and is not one of the two exceptions hangs the walk, which is the right failure.
     const escape = escapeButton();
-    if (escape === null) break;
-    fireEvent.click(escape);
+    expect(escape, `no escape on "${heading}"`).not.toBeNull();
+    fireEvent.click(escape as Element);
   }
+
+  expect(onList()).toBe(true);
+  return seen;
 }
+
+/** Walk a first run under §7.3's "Food & drink", declining everything optional. */
+function firstRun(name = "Ada's Bakery"): string[] {
+  return walk(/Food & drink/, name);
+}
+
+/**
+ * The first run, through the front door. `SPEC.md` §7.1, §7.2, §7.3.
+ *
+ * > **you never face a blank field you weren't walked into**
+ *
+ * Everything below asserts a *sequence of questions*, because a first run that terminates is
+ * not the claim — a first run that asks for the tagline, the logo, the link buttons and the
+ * sections its preset selected is (#65). Those screens exist and are tested one by one; what is
+ * only assertable here is that the front door reaches them.
+ *
+ * **A run is planned once, when it starts.** The plan orders are held in `plan.test.ts` and the
+ * screens in `flow.test.tsx`, both against an entry handed in and held still by the test. This
+ * file is the only place the entry is chosen by the application, which is the only place the
+ * bug could live and did.
+ */
+describe("the first run walks everything the preset selected (§7.2, §7.3)", () => {
+  const HEAD = [PRESET_QUESTION, NAME, TAGLINE, LOGO, COLOUR, LINKS];
+
+  it.each([
+    ["Food & drink", /Food & drink/, [HOURS, CONTACT, ADDRESS, SOCIAL]],
+    ["Shop or venue", /Shop or venue/, [HOURS, CONTACT, ADDRESS, SOCIAL]],
+    ["Appointments", /Appointments/, [HOURS, CONTACT, ADDRESS, SOCIAL]],
+    ["We come to you", /We come to you/, [CONTACT, SOCIAL]],
+    ["Online only", /Online only/, [SOCIAL]],
+    ["Something else", /Something else/, [HOURS, CONTACT, ADDRESS, SOCIAL]],
+  ] satisfies [string, RegExp, string[]][])("%s", (_label, preset, sections) => {
+    mount(<App storage={storage} />);
+
+    // §7.3's table, walked. The header's own two steps and the link pick-list run for every
+    // preset because none of them selects those; the sections are the preset's whole effect.
+    expect(walk(preset)).toEqual([...HEAD, ...sections]);
+  });
+
+  it("never asks 'we come to you' where they live (§7.3)", () => {
+    // The decision a preset makes better than a well-labelled checkbox: a sole trader does not
+    // publish their home address because the flow asked and they answered.
+    mount(<App storage={storage} />);
+    expect(walk(/We come to you/)).not.toContain(ADDRESS);
+  });
+
+  it("does not restart when the first answer creates the project (#65)", () => {
+    mount(<App storage={storage} />);
+    fireEvent.click(screen.getByRole("button", { name: /Food & drink/ }));
+    fireEvent.change(screen.getByLabelText(/Business name/), { target: { value: "Ada's Bakery" } });
+    fireEvent.click(submit());
+
+    // The mechanism, rather than its symptom. Answering the name is what creates the project,
+    // and it used to re-plan the run and remount it — so the proof that this is still the same
+    // run is that everything behind the owner is still there. A rebuilt one would have lost the
+    // preset, and with it the way back to step one (§7.3).
+    expect(title()).toBe(TAGLINE);
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(title()).toBe(NAME);
+    expect(screen.getByLabelText(/Business name/)).toHaveProperty("value", "Ada's Bakery");
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(title()).toBe(PRESET_QUESTION);
+  });
+});
 
 describe("which screen the owner gets", () => {
   it("opens on the preset question when there is nothing stored (§7.8)", () => {
@@ -122,13 +224,16 @@ describe("which screen the owner gets", () => {
       JSON.stringify({ version: 1, lang: "en-GB", header: { name: "Ada's Bakery" } }),
     );
     mount(<App storage={storage} />);
-
-    expect(title()).toBe("What's your colour?");
     expect(document.querySelector(".quiet-line__error")).toBeNull();
 
-    fireEvent.click(document.querySelectorAll(".swatches__swatch")[0] as Element);
-    fireEvent.click(submit());
+    // **One question, then the list** — "as if they had ticked a new section", not the first
+    // run again. This owner has a project, so the sibling of the run above resumes narrowly and
+    // the two states stay distinct even though the draft cannot tell them apart (#65).
+    expect(walk()).toEqual([COLOUR]);
     expect(title()).toBe("Ada's Bakery");
+    // And what it did not ask for is on the list, waiting to be ticked (§7.1).
+    expect(screen.getByRole("button", { name: "Opening hours" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "A line about what you do" })).toBeTruthy();
   });
 
   it("shows what a file arrived without as ordinary rows (§4.3)", () => {

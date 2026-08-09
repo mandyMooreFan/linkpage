@@ -3,13 +3,13 @@ import { DownloadSheet } from "./download/index.js";
 import { Flow } from "./flow/Flow.js";
 import { flowEntry, type FlowEntry } from "./flow/plan.js";
 import { answerLang } from "./flow/topics.js";
-import type { Topic } from "./flow/topics.js";
 import { List } from "./list/index.js";
 import { projectFile, ProjectPicker, RefusalNotice, ReplaceConfirm } from "./open/index.js";
 import {
   createProjectStore,
   readProjectFile,
   REFUSAL_MESSAGES,
+  type ReadResult,
   type Refusal,
   type StorageLike,
 } from "./project/index.js";
@@ -25,6 +25,20 @@ import {
  * this page is wiring — the store from #30, the preview from #32, the flow from #33, the list
  * from #34, and the seam that hands a ticked topic back to the flow and takes the owner back to
  * the list when it has been answered.
+ *
+ * **That decision is made per _run_, not per render** (#65). A run is one walk of the flow,
+ * from the moment it takes the window to the moment the owner lands on the list, and it is
+ * planned once — at the moment it starts. It has to be, because `flowEntry` answers about a
+ * moment rather than about a draft: the first answer of a first run *creates* the project, and
+ * from that instant "a first run in progress" and "a project missing something required" are
+ * the same draft. Deriving the entry on every render therefore re-planned a first run down to
+ * its still-missing required field the instant the name was typed, and the tagline, the logo,
+ * the links and every section the preset had selected were never asked.
+ *
+ * **A run boundary is one of four things, and nothing else is one:** the app opening, a project
+ * replaced wholesale by an import (§7.8), a section ticked on the list (§7.1), and a run
+ * ending. `startRun` is the only writer of the run, so those four call sites are the complete
+ * list — and answering a question is not among them.
  *
  * **Import is one route with two doorways** (§7.8): the quiet line on the first screen and the
  * review list's menu. Both arrive at `offerFile`, and the decision it makes is about the
@@ -71,9 +85,18 @@ export function App({ storage }: AppProps = {}): JSX.Element {
   );
   const snapshot = useSyncExternalStore(store.subscribe, store.snapshot, store.snapshot);
 
-  /** A topic the list handed back, or `null` when the flow is not there on request. */
-  const [request, setRequest] = useState<readonly Topic[] | null>(null);
-  /** Bumped when the flow finishes, so escaping the last question still lands on the list. */
+  /**
+   * The run that owns the window: how it was entered, and `null` when the list owns it instead.
+   *
+   * Held still for the life of the run — that is the whole of it. `entry` is what the flow is
+   * planned from and `runs` counts the runs, and the two move together because `startRun` is
+   * the only thing that writes either.
+   *
+   * Seeded from the store once, at mount. There is no second store to go stale against: a
+   * browser has one `localStorage`, and `storage` is a test seam that is fixed for the life of
+   * a mounted app.
+   */
+  const [entry, setEntry] = useState<FlowEntry | null>(() => flowEntry(store.snapshot().draft));
   const [runs, setRuns] = useState(0);
   /** §7.9's message, from the last picked file. Cleared by picking again, not by dismissing. */
   const [fileError, setFileError] = useState<Refusal | null>(null);
@@ -87,10 +110,20 @@ export function App({ storage }: AppProps = {}): JSX.Element {
   /** The list's menu opens this; the quiet line has a picker of its own (§7.8). */
   const picker = useRef<HTMLInputElement>(null);
 
-  const entry: FlowEntry | null =
-    request === null ? flowEntry(snapshot.draft) : { kind: "add", topics: request };
-
   const draft = snapshot.draft;
+
+  /**
+   * Start a run, or hand the window back to the list.
+   *
+   * The bump is what remounts the flow, so a run is torn down when the next one begins and
+   * never in the middle of one. Callers that re-derive the entry ask `store.snapshot()` rather
+   * than closing over `snapshot`: a run ends inside the very event that answered its last
+   * question, so the render-time snapshot is one answer out of date there.
+   */
+  function startRun(next: FlowEntry | null): void {
+    setEntry(next);
+    setRuns((count) => count + 1);
+  }
 
   /**
    * The one required field that is not a question (§4.1).
@@ -130,7 +163,7 @@ export function App({ storage }: AppProps = {}): JSX.Element {
         // Asked again rather than closed over: the owner has been in a file dialog since this
         // render, and §7.8's fork is about the project as it is now. One definition of "is there
         // a project", so the confirmation and the Download sheet cannot disagree about it.
-        if (projectFile(store) === null) store.open(text);
+        if (projectFile(store) === null) openFile(text);
         else setPending(text);
       },
       // The bytes never arrived — a revoked permission, a removed drive. Not a JSON problem, but
@@ -146,9 +179,24 @@ export function App({ storage }: AppProps = {}): JSX.Element {
     );
   }
 
+  /**
+   * Take a file as the project, and re-plan against what arrived.
+   *
+   * **A project replaced wholesale is a run boundary**, and the only one that is not a press on
+   * a screen. An import landing mid-flow re-opens against the file that arrived — nothing in
+   * the run that was on screen was about this project — and a file missing something required
+   * is walked through it rather than reported (§4.6), which is the same rule as the app opening
+   * on one.
+   */
+  function openFile(text: string): ReadResult {
+    const result = store.open(text);
+    if (result.ok) startRun(flowEntry(store.snapshot().draft));
+    return result;
+  }
+
   /** Replace, now that the owner has said so. Validated already; re-checked because it is free. */
   function replaceWith(text: string): void {
-    const result = store.open(text);
+    const result = openFile(text);
     setPending(null);
     setFileError(result.ok ? null : result.refusal);
   }
@@ -168,17 +216,18 @@ export function App({ storage }: AppProps = {}): JSX.Element {
   if (entry !== null || draft === null) {
     return (
       <Flow
-        // A fresh run each time: the plan, the picks and the preset all start again, and an
-        // import landing mid-flow re-opens against the file that arrived.
-        key={`${entry?.kind ?? "empty"}:${request?.join(",") ?? ""}:${runs}:${snapshot.document === null ? "none" : "some"}`}
+        // **The run, and nothing else.** A fresh run starts the plan, the picks and the preset
+        // again; a run in progress is never remounted, because everything that could tear it
+        // down — the entry, the draft, whether there is a document yet — is something its own
+        // first answer changes.
+        key={`run:${runs}`}
         entry={entry ?? { kind: "empty" }}
         draft={draft}
         lang={browserLang()}
         onChange={store.update}
-        onDone={() => {
-          setRequest(null);
-          setRuns(runs + 1);
-        }}
+        // The questions have run out (§7.1). Asked of the store rather than of `snapshot`,
+        // which is one answer out of date inside the event that answered the last question.
+        onDone={() => startRun(flowEntry(store.snapshot().draft))}
         onOpenFile={offerFile}
         {...(notice === undefined ? {} : { fileError: notice })}
       />
@@ -190,7 +239,8 @@ export function App({ storage }: AppProps = {}): JSX.Element {
       <List
         draft={draft}
         onChange={store.update}
-        onAdd={(topic) => setRequest([topic])}
+        // §7.1's re-entry, and a run boundary: a ticked section is planned when it is ticked.
+        onAdd={(topic) => startRun({ kind: "add", topics: [topic] })}
         onDownload={() => setDownloading(true)}
         // §7.8: the menu, not the Download sheet. The sheet is where things leave; import is the
         // one action that can destroy what is there.

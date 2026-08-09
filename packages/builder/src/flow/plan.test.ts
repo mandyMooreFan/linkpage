@@ -51,9 +51,20 @@ describe("which screen owns the window", () => {
     (_case, file) => {
       // §4.6: "A file with no `style.brand` is exactly the territory the flow exists for, so the
       // owner is walked through the colour question as if they had ticked a new section."
-      expect(flowEntry(readDraft(file))).toEqual({ kind: "add", topics: [] });
+      expect(flowEntry(readDraft(file))).toEqual({ kind: "resume" });
     },
   );
+
+  it("tells a first run apart from a project missing the same field (#65)", () => {
+    // The two states this function used to spell the same way. They are one answer apart and
+    // they are owed different flows — a first run is owed every question its preset selected, a
+    // resume only what is missing — so the answer has to be taken at the moment a run starts
+    // and then held, because the first answer of a first run turns the one into the other.
+    expect(flowEntry(null)).toEqual({ kind: "empty" });
+    expect(flowEntry(readDraft({ version: 1, lang: "en", header: { name: "Ada's" } }))).toEqual({
+      kind: "resume",
+    });
+  });
 
   it("does not send an owner back to the flow over a missing lang (§4.1)", () => {
     // The one required field that is not a question: the browser answers it.
@@ -159,12 +170,57 @@ describe("re-entry (§7.1)", () => {
 
   it("collects a required field on the way, without the preset question (§4.6)", () => {
     const noBrand = readDraft({ version: 1, lang: "en", header: { name: "Ada's" } });
-    expect(plan({ kind: "add", topics: [] }, noBrand, null)).toEqual(["brand"]);
     expect(plan({ kind: "add", topics: ["hours"] }, noBrand, null)).toEqual(["brand", "hours"]);
   });
 
   it("does not re-ask for something the file already has", () => {
     expect(plan({ kind: "add", topics: [] }, COMPLETE, null)).toEqual([]);
+  });
+});
+
+/**
+ * The state that looks exactly like a first run and is not. `SPEC.md` §4.6.
+ *
+ * > "A file with no `style.brand` is exactly the territory the flow exists for, so the owner is
+ * > walked through the colour question as if they had ticked a new section."
+ *
+ * **As if they had ticked a new section** — one question, then the list. Not the first run
+ * again: this owner has a project, and everything the flow does not ask them for is a row on
+ * the list they can tick when they want it.
+ */
+describe("resuming a project that is missing something required (§4.6)", () => {
+  const NO_BRAND = readDraft({ version: 1, lang: "en", header: { name: "Ada's" } });
+  const NO_NAME = readDraft({ version: 1, lang: "en", style: { brand: "#c2185b" } });
+
+  it("plans the missing field and nothing else", () => {
+    expect(plan({ kind: "resume" }, NO_BRAND, null)).toEqual(["brand"]);
+    expect(plan({ kind: "resume" }, NO_NAME, null)).toEqual(["name"]);
+    expect(plan({ kind: "resume" }, readDraft({ version: 1 }), null)).toEqual(["name", "brand"]);
+  });
+
+  it("is not the first run, even though the draft cannot tell you which you are in (#65)", () => {
+    // A first run one answer in *is* `NO_BRAND` — same draft, different flow. Which one the
+    // owner is in is a fact about when the run started, so it is decided there and held.
+    expect(plan(EMPTY, NO_BRAND, "food")).toEqual([
+      "preset",
+      "tagline",
+      "logo",
+      "brand",
+      "links",
+      "hours",
+      "contact",
+      "address",
+      "social",
+    ]);
+    expect(plan({ kind: "resume" }, NO_BRAND, "food")).toEqual(["brand"]);
+  });
+
+  it("never asks the preset question, whatever it is handed (§7.3)", () => {
+    expect(plan({ kind: "resume" }, NO_BRAND, "food")).not.toContain("preset");
+  });
+
+  it("has nothing to do for a project that is not missing anything", () => {
+    expect(plan({ kind: "resume" }, COMPLETE, null)).toEqual([]);
   });
 });
 
