@@ -17,24 +17,36 @@ import type { Project } from "./project.js";
  * (export spec) and issue #3 (block set).
  */
 export function render(project: Project): string {
+  // Read defensively. `project` is typed, but types are a compile-time promise and this
+  // function has to survive a hand-edited `project.json` at runtime — see SPEC.md §4.7.
+  const title = escapeHtml((project as Partial<Project> | null | undefined)?.title as string);
+
   return [
     "<!doctype html>",
     '<html lang="en">',
     "<head>",
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    `<title>${escapeHtml(project.title)}</title>`,
+    `<title>${title}</title>`,
     "<style>body{font-family:system-ui,sans-serif;margin:0;padding:2rem;}</style>",
     "</head>",
     "<body>",
-    `<h1>${escapeHtml(project.title)}</h1>`,
+    `<h1>${title}</h1>`,
     "</body>",
     "</html>",
   ].join("\n");
 }
 
-/** Escape text for interpolation into HTML element content or a double-quoted attribute. */
+/**
+ * Escape text for interpolation into HTML element content or a double-quoted attribute.
+ *
+ * The parameter is typed `string` because that is the contract callers should write to.
+ * The runtime guard exists anyway: the renderer is **total** (SPEC.md §4.7) and must not
+ * throw on a wrong-typed value, because a data problem that throws would blank the
+ * builder's `srcdoc` preview rather than degrading the page. A non-string reads as absent.
+ */
 export function escapeHtml(value: string): string {
+  if (typeof value !== "string") return "";
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
