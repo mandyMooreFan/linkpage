@@ -13,14 +13,22 @@ import { hasContent, TOPICS, type Topic } from "./topics.js";
  * the owner has not covered yet. Everything about that rule is in this file, as two pure
  * functions and no state:
  *
- * - **`flowEntry(draft)`** decides which screen owns the window. `null` means the list. It has
- *   exactly two ways of saying "the flow", and they are the two moments §7.1 describes: there
- *   is no project at all, or there is one that is missing something required. The second is why
- *   an imported file with no `style.brand` walks the owner through the colour question "as if
- *   they had ticked a new section" (§4.6) instead of producing an error.
+ * - **`flowEntry(draft)`** decides which screen owns the window, **once, at the moment a run
+ *   starts**. `null` means the list. It has exactly two ways of saying "the flow", and they are
+ *   the two moments §7.1 describes: there is no project at all (`empty`), or there is one that
+ *   is missing something required (`resume`). The second is why an imported file with no
+ *   `style.brand` walks the owner through the colour question "as if they had ticked a new
+ *   section" (§4.6) instead of producing an error.
  * - **`planSteps(...)`** turns an entry into a list of screens. It is a function of the entry,
  *   the draft, the chosen preset and the links picked so far — and of nothing else, which is
  *   what lets the whole multi-screen sequence be tested without a DOM.
+ *
+ * **A run is planned once, when it starts** (#65). `flowEntry` answers about a *moment*, not
+ * about a draft: the first answer of a first run creates the project, and from that instant a
+ * first run in progress and an existing project missing something required are the same draft.
+ * Asking again mid-run therefore re-plans a first run down to whatever is still required —
+ * which is why the caller holds the answer still for the life of the run rather than deriving
+ * it. `App.tsx` is the only caller and says where a run begins.
  *
  * **Re-entry is the same code path as first run.** Ticking _opening hours_ on the list a month
  * later builds `{ kind: "add", topics: ["hours"] }`, which plans the same hours step the flow
@@ -37,21 +45,41 @@ import { hasContent, TOPICS, type Topic } from "./topics.js";
 /**
  * How the flow was entered.
  *
- * The two constructors are not two modes of one screen; they are §7.1's two moments. The flow
- * behaves identically in both apart from the preset question, which only the first has.
+ * The three constructors are not three modes of one screen; they are the moments §7.1 and §4.6
+ * describe. The flow behaves identically in all three apart from the preset question, which
+ * only the first has.
+ *
+ * **`empty` and `resume` are separate kinds because they are separate states that look
+ * identical.** Both are reached with required fields still unanswered, and spelling the second
+ * as an `add` of nothing made them one thing: a first run whose name had just been typed read
+ * as a project missing its colour (#65). They differ in what they are owed — a first run is
+ * owed every question its preset selected; a resume is owed only what is missing.
  */
 export type FlowEntry =
   /** There is no project. The flow **is** the empty state (§7.1), so it opens on the preset. */
   | { readonly kind: "empty" }
   /**
-   * Territory the owner has not covered: a section ticked on the list, or a required field an
-   * imported file did not have (§4.6). `topics` may be empty — the required questions are
-   * planned from the draft, not named here.
+   * A project that exists and is missing something required — an imported or hand-edited file
+   * with no `style.brand`, collected by the flow rather than reported (§4.6).
+   *
+   * There are no topics: what is asked is what the draft lacks, and nothing else. Narrow is the
+   * point. The owner has a project already, so everything the flow does not ask for is on the
+   * list waiting to be ticked.
+   */
+  | { readonly kind: "resume" }
+  /**
+   * Territory the owner has not covered: a section ticked on the list (§7.1). Anything still
+   * required is planned from the draft as well, so ticking _hours_ on a file with no colour
+   * asks for both.
    */
   | { readonly kind: "add"; readonly topics: readonly Topic[] };
 
 /**
- * Which screen owns the window.
+ * Which screen owns the window, **asked at a run boundary and nowhere else**.
+ *
+ * A run boundary is the app opening, a project replaced wholesale by an import (§7.8), a
+ * section ticked on the list, or a run ending. Answering a question inside a run is not one:
+ * see the note at the top of this file for what asking again mid-run does.
  *
  * `lang` is deliberately not a reason to run the flow. It is the one required field that is
  * not a question: §4.1 fills it from the browser's language at first run, so a file arriving
@@ -61,7 +89,7 @@ export type FlowEntry =
 export function flowEntry(draft: Draft | null): FlowEntry | null {
   if (draft === null) return { kind: "empty" };
   const missing = missingRequired(draft).filter((field) => field !== "lang");
-  return missing.length > 0 ? { kind: "add", topics: [] } : null;
+  return missing.length > 0 ? { kind: "resume" } : null;
 }
 
 /**
@@ -115,6 +143,29 @@ export interface PlanInput {
 }
 
 /**
+ * What an entry asks for by name, before the required fields are added to it.
+ *
+ * **This is where the two entries that look alike part company** — and the whole of the
+ * difference between them, which is why it is three lines rather than a mode flag threaded
+ * through the plan.
+ */
+function requestedTopics(entry: FlowEntry, preset: PresetId | null): readonly Topic[] {
+  switch (entry.kind) {
+    case "empty":
+      // A preset chooses among the four sections and nothing else (§7.3). The three that are
+      // not sections are asked of everybody, because no business type makes a tagline, a logo
+      // or a link button more or less likely.
+      return ["tagline", "logo", "links", ...findPreset(preset ?? "other").sections];
+    case "resume":
+      // Nothing by name. What a resume is owed is what the draft lacks, and `planSteps` plans
+      // that from the draft on its own (§4.6); everything else is on the list to be ticked.
+      return [];
+    case "add":
+      return entry.topics;
+  }
+}
+
+/**
  * The screens, in order.
  *
  * **Planned against the draft the flow opened with, not the draft as it stands.** Answering
@@ -140,13 +191,7 @@ export function planSteps({ entry, draft, preset, picks }: PlanInput): Step[] {
   // is not asked again — which is the whole difference between an import and a first run.
   if (draft === null || draft.header.name === undefined) steps.push({ id: "name" });
 
-  const requested: readonly Topic[] =
-    entry.kind === "empty"
-      ? // A preset chooses among the four sections and nothing else (§7.3). The three that are
-        // not sections are asked of everybody, because no business type makes a tagline, a logo
-        // or a link button more or less likely.
-        ["tagline", "logo", "links", ...findPreset(preset ?? "other").sections]
-      : entry.topics;
+  const requested = requestedTopics(entry, preset);
 
   const wanted = (topic: Topic): boolean => requested.includes(topic);
 
