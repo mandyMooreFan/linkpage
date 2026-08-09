@@ -123,7 +123,7 @@ describe("all twelve shape/type combinations render, in both modes", () => {
 // Twelve combinations, one stylesheet
 // ---------------------------------------------------------------------------
 
-describe("twelve combinations are not twelve stylesheets (§6.4)", () => {
+describe("twelve combinations are not twelve stylesheets (§6.5)", () => {
   it.each(combinations)("%s/%s adds its shape's delta and nothing else", (shape, type) => {
     const base = css(styled({ shape: DEFAULT_SHAPE, type }));
     const chosen = css(styled({ shape, type }));
@@ -194,7 +194,7 @@ describe("shapes and type pairings carry structure only, never a palette (§3.2)
     }
   });
 
-  it("keeps the column at §6.8's cap under every shape", () => {
+  it("keeps the column at §6.2's cap under every shape", () => {
     for (const [shape, type] of combinations) {
       const sheet = css(styled({ shape, type }));
       expect(sheet, `${shape}/${type}`).toContain(".lp-page{width:min(100%, 25rem)");
@@ -205,10 +205,10 @@ describe("shapes and type pairings carry structure only, never a palette (§3.2)
 });
 
 // ---------------------------------------------------------------------------
-// Type pairings (§6.2)
+// Type pairings (§6.3)
 // ---------------------------------------------------------------------------
 
-describe("type pairings resolve to system font stacks (§6.2)", () => {
+describe("type pairings resolve to system font stacks (§6.3)", () => {
   it.each(TYPE_PAIRINGS)("%s fetches nothing", (type) => {
     const sheet = css(styled({ type }));
     expect(sheet).not.toContain("@font-face");
@@ -256,14 +256,14 @@ describe("corner softness maps the slider to one radius", () => {
     expect(new Set(lengths).size).toBe(lengths.length);
   });
 
-  it("stays in rem, for the reason §6.8 puts the column in rem", () => {
+  it("stays in rem, for the reason §6.2 puts the column in rem", () => {
     for (const corners of [0, 0.3, 0.6, 1]) {
       expect(css(styled({ corners }))).toContain(`--lp-radius:${radius(corners)}`);
       expect(radius(corners)).toMatch(/rem$/);
     }
   });
 
-  it("never emits floating-point noise, so the export stays deterministic (§6.6)", () => {
+  it("never emits floating-point noise, so the export stays deterministic (§6.7)", () => {
     for (let step = 0; step <= 100; step++) {
       const length = radius(step / 100);
       expect(length, `corners=${step / 100}`).toMatch(/^\d+(?:\.\d{1,3})?rem$/);

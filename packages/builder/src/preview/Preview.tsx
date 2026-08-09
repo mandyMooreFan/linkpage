@@ -14,7 +14,7 @@ import "./preview.css";
  * it is why there is no `if (narrow)` anywhere below.
  *
  * **Phone-shaped only, and there is no second control** (§7.6). The exported page is one column
- * of `min(100%, 25rem)` inside a `1.25rem` gutter (§6.8), so the frame is capped at the
+ * of `min(100%, 25rem)` inside a `1.25rem` gutter (§6.2), so the frame is capped at the
  * `27.5rem` those add up to. Below the cap it is fluid, exactly as the page is: on a phone the
  * drawer is the screen and the frame is the page at full width. A "see it on a laptop" toggle
  * would show the identical page with more whitespace, which is a control that costs UI and

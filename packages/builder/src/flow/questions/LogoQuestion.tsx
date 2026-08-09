@@ -4,7 +4,7 @@ import { browserImageCodec, importLogo, LOGO_ACCEPT, type LogoIntake } from "../
 import { Question } from "./Question.js";
 
 /**
- * The logo step. `SPEC.md` §6.5, §7.9.
+ * The logo step. `SPEC.md` §6.6, §7.9.
  *
  * The pipeline is #31's and lives in `../../logo`; this screen is the four lines that call it.
  * Three of its rules are visible here and none of them is enforced here, which is the point of

@@ -22,7 +22,7 @@ import {
 } from "./policy.js";
 
 /**
- * The logo intake pipeline: a file the owner picked in, a `{ src, width, height }` out (§6.5).
+ * The logo intake pipeline: a file the owner picked in, a `{ src, width, height }` out (§6.6).
  *
  * **The browser is a parameter.** Everything that needs a canvas is behind `ImageCodec`, and
  * everything above it — the guards, the format decision, the resize arithmetic, the budget
@@ -33,21 +33,21 @@ import {
  * **The order of the steps is the design.** Each one exists because of a specific way the
  * previous one can be lied to.
  *
- * 1. **Size guard, before the decoder ever sees the bytes** (§6.5). Rasterising through
+ * 1. **Size guard, before the decoder ever sees the bytes** (§6.6). Rasterising through
  *    `<img>` puts an SVG in the browser's secure static mode, where script and external
  *    references are forbidden by the engine rather than by our sanitiser — that is the whole
  *    argument for rasterising. What secure static mode does *not* stop is a pathologically
  *    large or deeply nested document hanging the tab, so bytes are checked first, and a
  *    source that looks like markup is held to a much tighter limit than a photograph.
- * 2. **Decode or fail** (§6.5). No gate on media type and none on extension — both lie, and
+ * 2. **Decode or fail** (§6.6). No gate on media type and none on extension — both lie, and
  *    handing the file to the decoder is the only honest test. A decode that never finishes is
  *    a failure too, which is what the deadline is for.
  * 3. **Look at what came back.** A blank raster means the decode failed without saying so
  *    (§11 item 5); it is not a logo, however successfully it was returned.
- * 4. **Choose the encoding from the content, never from the input's format** (§6.5). Alpha
+ * 4. **Choose the encoding from the content, never from the input's format** (§6.6). Alpha
  *    first, because it overrides everything: JPEG has no alpha, the page has a light *and* a
  *    dark mode, and compositing bakes in the wrong one half the time.
- * 5. **Resize, then let dimension enforce the budget** (§6.5, §6.4). Quality and format are
+ * 5. **Resize, then let dimension enforce the budget** (§6.6, §6.5). Quality and format are
  *    not levers here; the loop moves pixels and nothing else.
  *
  * **A failed input never damages what is already there.** Nothing in this module writes
@@ -67,7 +67,7 @@ export interface RenderedImage {
    *
    * **Must reject if the encoder did not honour `type`.** Canvas encoding falls back
    * *silently*: ask for a type the browser cannot write and you receive a PNG, no error and
-   * no warning (§6.5). The port carries the obligation because only the adapter can see the
+   * no warning (§6.6). The port carries the obligation because only the adapter can see the
    * evidence — `blob.type`.
    */
   encode(type: Encoding, quality: number): Promise<string>;
@@ -101,14 +101,14 @@ export interface ImageCodec {
 /** Everything the pipeline decided, and the one thing it may say about it. */
 export interface LogoAccepted {
   readonly ok: true;
-  /** Exactly what `project.json` stores (§4.1, §6.5). */
+  /** Exactly what `project.json` stores (§4.1, §6.6). */
   readonly logo: Logo;
   readonly encoding: Encoding;
   /**
    * `null` in the common case, which is most of them.
    *
    * Set only when the budget forced the raster below the size it renders at, which is the
-   * only outcome an owner can see (§6.5).
+   * only outcome an owner can see (§6.6).
    */
   readonly notice: string | null;
 }
@@ -184,7 +184,7 @@ function usableSize(image: { width: number; height: number }): boolean {
  * Turn whatever the owner picked into a logo, or into a sentence explaining why not.
  *
  * Never throws and never mutates: the caller decides what to do with the result, and on the
- * failing branch there is nothing it *can* do to the project (§6.5, §7.9).
+ * failing branch there is nothing it *can* do to the project (§6.6, §7.9).
  */
 export async function importLogo(
   source: Blob,
@@ -227,7 +227,7 @@ export async function importLogo(
     }
     if (analysis.blank) return reject("undecodable");
 
-    // Alpha wins outright; content decides the rest (§6.5).
+    // Alpha wins outright; content decides the rest (§6.6).
     const encoding: Encoding =
       analysis.alpha || analysis.content === "flat" ? "image/png" : "image/jpeg";
 
@@ -262,8 +262,8 @@ export async function importLogo(
 
       const last = attempt === MAX_ENCODE_ATTEMPTS - 1;
       const next = shrinkToward(size, budget, src.length);
-      // Over budget, and there is still room to shrink. Dimension is the lever (§6.5); the
-      // budget is not a gate (§6.4), so the last attempt ships whatever it produced.
+      // Over budget, and there is still room to shrink. Dimension is the lever (§6.6); the
+      // budget is not a gate (§6.5), so the last attempt ships whatever it produced.
       if (src.length > budget && !last && longestEdge(next) < longestEdge(size)) {
         size = next;
         continue;
@@ -274,7 +274,7 @@ export async function importLogo(
         logo: { src, width: drawn.width, height: drawn.height },
         encoding,
         // Speak only when the result will render visibly soft — which is exactly when the
-        // budget pushed the raster below the size it was sized for (§6.5).
+        // budget pushed the raster below the size it was sized for (§6.6).
         notice: longestEdge(size) < longestEdge(target) ? SOFT_RESULT_MESSAGE : null,
       };
     }

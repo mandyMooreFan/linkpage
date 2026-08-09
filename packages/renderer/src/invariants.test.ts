@@ -433,13 +433,13 @@ describe("the renderer is total", () => {
 // ---------------------------------------------------------------------------
 
 /**
- * §6.3 chose microdata over JSON-LD *because of* invariant 1: JSON-LD ships inside a
+ * §6.4 chose microdata over JSON-LD *because of* invariant 1: JSON-LD ships inside a
  * `<script type="application/ld+json">`, and invariant 1 forbids a `<script>` tag with no
  * exception for one that only holds data. The guard above already fails on any `<script`, so
  * the choice is enforced. What is worth stating separately is that the alternative was
  * actually taken — that the structured data is *present*, as attributes, rather than absent.
  */
-describe("§6.3's structured data is attributes, not a script", () => {
+describe("§6.4's structured data is attributes, not a script", () => {
   it("describes the page as a LocalBusiness without a script tag", () => {
     const html = render(sample);
     expect(html).toContain('itemscope itemtype="https://schema.org/LocalBusiness"');
@@ -449,7 +449,7 @@ describe("§6.3's structured data is attributes, not a script", () => {
 
   it("hangs every property on an element that was already there", () => {
     // No element exists only to carry an itemprop: a `<meta itemprop content="…">` would be
-    // invisible content, which is the shape §6.3 avoided by keeping the address free text.
+    // invisible content, which is the shape §6.4 avoided by keeping the address free text.
     const html = render(full);
     for (const { tag, attr } of attributes(html)) {
       if (attr === "itemprop") expect(tag).not.toBe("meta");

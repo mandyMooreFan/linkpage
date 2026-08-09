@@ -1,7 +1,7 @@
 /**
  * The exported page's entire stylesheet, emitted into one `<style>` block (`SPEC.md` §6.1).
  *
- * **The column is `min(100%, 25rem)`** (§6.8) — 400 CSS px at the browser's default text size,
+ * **The column is `min(100%, 25rem)`** (§6.2) — 400 CSS px at the browser's default text size,
  * fluid below the cap, with the gutter *outside* it. `rem` rather than `px` is deliberate and
  * load-bearing: the cap tracks the reader's default text size, so someone who has raised it
  * gets a proportionally wider column and keeps the same number of characters per line. Page
@@ -13,7 +13,7 @@
  * §5.2 makes the preview *be* the export. Both are true only while the column is about a
  * phone's width: a wider one reflows the buttons and changes the size the logo renders at, so a
  * desktop visitor would see a page the owner never previewed. The number is also an input to
- * the size budget — §6.5 rasterises the logo at 3× the column, so pixel count grows with its
+ * the size budget — §6.6 rasterises the logo at 3× the column, so pixel count grows with its
  * square. **This applies to the shapes too**: a shape lays out *within* the column, and
  * `box-sizing: border-box` below is what lets `floatingCard` pad inwards without moving it.
  *
@@ -31,7 +31,7 @@
 import { shapeRules, radius, typeTokens, type Chrome } from "./chrome.js";
 import type { Palette } from "./palette.js";
 
-/** The cap from §6.8, in the unit §6.8 requires. Not a number to be tuned locally. */
+/** The cap from §6.2, in the unit §6.2 requires. Not a number to be tuned locally. */
 const COLUMN = "min(100%, 25rem)";
 
 /**
@@ -41,7 +41,7 @@ const COLUMN = "min(100%, 25rem)";
  * All ten colour roles are emitted, including the two the default layout does not currently
  * name, because this block is the page's colour contract: a shape selects among these roles
  * (§3.2) and must never have to re-derive one. Ten declarations of a seven-character hex is a
- * rounding error against §6.4's 30 KB chrome budget.
+ * rounding error against §6.5's 30 KB chrome budget.
  *
  * The structural tokens after them are where three of the six controls (§3.1) land in full:
  * the type pairing is five values here and no rules anywhere, and corner softness is one.
@@ -109,7 +109,7 @@ a:focus-visible{outline:2px solid var(--lp-accent-ink);outline-offset:3px}
 /**
  * Build the stylesheet for one project's palette and resolved chrome.
  *
- * Deterministic by construction (§6.6): the only inputs are the palette's hex strings and the
+ * Deterministic by construction (§6.7): the only inputs are the palette's hex strings and the
  * four already-resolved values in `chrome`, and nothing here reads a clock or a random source.
  * The corner slider is rounded to three decimals on its way into `--lp-radius` for the same
  * reason — see `chrome.ts`.

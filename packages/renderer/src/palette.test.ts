@@ -231,7 +231,7 @@ describe("the derivation is total and deterministic", () => {
   });
 
   it("returns identical output for identical input", () => {
-    // SPEC.md §6.6 — the palette is recomputed on every render, so it must not drift.
+    // SPEC.md §6.7 — the palette is recomputed on every render, so it must not drift.
     for (const [, hex] of BRANDS) {
       for (const mode of MODES) {
         expect(derivePalette(styleWith(hex, mode))).toEqual(derivePalette(styleWith(hex, mode)));

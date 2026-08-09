@@ -16,14 +16,14 @@ import {
   SOFT_RESULT_MESSAGE,
 } from "./policy.js";
 
-describe("the constants §6.5 and §6.8 fix", () => {
+describe("the constants §6.6 and §6.2 fix", () => {
   it("sizes the raster at 3× the 400 px column", () => {
     expect(COLUMN_CSS_PX).toBe(400);
     expect(LOGO_MAX_EDGE).toBe(1200);
   });
 
   it("offers exactly PNG and JPEG, and never WebP or AVIF", () => {
-    // Safari cannot encode WebP on any platform and the canvas fallback is silent (§6.5).
+    // Safari cannot encode WebP on any platform and the canvas fallback is silent (§6.6).
     // AVIF has no cross-browser canvas encode at all.
     expect([...ENCODINGS]).toEqual(["image/png", "image/jpeg"]);
   });

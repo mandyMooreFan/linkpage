@@ -24,7 +24,7 @@
  *
  * **Only the glyphs a page references are emitted.** `iconSvg` is called per link, so the
  * set's size costs the export nothing — which matters against the ≤ 30 KB chrome budget
- * (§6.4).
+ * (§6.5).
  *
  * **Everything here is total** (§4.7). `iconSvg` and `socialIconSvg` take `unknown`, because
  * what reaches them came out of a hand-editable `project.json`; a wrong-typed or

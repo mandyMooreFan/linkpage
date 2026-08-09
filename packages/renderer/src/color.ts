@@ -2,7 +2,7 @@
  * Colour primitives for the derivation in `palette.ts`. See `SPEC.md` §3.2 and §3.3.
  *
  * Dependency-free by necessity — this package declares no dependencies (§5.1) — and pure by
- * requirement, since `render(project)` must be byte-deterministic (§6.6).
+ * requirement, since `render(project)` must be byte-deterministic (§6.7).
  *
  * **Why OKLab rather than HSL.** The derivation's central move is "make this colour darker
  * or lighter until it carries enough contrast, without changing what colour it is". HSL is

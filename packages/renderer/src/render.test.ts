@@ -57,12 +57,12 @@ describe("the document skeleton", () => {
     expect(render({ ...base, header: { tagline: "Sourdough", logo: null } } as Project)).toContain(
       "<title>Sourdough</title>",
     );
-    // Never the product's own name: §6.6 rules out a visible credit in any form, and a browser
+    // Never the product's own name: §6.7 rules out a visible credit in any form, and a browser
     // tab is about as visible as it gets.
     expect(render({ ...base, header: { logo: null } } as Project)).toContain("<title></title>");
   });
 
-  it("puts the column cap in rem, not px (§6.8)", () => {
+  it("puts the column cap in rem, not px (§6.2)", () => {
     const html = render(base);
     expect(html).toContain("width:min(100%, 25rem)");
     expect(html).not.toMatch(/max-width:\s*400px/);
@@ -137,7 +137,7 @@ describe("header", () => {
     expect(page(base)).toMatchSnapshot();
   });
 
-  it("emits the logo's dimensions, and alt='' unconditionally (§6.5)", () => {
+  it("emits the logo's dimensions, and alt='' unconditionally (§6.6)", () => {
     const html = page({ ...base, header: full.header });
     expect(html).toContain('alt="" width="1200" height="400"');
   });
@@ -391,11 +391,11 @@ describe("safeUrl", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Provenance (SPEC.md §6.6)
+// Provenance (SPEC.md §6.7)
 // ---------------------------------------------------------------------------
 
 /**
- * Determinism and the size budget — the other half of §6.6 and the whole of §6.4 — are
+ * Determinism and the size budget — the other half of §6.7 and the whole of §6.5 — are
  * measured on the bytes and live in `size.test.ts`.
  */
 describe("provenance", () => {
@@ -414,7 +414,7 @@ describe("provenance", () => {
   });
 
   it("credits nothing visibly, in any form", () => {
-    // §6.6 is absolute about this, so the check is on the whole document with the two
+    // §6.7 is absolute about this, so the check is on the whole document with the two
     // permitted mentions taken out rather than on the places a credit is expected.
     const html = render(full)
       .replace(/<!--[\s\S]*?-->/g, "")
@@ -422,13 +422,13 @@ describe("provenance", () => {
     expect(html.toLowerCase()).not.toContain("linkpage");
   });
 
-  it("embeds no round-trip payload, which v1 does not offer (§6.6)", () => {
+  it("embeds no round-trip payload, which v1 does not offer (§6.7)", () => {
     expect(render(full)).not.toContain(JSON.stringify(full.links));
   });
 });
 
 // ---------------------------------------------------------------------------
-// Meta (SPEC.md §6.3)
+// Meta (SPEC.md §6.4)
 // ---------------------------------------------------------------------------
 
 describe("the head's meta", () => {
@@ -439,7 +439,7 @@ describe("the head's meta", () => {
     expect(render(base)).not.toContain('name="description"');
   });
 
-  it("fakes no og:image, and no other og tag either (§6.3)", () => {
+  it("fakes no og:image, and no other og tag either (§6.4)", () => {
     // A scraper needs a fetchable URL and the export is one file, so shared links preview as
     // text, permanently. The remaining og tags would only restate <title> and the description,
     // which every scraper already falls back to.
@@ -454,7 +454,7 @@ describe("the head's meta", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Microdata (SPEC.md §6.3)
+// Microdata (SPEC.md §6.4)
 // ---------------------------------------------------------------------------
 
 describe("LocalBusiness microdata", () => {
@@ -471,7 +471,7 @@ describe("LocalBusiness microdata", () => {
   });
 
   it("claims no logo property, because a data: URI is not a logo anyone can fetch", () => {
-    // The same sentence §6.3 writes about og:image, arriving in a different attribute:
+    // The same sentence §6.4 writes about og:image, arriving in a different attribute:
     // validator.schema.org extracts an https logo and silently drops the identical markup with
     // a data: URI. See `headerSection`.
     expect(page(full)).toContain('<img class="lp-logo" src="data:image/png');
@@ -525,7 +525,7 @@ describe("LocalBusiness microdata", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Determinism (SPEC.md §6.6 — measured on the bytes in `size.test.ts`)
+// Determinism (SPEC.md §6.7 — measured on the bytes in `size.test.ts`)
 // ---------------------------------------------------------------------------
 
 describe("determinism", () => {

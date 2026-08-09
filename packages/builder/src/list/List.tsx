@@ -200,7 +200,7 @@ export function List({
         return (
           <LogoQuestion
             logo={draft.header.logo}
-            // Straight to the draft, because the preview is the feedback (§6.5). A refusal
+            // Straight to the draft, because the preview is the feedback (§6.6). A refusal
             // applies nothing — `applyIntake` takes the whole result for exactly that reason,
             // and an unchanged draft is not an edit.
             onPick={(result) => {

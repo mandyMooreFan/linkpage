@@ -160,7 +160,7 @@ describe("choosing the encoding from the content", () => {
 
   it("never sacrifices alpha, even for photographic content", async () => {
     // JPEG has no alpha and there is no background to composite onto: the page has a light
-    // and a dark mode, so whichever were baked in would be wrong half the time (§6.5).
+    // and a dark mode, so whichever were baked in would be wrong half the time (§6.6).
     const codec = fake({ width: 2000, height: 1500, paint: photographWithAlpha });
     const result = await importLogo(png(), codec.codec);
     expect(result.ok && result.encoding).toBe("image/png");
@@ -239,7 +239,7 @@ describe("the budget, enforced by dimension", () => {
   });
 
   it("is a budget and not a gate: an image that will not fit still ships", async () => {
-    // Refusing would strand an owner from their own page (§6.4).
+    // Refusing would strand an owner from their own page (§6.5).
     // An encoder whose output never gets smaller — the loop must stop, not spin.
     const codec = fake({ width: 4000, height: 3000, bytes: () => 200_000 });
     const result = await importLogo(png(), codec.codec);
@@ -262,7 +262,7 @@ describe("guards on what arrives", () => {
 
   it("holds a markup source to its own, much tighter limit", async () => {
     // Secure static mode stops scripts; it does not stop a deeply nested document from
-    // hanging the tab, and bytes understate that cost badly for markup (§6.5).
+    // hanging the tab, and bytes understate that cost badly for markup (§6.6).
     const codec = fake({ width: 300, height: 150 });
     const big = svg(4096);
     expect(await importLogo(big, codec.codec, { maxMarkupBytes: 512 })).toMatchObject({
@@ -273,7 +273,7 @@ describe("guards on what arrives", () => {
     expect((await importLogo(big, codec.codec)).ok).toBe(true);
   });
 
-  it("fails a file the decoder will not read, in §6.5's words", async () => {
+  it("fails a file the decoder will not read, in §6.6's words", async () => {
     const codec = fake({ width: 10, height: 10, failDecode: true });
     expect(await importLogo(png(), codec.codec)).toEqual({
       ok: false,
@@ -290,7 +290,7 @@ describe("guards on what arrives", () => {
 
   it("fails an encoder that will not write what it was asked for", async () => {
     // The silent fallback: a browser that cannot write the type hands back a PNG and says
-    // nothing. Storing that would ship a file mislabelled in the data URI itself (§6.5).
+    // nothing. Storing that would ship a file mislabelled in the data URI itself (§6.6).
     const codec = fake({ width: 2000, height: 1500, paint: photograph, writable: ["image/png"] });
     expect(await importLogo(png(), codec.codec)).toMatchObject({
       ok: false,

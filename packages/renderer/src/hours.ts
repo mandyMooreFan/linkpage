@@ -47,7 +47,7 @@ const WEEK_FROM_MONDAY: readonly Weekday[] = ["mon", "tue", "wed", "thu", "fri",
  * `CLOSED_LABEL` below. Everything else on the exported page is the owner's own text. They are
  * English, and on a page whose `lang` is not English that is a real limitation; it is recorded
  * here rather than papered over. `Intl.DateTimeFormat` would localise them but its output
- * tracks the host's ICU version, which would cost the byte-identical guarantee in §6.6 — that
+ * tracks the host's ICU version, which would cost the byte-identical guarantee in §6.7 — that
  * guarantee is the harder one to give back, so it wins.
  */
 const DAY_LABELS: Readonly<Record<Weekday, string>> = {

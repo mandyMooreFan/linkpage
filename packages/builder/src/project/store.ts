@@ -57,7 +57,7 @@ export interface ProjectSnapshot {
    */
   readonly refusal: Refusal | null;
   /**
-   * Set when the last autosave threw — a full quota, most likely a logo (§6.5).
+   * Set when the last autosave threw — a full quota, most likely a logo (§6.6).
    *
    * The in-memory project is still correct and still exportable; what has failed is durability,
    * so the honest thing is to say so rather than to drop the edit.

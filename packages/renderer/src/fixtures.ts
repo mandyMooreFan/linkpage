@@ -109,11 +109,11 @@ export const DAMAGED = {
 } as unknown as Project;
 
 /**
- * The worst realistic case for §6.4's chrome budget: as much page as a real business plausibly
+ * The worst realistic case for §6.5's chrome budget: as much page as a real business plausibly
  * builds, in the combination of controls that emits the most CSS.
  *
  * **Realistic, not adversarial.** A hand-edited file can hold ten thousand links and no budget
- * survives that, which is why §6.4 is "a budget, not a gate" and is "enforced by bounding the
+ * survives that, which is why §6.5 is "a budget, not a gate" and is "enforced by bounding the
  * inputs, never by refusing to export" — a hard cap would strand an owner from their own page.
  * What this fixture claims is the upper end of what the builder's flow produces: every field
  * filled, every list long enough that the next entry is a rounding error.
@@ -135,7 +135,7 @@ export const DAMAGED = {
  *   that names two font stacks — `friendly` has the longer single stack and still comes out
  *   smaller. All four shapes and all three pairings land within 400 bytes of each other, which
  *   is `chrome.ts`'s "base + tokens + at most one delta" showing up in the measurement.
- * - **No logo**, because the logo is not chrome: §6.4 budgets it separately at ~120 KB, and
+ * - **No logo**, because the logo is not chrome: §6.5 budgets it separately at ~120 KB, and
  *   `size.test.ts` measures the two apart for exactly that reason.
  */
 export const MAXIMAL: Project = {

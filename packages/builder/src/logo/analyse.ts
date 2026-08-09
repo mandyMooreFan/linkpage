@@ -12,9 +12,9 @@
  *    that does not look would store a blank logo and report success.
  * 2. **Is there meaningful transparency?** (`hasMeaningfulAlpha`) — if so the answer to
  *    question 3 does not matter, because JPEG has no alpha and there is no background to
- *    composite onto: the page has a light *and* a dark mode (§6.5).
- * 3. **Flat art or a photograph?** (`countDistinctColours`) — §6.5's mechanism, though not
- *    quite for §6.5's stated reason. See `PHOTOGRAPHIC_COLOURS` and `SPEC.md` §11 item 2.
+ *    composite onto: the page has a light *and* a dark mode (§6.6).
+ * 3. **Flat art or a photograph?** (`countDistinctColours`) — §6.6's mechanism, though not
+ *    quite for §6.6's stated reason. See `PHOTOGRAPHIC_COLOURS` and `SPEC.md` §11 item 2.
  */
 
 /**
@@ -76,7 +76,7 @@ export const COLOUR_BITS = 8;
  * The short version: the two classes overlap, so this is not the middle of a gap. It is
  * placed where the error it makes is the affordable one.
  *
- * - A wordmark — the case §6.5 names, and the only one where the wrong choice produces
+ * - A wordmark — the case §6.6 names, and the only one where the wrong choice produces
  *   artefacts a reader can see — measures 29 to 510 across every provocation available:
  *   heavy JPEG, a drop shadow, a full-frame gradient behind the type, a photographed sign.
  *   That is a factor of two and a half below this line at the very worst.
@@ -92,7 +92,7 @@ export type Content = "flat" | "photographic";
 export interface Analysis {
   /** Nothing was drawn — a decode that failed without saying so (§11 item 5). */
   readonly blank: boolean;
-  /** Transparency that compositing would destroy (§6.5). */
+  /** Transparency that compositing would destroy (§6.6). */
   readonly alpha: boolean;
   /** Distinct quantised colours among the visible pixels. */
   readonly colours: number;
@@ -126,10 +126,10 @@ export function isBlank(raster: Raster): boolean {
  * Whether the image carries transparency worth keeping.
  *
  * **Deliberately the most generous test in this file: one pixel is enough.** The two
- * mistakes are not symmetrical. Keeping alpha that was not needed costs bytes, and §6.4 has
+ * mistakes are not symmetrical. Keeping alpha that was not needed costs bytes, and §6.5 has
  * roughly ten times the headroom a real logo uses. Discarding alpha that was needed means
  * JPEG, which means compositing onto *a* background — and since the page has both a light and
- * a dark mode, whichever one is baked in is wrong half the time and cannot be undone (§6.5).
+ * a dark mode, whichever one is baked in is wrong half the time and cannot be undone (§6.6).
  *
  * Resampling cannot invent transparency: an opaque source drawn to fill an opaque-covered
  * canvas stays opaque, so a photograph does not trip this by accident.

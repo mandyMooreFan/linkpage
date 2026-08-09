@@ -11,7 +11,7 @@ import type { Raster } from "./analyse.js";
  *
  * **Why `<img>` and not `createImageBitmap`.** An `<img>` fed an SVG places it in the
  * browser's **secure static mode**, where script and external references are forbidden by the
- * spec and enforced by the engine rather than by a sanitiser of ours (§6.5). That is the
+ * spec and enforced by the engine rather than by a sanitiser of ours (§6.6). That is the
  * property the whole rasterise-don't-embed decision rests on, and it is a property of this
  * element. `createImageBitmap` is also not universally available for SVG sources.
  *

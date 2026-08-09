@@ -99,7 +99,7 @@ describe("autosave", () => {
   });
 
   it("keeps the edit and reports the failure when storage is full", () => {
-    // A logo is the likely cause (§6.5). Durability has failed; the project has not.
+    // A logo is the likely cause (§6.6). Durability has failed; the project has not.
     const storage: StorageLike = {
       getItem: () => null,
       setItem: () => {

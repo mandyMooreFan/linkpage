@@ -184,7 +184,7 @@ describe("glyphSvg", () => {
 
   it("marks every glyph decorative and unfocusable", () => {
     // The label beside the glyph carries the meaning; a glyph that announced itself would
-    // double every link button in a screen reader (SPEC.md §6.7).
+    // double every link button in a screen reader (SPEC.md §6.8).
     for (const [name, glyph] of everyGlyph) {
       expect(glyphSvg(glyph), name).toContain('aria-hidden="true"');
       expect(glyphSvg(glyph), name).toContain('focusable="false"');
@@ -198,14 +198,14 @@ describe("glyphSvg", () => {
   });
 
   it("renders the same bytes twice", () => {
-    // SPEC.md §6.6: same project, byte-identical output.
+    // SPEC.md §6.7: same project, byte-identical output.
     for (const [name, glyph] of everyGlyph) {
       expect(glyphSvg(glyph), name).toBe(glyphSvg(glyph));
     }
   });
 
   it("leaves room in the chrome budget", () => {
-    // SPEC.md §6.4 caps markup + CSS at 30 KB and the glyphs are the only part of the
+    // SPEC.md §6.5 caps markup + CSS at 30 KB and the glyphs are the only part of the
     // chrome whose size is decided by how many of them we vendored, so the set needs a
     // ceiling of its own. Emitting one of everything is that ceiling — no page reaches it,
     // since only referenced glyphs are emitted and a real page shows a handful.

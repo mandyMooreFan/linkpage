@@ -1,5 +1,5 @@
 /**
- * The logo intake pipeline. `SPEC.md` §6.5, and it lives entirely here (§5.1).
+ * The logo intake pipeline. `SPEC.md` §6.6, and it lives entirely here (§5.1).
  *
  * The renderer receives a string it cannot decode, cannot measure and cannot re-encode; every
  * decision about what that string contains is made once, in the builder, at upload time. So
@@ -19,7 +19,7 @@
  *
  * **The layering, and why it is worth keeping:**
  *
- * - `policy.ts` — the constants and the arithmetic. Every number §6.5 and §6.8 fix, with the
+ * - `policy.ts` — the constants and the arithmetic. Every number §6.6 and §6.2 fix, with the
  *   reasoning that would move it.
  * - `analyse.ts` — the three questions asked of a pixel buffer.
  * - `intake.ts` — the order of the steps, which is the design.

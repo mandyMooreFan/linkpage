@@ -36,12 +36,12 @@ import { asArray, asPositiveInt, asRecord, asText } from "./values.js";
  * and the corner slider (§3.1) reach the page entirely through the stylesheet — see
  * `chrome.ts` — so all twelve combinations emit byte-identical `<main>` content. That is not a
  * coincidence to be preserved by luck: it is what keeps a shape a *presentation* choice, and
- * it is why §6.3's microdata below is written once and holds for all twelve.
+ * it is why §6.4's microdata below is written once and holds for all twelve.
  *
- * **It is deterministic** (§6.6). The only input is the argument: nothing here reads a clock,
+ * **It is deterministic** (§6.7). The only input is the argument: nothing here reads a clock,
  * a random source, an environment variable or a file, so the same `project.json` produces a
  * byte-identical `index.html`. `size.test.ts` renders twice and diffs, and pins the chrome
- * against §6.4's 30 KB. The guarantee is the renderer's, not the pipeline's — the logo was
+ * against §6.5's 30 KB. The guarantee is the renderer's, not the pipeline's — the logo was
  * encoded once in the builder and arrives here as a string.
  */
 export function render(project: Project): string {
@@ -92,7 +92,7 @@ export function render(project: Project): string {
 // ---------------------------------------------------------------------------
 
 /**
- * The `LocalBusiness` type the page describes itself as, and the whole of §6.3's structured
+ * The `LocalBusiness` type the page describes itself as, and the whole of §6.4's structured
  * data mechanism.
  *
  * **Microdata attributes, never JSON-LD.** JSON-LD is the shape everyone reaches for and it
@@ -106,7 +106,7 @@ export function render(project: Project): string {
  * That last property is why there is **no `openingHours`, no `geo` and no `priceRange`**.
  * Those would need `<meta itemprop content="…">` elements — invisible content, in a format
  * (`Mo-Fr 09:00-17:00`) that is ours rather than the owner's, restating rows the page already
- * shows in the owner's chosen clock. §6.3 asks for attributes, and an attribute has to hang on
+ * shows in the owner's chosen clock. §6.4 asks for attributes, and an attribute has to hang on
  * something the owner wrote.
  *
  * `address` is the plain-text one and that is not a compromise: schema.org accepts `Text` for
@@ -122,7 +122,7 @@ export function render(project: Project): string {
 const LOCAL_BUSINESS = "https://schema.org/LocalBusiness";
 
 /**
- * §6.6's provenance, in the two forms it permits and no third one.
+ * §6.7's provenance, in the two forms it permits and no third one.
  *
  * **No visible credit in any form.** Not a footer, not a link, not the browser tab (see
  * `documentTitle`), not a comment the CSS reveals. A person who wonders what made this file
@@ -138,7 +138,7 @@ const GENERATOR = '<meta name="generator" content="linkpage">';
  * The `<head>` meta beyond charset and viewport: a description when the owner wrote one, and
  * the generator tag.
  *
- * **`og:image` is structurally impossible and is not faked** (§6.3). A scraper needs a URL it
+ * **`og:image` is structurally impossible and is not faked** (§6.4). A scraper needs a URL it
  * can fetch, the export is one file, and there is no second file to point at — a `data:` URI
  * in `og:image` is rejected by every scraper that matters, so emitting one would be a promise
  * we know does not hold. **Shared links preview as text, permanently**, and the builder owes
@@ -179,7 +179,7 @@ const LANGUAGE_TAG = /^[A-Za-z]{1,8}(-[A-Za-z0-9]{1,8})*$/;
  * > abbreviations and "Closed" in `hours.ts` are English on every page whichever tag lands
  * > here. That gap is real, it is recorded in #48, and it is not fixed by weakening this: a
  * > page whose content is Welsh should say so. `Intl` is ruled out there because its output
- * > tracks the host's ICU data, which would cost §6.6's byte-identical guarantee and, with it,
+ * > tracks the host's ICU data, which would cost §6.7's byte-identical guarantee and, with it,
  * > §5.2's "the preview *is* the export".
  */
 function language(value: unknown): string {
@@ -191,7 +191,7 @@ function language(value: unknown): string {
  * What the browser tab says: the business name, falling back to the tagline.
  *
  * When a hand-edited file has neither, the element is emitted empty rather than filled with a
- * name we made up — and specifically not with the product's own name, since §6.6 rules out a
+ * name we made up — and specifically not with the product's own name, since §6.7 rules out a
  * visible credit "in any form" and a browser tab is about as visible as it gets.
  */
 function documentTitle(value: unknown): string {
@@ -209,23 +209,23 @@ const DATA_IMAGE = /^data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/]+={0,2}$/;
 /**
  * Business name, optional tagline, optional logo (§2.3).
  *
- * **`alt=""`, unconditionally** (§6.5): `header.name` is required and rendered as text beside
+ * **`alt=""`, unconditionally** (§6.6): `header.name` is required and rendered as text beside
  * the logo, which makes the logo decorative in W3C's sense — everything it conveys is already
  * available as text. `width` and `height` are emitted because the builder knows both at
  * normalisation time and they prevent layout shift while the data URI decodes.
  *
- * §6.3's `name` and `description` hang on the two elements that were here already.
+ * §6.4's `name` and `description` hang on the two elements that were here already.
  *
  * > **There is deliberately no `itemprop="logo"` on the `<img>`, and it was tried.** Microdata
  * > would take the property's value from `src`, which is a `data:` URI — and put through
  * > `validator.schema.org`, an `https:` logo is extracted while the identical markup with a
- * > `data:` URI is silently dropped, no error and no warning. That is §6.3's `og:image`
+ * > `data:` URI is silently dropped, no error and no warning. That is §6.4's `og:image`
  * > sentence arriving in a different attribute: a consumer wants a logo it can fetch and
  * > display somewhere else, and there is no second file to point it at. Emitting a property
  * > the tooling discards would buy nothing and would teach the next reader that image URLs
  * > work here, which is how someone eventually "fixes" `og:image` with a data URI.
  *
- * > The dependency §6.5 asks to be preserved: `alt=""` is correct only while `name` is
+ * > The dependency §6.6 asks to be preserved: `alt=""` is correct only while `name` is
  * > required and rendered. A hand-edited file with a logo and no name is the one case where it
  * > is not, and it is left as-is — inventing alt text for an image we have never seen would be
  * > worse than the empty string, and the builder collects the missing name through the flow.
@@ -356,7 +356,7 @@ const EMAIL = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+
  * dropped applies: an extension written in prose is worth showing even when it cannot be
  * dialled by tapping.
  *
- * §6.3's `telephone` and `email` sit on the `<span>` rather than on the `<a>`, and that is the
+ * §6.4's `telephone` and `email` sit on the `<span>` rather than on the `<a>`, and that is the
  * one place the choice matters: microdata takes an `<a>`'s value from its `href`, which would
  * publish `tel:+442071234567` — our normalisation — where schema.org asks for the number.
  * On the span the property is the text the owner typed, which is also the text on the page, and
@@ -427,7 +427,7 @@ function mailtoHref(value: unknown): string | undefined {
  * you" — and making the address the link text means the link needs no invented label and its
  * accessible name is the address, which is exactly what it goes to.
  *
- * **The two §6.3 properties here split across the two elements the section already had.**
+ * **The two §6.4 properties here split across the two elements the section already had.**
  * `hasMap` goes on the `<a>`, where microdata reads the `href` and a map URL is exactly what
  * the property wants. `address` goes on the inner `<span>`, where it reads the text — the
  * free-text form schema.org accepts as `Text`, which is why §2.3's decision costs nothing. Put
@@ -485,7 +485,7 @@ function addressSection(value: unknown): string {
  * — no rule capitalises `tiktok` into `TikTok` — then the URL's host, which is better material
  * than a capitalisation rule applied to `"my-forum"`.
  *
- * **`sameAs` is the last of §6.3's properties**, and the one microdata gets for free: on an
+ * **`sameAs` is the last of §6.4's properties**, and the one microdata gets for free: on an
  * `<a>` the property's value is the `href`, so a row of profile links is already the list of
  * other places this business is, in the exact form schema.org asks for. The link buttons above
  * deliberately get nothing — a link to a booking system is not a claim about identity, and
