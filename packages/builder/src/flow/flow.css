@@ -1,0 +1,330 @@
+/**
+ * The flow's chrome (SPEC.md §7.2, §7.6).
+ *
+ * **Mobile is first-class, and it is why this shape won.** The narrow rules are the base
+ * because the narrow case is the one the product is for; the one media query below gives the
+ * preview drawer room to sit beside the question, which is the same decision `preview.css`
+ * makes about itself and has to stay the same width.
+ *
+ * Everything here is one column of a comfortable reading measure with tap-sized controls. The
+ * question is the screen; the page is one tap away.
+ */
+
+.flow {
+  --ink: #1c1c1e;
+  --ink-quiet: #55555c;
+  --rule: #d8d8dc;
+  --surface: #ffffff;
+  --accent: #1a3ea8;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  box-sizing: border-box;
+  min-height: 100dvh;
+  padding: 1.25rem;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+.flow__question {
+  width: 100%;
+  max-width: 32rem;
+  margin-inline: auto;
+}
+
+.flow__preview {
+  width: 100%;
+  max-width: 32rem;
+  margin-inline: auto;
+}
+
+@media (min-width: 60rem) {
+  /* Room for both, so the page sits beside the question rather than over it. */
+  .flow {
+    flex-direction: row;
+    align-items: start;
+    justify-content: center;
+    gap: 3rem;
+    padding: 3rem 2rem;
+  }
+
+  .flow__question,
+  .flow__preview {
+    flex: 1 1 0;
+    margin-inline: 0;
+  }
+}
+
+/* ------------------------------------------------------------------ question */
+
+.question__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 0;
+}
+
+.question__title {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+.question__hint {
+  margin: -0.5rem 0 0;
+  color: var(--ink-quiet);
+}
+
+.question__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.question__submit {
+  min-height: 2.75rem;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: var(--ink);
+  color: var(--surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.question__submit:disabled {
+  background: var(--rule);
+  color: var(--ink-quiet);
+  cursor: default;
+}
+
+/*
+ * The escape (§7.2). Always present on an optional step and never dressed as a dismissal — it
+ * is an answer, so it is a control and not a link tucked in a corner.
+ */
+.question__escape,
+.question__back {
+  align-self: start;
+  min-height: 2.75rem;
+  padding: 0.5rem 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.question__back {
+  margin-top: 1rem;
+  color: var(--ink-quiet);
+}
+
+.question__footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+/* §7.8: a statement, not a question. Quiet enough to read past, plain enough to find. */
+.quiet-line {
+  margin: 0;
+  color: var(--ink-quiet);
+}
+
+.quiet-line__action {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* The picker itself is never seen; the sentence above is the control. */
+.quiet-line__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* §7.9: in place, attached to the control that opened the picker. Never a modal. */
+.quiet-line__error,
+.notice {
+  margin: 0.5rem 0 0;
+  padding: 0.75rem;
+  border-left: 3px solid var(--ink);
+  background: #f4f4f6;
+}
+
+/* ------------------------------------------------------------------- fields */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field__label {
+  font-weight: 600;
+}
+
+.field__hint {
+  color: var(--ink-quiet);
+  font-size: 0.875rem;
+}
+
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.button-secondary {
+  align-self: start;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ presets */
+
+.presets,
+.picks,
+.days,
+.socials,
+.swatches {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.presets__option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.presets__option[aria-pressed="true"] {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.presets__label {
+  font-weight: 600;
+}
+
+/* Load-bearing, not decoration (§7.3): they are what tells an owner this row is theirs. */
+.presets__examples {
+  color: var(--ink-quiet);
+  font-size: 0.875rem;
+}
+
+/* ----------------------------------------------------------------- swatches */
+
+.swatches {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.swatches__swatch {
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.swatches__swatch[aria-pressed="true"] {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------------- picks */
+
+.picks__option {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+.picks__own {
+  margin-inline-end: 0.5rem;
+}
+
+.picks__remove {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------------- days */
+
+.days__day {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-block: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.days__times {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.socials__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-block: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}

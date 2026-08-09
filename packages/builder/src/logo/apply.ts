@@ -19,7 +19,14 @@ export function applyIntake(draft: Draft, result: LogoIntake): Draft {
   return { ...draft, header: { ...draft.header, logo: result.logo } };
 }
 
-/** Remove the logo. Separate from `applyIntake` because it is a different intention (§7.4). */
+/**
+ * Remove the logo. Separate from `applyIntake` because it is a different intention (§7.4).
+ *
+ * A draft with no logo is returned as it stands rather than rebuilt. Callers use identity to
+ * mean "nothing was answered" — the flow's doors all do (§7.2) — so removing a logo that is
+ * not there has to be nothing happening rather than a new object that happens to be equal.
+ */
 export function clearLogo(draft: Draft): Draft {
+  if (draft.header.logo === null) return draft;
   return { ...draft, header: { ...draft.header, logo: null } };
 }

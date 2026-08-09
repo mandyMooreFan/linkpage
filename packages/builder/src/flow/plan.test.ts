@@ -1,0 +1,205 @@
+import { describe, expect, it } from "vitest";
+import { readDraft, type Draft } from "../project/index.js";
+import { flowEntry, planSteps, uncoveredTopics, type FlowEntry, type Pick } from "./plan.js";
+import type { PresetId } from "./presets.js";
+
+/**
+ * The seam. `SPEC.md` §7.1, §7.2, §4.6.
+ *
+ * > **The flow re-enters for anything new; the list holds everything that already exists.**
+ *
+ * Two pure functions carry that whole rule, which is the point of them being pure: a multi-
+ * screen sequence is otherwise only testable by driving it, and driving it tests the screens
+ * rather than the rule. Here the rule is a list of strings.
+ */
+
+/** The steps as a reader of §7 would name them. */
+function ids(steps: ReturnType<typeof planSteps>): string[] {
+  return steps.map((step) => (step.id === "linkUrl" ? `linkUrl:${step.pick.label}` : step.id));
+}
+
+const EMPTY: FlowEntry = { kind: "empty" };
+
+function plan(entry: FlowEntry, draft: Draft | null, preset: PresetId | null, picks: Pick[] = []) {
+  return ids(planSteps({ entry, draft, preset, picks }));
+}
+
+/** A project that has everything required, as an import or a finished flow leaves it. */
+const COMPLETE: Draft = readDraft({
+  version: 1,
+  lang: "en-GB",
+  style: { brand: "#c2185b" },
+  header: { name: "Ada's Bakery" },
+  links: [{ label: "Order", url: "https://ada.example" }],
+});
+
+describe("which screen owns the window", () => {
+  it("hands an empty builder to the flow — the flow *is* the empty state (§7.1)", () => {
+    expect(flowEntry(null)).toEqual({ kind: "empty" });
+  });
+
+  it("hands a finished project to the list", () => {
+    expect(flowEntry(COMPLETE)).toBeNull();
+  });
+
+  it.each([
+    ["no colour", { version: 1, lang: "en", header: { name: "Ada's" } }],
+    ["no name", { version: 1, lang: "en", style: { brand: "#c2185b" } }],
+    ["neither", { version: 1, lang: "en" }],
+  ])(
+    "collects a required field an imported file lacks, rather than reporting it: %s",
+    (_case, file) => {
+      // §4.6: "A file with no `style.brand` is exactly the territory the flow exists for, so the
+      // owner is walked through the colour question as if they had ticked a new section."
+      expect(flowEntry(readDraft(file))).toEqual({ kind: "add", topics: [] });
+    },
+  );
+
+  it("does not send an owner back to the flow over a missing lang (§4.1)", () => {
+    // The one required field that is not a question: the browser answers it.
+    const noLang = readDraft({ version: 1, style: { brand: "#c2185b" }, header: { name: "Ada" } });
+    expect(noLang.lang).toBeUndefined();
+    expect(flowEntry(noLang)).toBeNull();
+  });
+});
+
+describe("the first run", () => {
+  it("opens on the preset question and plans nothing past it", () => {
+    // Step one decides which of the four optional steps exist at all, so there is nothing to
+    // plan until it is answered.
+    expect(plan(EMPTY, null, null)).toEqual(["preset"]);
+  });
+
+  it.each([
+    ["food", ["hours", "contact", "address", "social"]],
+    ["shop", ["hours", "contact", "address", "social"]],
+    ["appointments", ["hours", "contact", "address", "social"]],
+    ["mobile", ["contact", "social"]],
+    ["online", ["social"]],
+    ["other", ["hours", "contact", "address", "social"]],
+  ] satisfies [PresetId, string[]][])("runs %s end to end", (preset, sections) => {
+    expect(plan(EMPTY, null, preset)).toEqual([
+      "preset",
+      "name",
+      "tagline",
+      "logo",
+      "brand",
+      "links",
+      ...sections,
+    ]);
+  });
+
+  it("never asks 'we come to you' where they live", () => {
+    expect(plan(EMPTY, null, "mobile")).not.toContain("address");
+  });
+
+  it("re-plans when the preset is chosen again, since nothing is filled in yet (§7.3)", () => {
+    // Re-choosable while still in the flow; there is no "change business type" control after.
+    expect(plan(EMPTY, null, "food")).toContain("hours");
+    expect(plan(EMPTY, null, "online")).not.toContain("hours");
+  });
+
+  it("adds one URL screen per pick, in the order they were picked", () => {
+    const picks: Pick[] = [
+      { id: "suggested:See the menu", label: "See the menu", icon: "menu" },
+      { id: "own:0:Our newsletter", label: "Our newsletter" },
+    ];
+
+    expect(plan(EMPTY, null, "online", picks)).toEqual([
+      "preset",
+      "name",
+      "tagline",
+      "logo",
+      "brand",
+      "links",
+      "linkUrl:See the menu",
+      "linkUrl:Our newsletter",
+      "social",
+    ]);
+  });
+});
+
+describe("re-entry (§7.1)", () => {
+  it("walks one ticked section and nothing else", () => {
+    expect(plan({ kind: "add", topics: ["hours"] }, COMPLETE, null)).toEqual(["hours"]);
+  });
+
+  it("is the same step the first run would have used", () => {
+    const first = plan(EMPTY, null, "food");
+    for (const topic of ["hours", "contact", "address", "social"] as const) {
+      expect(first).toContain(topic);
+      expect(plan({ kind: "add", topics: [topic] }, COMPLETE, null)).toEqual([topic]);
+    }
+  });
+
+  it("never plans the preset question — it is one-time and unreachable from the list (§7.3)", () => {
+    const everything = plan(
+      {
+        kind: "add",
+        topics: ["tagline", "logo", "links", "hours", "contact", "address", "social"],
+      },
+      COMPLETE,
+      // Even handed one, which the list cannot do, because the list has no preset to hand.
+      "food",
+    );
+    expect(everything).not.toContain("preset");
+  });
+
+  it("keeps the page's own order however the topics arrive", () => {
+    expect(plan({ kind: "add", topics: ["social", "hours", "tagline"] }, COMPLETE, null)).toEqual([
+      "tagline",
+      "hours",
+      "social",
+    ]);
+  });
+
+  it("asks a topic once however often it is asked for", () => {
+    expect(plan({ kind: "add", topics: ["hours", "hours"] }, COMPLETE, null)).toEqual(["hours"]);
+  });
+
+  it("collects a required field on the way, without the preset question (§4.6)", () => {
+    const noBrand = readDraft({ version: 1, lang: "en", header: { name: "Ada's" } });
+    expect(plan({ kind: "add", topics: [] }, noBrand, null)).toEqual(["brand"]);
+    expect(plan({ kind: "add", topics: ["hours"] }, noBrand, null)).toEqual(["brand", "hours"]);
+  });
+
+  it("does not re-ask for something the file already has", () => {
+    expect(plan({ kind: "add", topics: [] }, COMPLETE, null)).toEqual([]);
+  });
+});
+
+describe("what the list may offer", () => {
+  it("offers exactly the territory the owner has not covered", () => {
+    expect(uncoveredTopics(COMPLETE)).toEqual([
+      "tagline",
+      "logo",
+      "hours",
+      "contact",
+      "address",
+      "social",
+    ]);
+  });
+
+  it("stops offering a section once it holds something", () => {
+    const withHours: Draft = {
+      ...COMPLETE,
+      hours: { clock: "12h", weekStart: "mon", days: { mon: [] } },
+    };
+    expect(uncoveredTopics(withHours)).not.toContain("hours");
+  });
+
+  it("still offers a section that arrived from a file with nothing in it", () => {
+    // §4.5 keeps `"contact": {}` in the file; §7.1 says a ticked-but-empty section does not
+    // exist as a *state*, so the list treats an empty one as territory still uncovered.
+    const hollow = readDraft({
+      version: 1,
+      lang: "en",
+      style: { brand: "#c2185b" },
+      header: { name: "Ada's" },
+      contact: {},
+      address: { lines: [] },
+    });
+    expect(uncoveredTopics(hollow)).toContain("contact");
+    expect(uncoveredTopics(hollow)).toContain("address");
+  });
+});
