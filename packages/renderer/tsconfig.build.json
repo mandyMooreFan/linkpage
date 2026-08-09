@@ -7,5 +7,7 @@
     // The shipped renderer runs in a browser and must not reach for anything Node-shaped.
     "types": []
   },
-  "exclude": ["src/**/*.test.ts"]
+  // `fixtures.ts` is test support — shared project fixtures — and ships no further than the
+  // tests that import it.
+  "exclude": ["src/**/*.test.ts", "src/fixtures.ts"]
 }
