@@ -312,7 +312,39 @@ describe("social", () => {
 
   it("names an unrecognised platform by its host rather than by a capitalisation rule", () => {
     const social = [{ platform: "my-forum", url: "https://www.Forum.example/u/ada" }];
-    expect(page({ ...base, social })).toContain('<span class="lp-sr">forum.example</span>');
+    expect(page({ ...base, social })).toContain(
+      '<span class="lp-social-name">forum.example</span>',
+    );
+  });
+
+  it("shows the name of a platform we have no mark for, and hides it for one we do", () => {
+    // #45: a row of marks identifies each entry by its mark. An entry with no mark has nothing
+    // to identify it, so the name — already computed, already correct — is shown instead of
+    // hidden. A marked entry keeps its name for assistive technology only.
+    const marked = page({ ...base, social: [{ platform: "instagram", url: "https://i.example" }] });
+    expect(marked).toContain('<span class="lp-sr">');
+    expect(marked).not.toContain("lp-social-name");
+
+    const unmarked = page({
+      ...base,
+      social: [{ platform: "linkedin", url: "https://li.example" }],
+    });
+    expect(unmarked).toContain('<span class="lp-social-name">li.example</span>');
+    expect(unmarked).toContain("lp-social-link--named");
+  });
+
+  it("tells two unmarked platforms apart — the failure #45 was filed for", () => {
+    const html = page({
+      ...base,
+      social: [
+        { platform: "linkedin", url: "https://www.linkedin.com/in/ada" },
+        { platform: "my-forum", url: "https://forum.example/u/ada" },
+      ],
+    });
+    // Before this, both were an identical anonymous chain-link glyph with nothing to
+    // distinguish them to a sighted reader.
+    expect(html).toContain('<span class="lp-social-name">linkedin.com</span>');
+    expect(html).toContain('<span class="lp-social-name">forum.example</span>');
   });
 
   it("falls back to the platform, then to the URL, when there is no host", () => {
@@ -320,7 +352,7 @@ describe("social", () => {
       "carrier pigeon",
     );
     expect(page({ ...base, social: [{ url: "/ada" }] as Project["social"] })).toContain(
-      '<span class="lp-sr">/ada</span>',
+      '<span class="lp-social-name">/ada</span>',
     );
   });
 

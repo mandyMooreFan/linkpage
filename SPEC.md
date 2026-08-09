@@ -184,6 +184,18 @@ and a source that still carries it would carry the attribution obligation this s
 avoid. A LinkedIn URL renders with the generic glyph — the same path every unnamed platform takes,
 which is the useful proof that the path works.
 
+**An entry with no mark shows its name; an entry with a mark does not.** A row of marks identifies
+each entry _by_ its mark, so an entry without one has nothing identifying it — and two of them are
+two identical chain-links side by side with nothing to tell them apart. Assistive technology was
+never affected, because the accessible name is real text either way; this is the sighted reader
+getting what a screen reader already had.
+
+The name costs nothing to show: it is already computed for the accessible name, and a platform name
+is a proper noun, so unlike §2.5's vocabulary it needs no translation. **The asymmetry is
+information rather than untidiness** — a labelled entry is one we have no mark for, which is exactly
+what the owner is looking at. LinkedIn makes this routine rather than hypothetical, since it is a
+platform a consultant or tradesperson plausibly publishes.
+
 **Growth rule.** A new platform earns a mark by being one a small business plausibly publishes, and
 costs nothing else: adding one is additive, never a version bump (§4.8), and removing one degrades to
 the fallback rather than dropping the link. A new _generic_ glyph earns its place only by serving a
@@ -509,8 +521,8 @@ Never an error, never dropped — and the two enum families get different treatm
 different things.
 
 - **`platform` holds the owner's data.** Behind that string is a URL they typed. **Keep the entry,
-  render the link with the generic fallback glyph, preserve the value verbatim.** The link is the
-  point; the icon is decoration.
+  render the link with the generic fallback glyph and its name visible (§2.4), preserve the value
+  verbatim.** The link is the point; the icon is decoration.
 - **`shape`, `type`, `mode` hold a preference.** There is no authored content in `"brutalist"`.
   **Fall back to the default for rendering, preserve the original value in the file**, so a newer
   builder restores the choice intact.

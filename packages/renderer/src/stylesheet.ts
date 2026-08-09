@@ -111,7 +111,9 @@ a:focus-visible{outline:2px solid var(--lp-accent-ink);outline-offset:3px}
 .lp-address{display:flex;align-items:flex-start;gap:0.625rem;margin:0;color:var(--lp-ink)}
 .lp-address .lp-icon{margin-top:0.25rem;color:var(--lp-ink-muted)}
 .lp-social{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:0.25rem}
-.lp-social-link{display:flex;align-items:center;justify-content:center;width:2.75rem;height:2.75rem;border-radius:var(--lp-radius);color:var(--lp-accent-ink);font-size:1.375rem;text-decoration:none}`.trim();
+.lp-social-link{display:flex;align-items:center;justify-content:center;width:2.75rem;height:2.75rem;border-radius:var(--lp-radius);color:var(--lp-accent-ink);font-size:1.375rem;text-decoration:none}
+.lp-social-link--named{width:auto;gap:0.375rem;padding:0 0.625rem;font-size:1rem}
+.lp-social-name{font-size:0.875rem}`.trim();
 
 /**
  * Build the stylesheet for one project's palette and resolved chrome.
