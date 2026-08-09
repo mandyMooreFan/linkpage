@@ -99,6 +99,7 @@ pnpm typecheck     # tsc across both packages
 pnpm test          # vitest
 pnpm build         # renderer tsc emit + builder vite build
 pnpm format        # prettier --write .
+pnpm test:e2e      # the one Playwright end-to-end; needs a browser (see below)
 ```
 
 ## Tests
@@ -110,6 +111,26 @@ tests plus the three invariant guards live there.
 The builder gets tests only where the logic is genuinely tricky (undo/redo, `project.json`
 import/export). **There is no coverage target and won't be one** — coverage targets on a
 form UI generate busywork PRs.
+
+### The one browser test
+
+`packages/builder/e2e/download.e2e.ts` is the whole of it, and it stays that way. It presses
+Download in a real browser, compares the bytes that land on disk to the `srcdoc` the preview
+was showing, and then opens that file from `file://` with the network switched off. Those are
+the three things jsdom cannot reach; everything else about the builder is tested without a
+browser and should stay that way.
+
+It is **not** part of `pnpm test`. Run it once, first time:
+
+```bash
+pnpm --filter @linkpage/builder exec playwright install --only-shell chromium
+pnpm test:e2e      # builds the builder, serves dist, drives it
+```
+
+CI runs it as a separate job on one Node version, so the Node 24/26 matrix keeps its minute.
+**A new browser test needs a reason no unit test can cover**, and if this one ever needs a
+retry to be green, fix it or delete it — a flaky browser test costs more than the guarantee it
+nominally protects, because every future change starts by suspecting itself.
 
 ## Proposing a change
 
