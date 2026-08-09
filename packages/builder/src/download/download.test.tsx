@@ -130,36 +130,70 @@ describe("two sections, in the order they happen (§7.7)", () => {
   });
 });
 
-describe("section one holds a placeholder, not a walkthrough (§8)", () => {
-  it("says out loud that the steps are not written yet", () => {
+describe("section one describes the shape, not the steps (§8)", () => {
+  it("tells the owner to get current instructions elsewhere", () => {
     open();
-    expect(section("page").textContent).toContain("We have not written the step-by-step yet");
+    // Not a placeholder any more. Steps rot on a schedule nobody tells us about, so the copy
+    // deliberately carries none and points at a source that stays current.
+    expect(section("page").textContent).toContain("ask an AI assistant");
   });
 
   it("offers the one route that needs no verification", () => {
     open();
-    // "Send it to your web person" is a first-class route, not an afterthought.
-    expect(section("page").textContent).toContain("Send it to whoever looks after your website");
+    // "Ask whoever looks after your website" is a first-class route, not an afterthought — it is
+    // the only one needing no verification from us and no learning from them.
+    expect(section("page").textContent).toContain("Ask whoever looks after your website");
   });
 
-  it("warns that a shared link previews as text (§6.3)", () => {
+  it("carries the one idea that outlasts every host (§8)", () => {
+    open();
+    // A non-technical owner who understands *this* can recognise a workable answer when someone
+    // offers them one, which is worth more than a procedure that expires.
+    expect(section("page").textContent).toContain("hand it to anyone who asks for it");
+  });
+
+  it("gives an outcome check that does not depend on the steps being right (§8)", () => {
+    open();
+    const text = section("page").textContent ?? "";
+    // This is what makes "ask an AI assistant" safe rather than a shrug: the owner cannot audit
+    // confident, outdated instructions, so they are given a test independent of all of them.
+    expect(text).toContain("someone else");
+    expect(text).toMatch(/web address/i);
+  });
+
+  it("warns that a shared link previews as text (§6.4)", () => {
     open();
     // `og:image` is structurally impossible for a single-file tool. Owners are told rather than
     // surprised.
-    expect(section("page").textContent).toContain("you will get the address as text");
+    expect(section("page").textContent).toContain("text with no picture");
+  });
+
+  it("warns that a free host may forbid a business (§8)", () => {
+    open();
+    // The trap a business owner falls into and never finds out about until it matters.
+    expect(section("page").textContent).toMatch(/free does not always mean allowed/i);
   });
 
   it("names no host and numbers no steps", () => {
     open();
     const text = section("page").textContent ?? "";
 
-    // Naming a host is the recommendation §8 withholds: the single-file drop is undocumented
-    // behaviour read out of shipped uploader code, and the two obvious alternatives are
-    // disqualified on licence terms rather than capability.
-    for (const host of ["Netlify", "Vercel", "GitHub", "Cloudflare", "Neocities", "Surge"]) {
+    // Not a placeholder guard any more — a permanent rule (§8). Naming a host is a recommendation
+    // with a shelf life, and steps rot on a schedule no one tells us about. Copy with no steps in
+    // it cannot go stale, which is the property this test protects.
+    for (const host of [
+      "Netlify",
+      "Vercel",
+      "GitHub",
+      "Cloudflare",
+      "Neocities",
+      "Surge",
+      "S3",
+      "AWS",
+    ]) {
       expect(text).not.toContain(host);
     }
-    // A numbered list is what a fabricated walkthrough looks like on arrival.
+    // A numbered list is what an expiring walkthrough looks like on arrival.
     expect(section("page").querySelector("ol")).toBeNull();
     expect(text).not.toMatch(/\bStep 1\b/);
   });

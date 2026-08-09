@@ -1137,32 +1137,89 @@ re-open the picker_; in place makes it _pick again_.
 
 ## 8. Getting the page online
 
-**This section is deliberately incomplete in v1 of this spec.** The walkthrough copy is deferred; what
-follows is what is established and may be relied upon.
+**We describe the shape of the problem. We do not write steps, and we name no hosts.**
 
-**Structure is settled** (§7.7): the guidance is section one of the Download sheet, above the project
-file.
+That is the decision, and it is not a deferral. An earlier draft of this section deferred the
+walkthrough until someone had walked it; the walkthrough is now ruled out entirely, which is a
+different and better answer.
 
-**What research established:**
+### Why no steps
 
-- **A single dropped `index.html` is accepted by at least one major drop-style host.** This was
-  determined by reading shipped uploader code and **contradicts that host's own prose documentation**,
-  so it is undocumented behaviour that can be withdrawn without notice. Treat it as fragile.
-- **Two obvious hosts are disqualified on licence terms rather than capability.** One free tier is
-  non-commercial only with a definition that explicitly covers advertising a service; another forbids
-  using it "to run your online business". Both exclude exactly this product's users. Note the
-  asymmetry: the same host may be perfectly legitimate for hosting _the builder_.
-- **"Send it to your web person" is a first-class route**, not an afterthought — many small businesses
-  have someone who does their website.
-- **Shared links will preview as text** (§6.4), and owners should be told so rather than surprised.
+Three reasons, and the first is the one that decides it.
 
-**What must not be written until it has been walked:** step-by-step instructions. The two questions
-that set the step count — whether a logged-out drop yields a publicly viewable URL, and whether the
-path works at all on a phone — are unverified. Writing verified-sounding steps from documentation
-alone is the specific failure this section exists to avoid, and the second question matters
-disproportionately: **§7.6 makes mobile editing first-class, so a broken mobile path would walk owners
-to a dead end.**
+**Steps rot and we cannot maintain them.** Every host redesigns its uploader, moves its free tier and
+rewrites its terms, on its own schedule, without telling us. A page of instructions in this tool is
+wrong from some unannounced date onward, and the owner cannot tell the difference between a step we
+got wrong and a step that used to work. Copy with no steps in it cannot go stale — which is why every
+option for _managing_ staleness felt unsatisfying: the problem was the steps, not the maintenance.
 
+**Naming a host is a recommendation, and a recommendation carries a shelf life and a liability.** The
+moment we print a name we have told a business owner where to put their livelihood, on the strength
+of terms we read once. See the licence trap below for how quickly that goes wrong.
+
+**We have not walked them.** That was the original reason, and it still holds — but it is now the
+least important of the three, because even a walked path would rot.
+
+### What the copy does instead
+
+**Explain the shape.** The owner has one file. Somewhere on the internet, a computer has to hand that
+file to anyone who asks for it. That is the whole of it: no database, no account with us, no software
+running anywhere. **Every hosting option is the same idea wearing different clothes** — a service you
+drag the file onto, a bucket on a cloud provider, a folder on a server someone already rents.
+
+That single idea is worth more to a non-technical owner than any set of steps, because it is what lets
+them recognise a workable answer when someone offers them one.
+
+**Name the kinds of place, not the places.**
+
+- **Someone who already looks after your website.** First, because it is the only route that needs no
+  verification from us and no learning from them: the file is an ordinary web page, and anyone who
+  does this for a living will know what to do with it in a minute.
+- **A service you drag a file onto.** These exist, several are free, and this is the shortest path for
+  an owner doing it themselves.
+- **Object storage on a cloud provider.** This is the plumbing under most of the others. Worth naming
+  because it is what a technical helper will reach for, and worth _not_ recommending directly: it
+  means an account, a bucket, a public-access setting and a region, which is a developer's afternoon
+  and not a shopkeeper's.
+
+**Tell them how to get current steps.** Say plainly that instructions change, that we deliberately do
+not carry them, and that asking an AI assistant — or a search engine, or the person in the previous
+paragraph — for the steps for whichever service they picked will get them something current in a way
+a page in this tool never can.
+
+**And give them a check that does not depend on the instructions being right.** This is the part that
+makes the previous paragraph safe rather than a shrug. An AI assistant will produce confident,
+outdated, plausible steps, and **this owner is precisely the person who cannot audit them.** So the
+copy must not send them off with instructions and no way to grade the result. It tells them what
+success looks like:
+
+> **You have a web address, and opening it on someone else's phone shows your page.**
+
+Someone else's, because their own browser may be showing them a file from their own computer. That
+test is independent of every step that preceded it, and an owner who applies it cannot be quietly
+left with a page only they can see.
+
+### Two things the copy must say outright
+
+**Free does not always mean allowed.** At least two well-known free hosts will serve this page
+perfectly and forbid it in their terms — one is non-commercial only, with a definition that explicitly
+covers advertising a service, and another rules out running your business on it. This is exactly the
+trap a business owner falls into and never finds out about until it matters. We say the trap exists;
+we do not police it. Note the asymmetry that makes this easy to get wrong: the same host may be
+entirely legitimate for hosting _the builder_.
+
+**Your link will look plain when you share it.** Paste the address into a message and it appears as
+text with no picture. `og:image` is structurally impossible for any single-file tool (§6.4) — there is
+no second file for a scraper to fetch — so this is permanent, not a bug and not a missing feature. An
+owner who is not told will assume something broke.
+
+### What this is not
+
+**We do not deploy on the owner's behalf, and this section is not a step toward doing so.** Constraint
+6 says the last mile is guidance rather than integration, and the reason is not squeamishness: a
+deploy button needs credentials, a server to hold them and someone to answer when it breaks, and that
+is a hosting business rather than a feature. If it were ever wanted it should be built and priced as
+one, by someone who wants to run it — not smuggled into a free static tool as a convenience.
 ---
 
 ## 9. Non-goals
@@ -1191,7 +1248,6 @@ Ruled out on purpose. The first contributor to ask "why not?" has a written answ
 
 ## 10. Deferred past v1
 
-- **The hosting walkthrough copy** — §8.
 - **A QR code for the finished page.** Small businesses want a printable code for the counter. A QR
   code can only be made once the owner has a web address, and the tool never learns it (§7.7) — so the
   feature would require the owner to return and paste their address in, which is the interaction this
