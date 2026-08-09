@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
-import { useState, type JSX } from "react";
+import { useState, type JSX, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { POPULATED } from "../fixtures.js";
 import type { Topic } from "../flow/topics.js";
@@ -23,7 +23,13 @@ afterEach(cleanup);
 /** The list with a draft that moves, which is what makes a round trip expressible. */
 function editing(
   initial: Draft = POPULATED,
-  props: { onAdd?: (topic: Topic) => void; onDownload?: () => void; onImport?: () => void } = {},
+  props: {
+    onAdd?: (topic: Topic) => void;
+    onDownload?: () => void;
+    onImport?: () => void;
+    importConfirm?: ReactNode;
+    importError?: ReactNode;
+  } = {},
 ) {
   const seen: Draft[] = [];
 
@@ -39,6 +45,8 @@ function editing(
         onAdd={props.onAdd ?? (() => {})}
         {...(props.onDownload === undefined ? {} : { onDownload: props.onDownload })}
         {...(props.onImport === undefined ? {} : { onImport: props.onImport })}
+        {...(props.importConfirm === undefined ? {} : { importConfirm: props.importConfirm })}
+        {...(props.importError === undefined ? {} : { importError: props.importError })}
       />
     );
   }
@@ -263,6 +271,22 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Menu" }));
     fireEvent.click(screen.getByRole("button", { name: "Open a project file…" }));
     expect(onImport).toHaveBeenCalled();
+  });
+
+  it("gives §7.8's confirmation and §7.9's message the menu's own surface", () => {
+    editing(POPULATED, {
+      onImport: () => {},
+      importConfirm: <p>Opening this file will replace it.</p>,
+    });
+
+    // The OS picker takes the screen while it is up and the menu can be dismissed underneath it,
+    // which would leave the confirmation correct and invisible. So the surface opens itself.
+    const panel = document.querySelector(".list__menu-panel") as HTMLElement;
+    expect(panel.hidden).toBe(false);
+    expect(panel.textContent).toContain("Opening this file will replace it.");
+    // In place, with the project intact behind it — never a modal (§7.9).
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Ada & Sons <Bakers>");
   });
 
   it("does not track downloaded versus changed since (§7.7)", () => {

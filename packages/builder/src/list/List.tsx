@@ -59,10 +59,11 @@ import { StyleStep } from "./StyleStep.js";
  * whether the drawer has room to sit open beside the list, which is a decision `list.css` and
  * `preview.css` make with the same media query.
  *
- * **Download and Import are entry points here and behaviours elsewhere** — #35 owns the sheet
- * (§7.7) and #36 the import mechanics (§7.8). Both arrive as optional handlers: this screen
- * settles *where* they are, which is what §7.4 and §7.8 actually specify, and neither is
- * offered until the issue that owns it supplies one.
+ * **Download and Import are entry points here and behaviours elsewhere** — `download/` owns the
+ * sheet (§7.7) and `open/` the import mechanics (§7.8). Both arrive as optional handlers: this
+ * screen settles *where* they are, which is what §7.4 and §7.8 actually specify, and neither is
+ * offered until something supplies one. That includes the two surfaces the menu lends §7.8's
+ * confirmation and §7.9's message: the list holds the place and none of the decision.
  */
 
 export interface ListProps {
@@ -75,6 +76,16 @@ export interface ListProps {
   readonly onDownload?: () => void;
   /** §7.8's menu entry, wired by #36. Absent leaves it out rather than dead. */
   readonly onImport?: () => void;
+  /**
+   * §7.8's replace confirmation, in the menu's own surface.
+   *
+   * The list holds no part of the decision — not what is at risk, not what it is called, not
+   * what happens on either branch. It supplies the place, which is what §7.8 actually specifies
+   * about this screen: **import lives in the review list's menu**, not the Download sheet,
+   * because the sheet is where things leave and import is the one action that can destroy what
+   * is there.
+   */
+  readonly importConfirm?: ReactNode;
   /** §7.9: an import failure belongs in the menu's own surface, not in a modal. */
   readonly importError?: ReactNode;
   /** Test seam for #31's pipeline, which needs `<img>` and `<canvas>`. */
@@ -87,6 +98,7 @@ export function List({
   onAdd,
   onDownload,
   onImport,
+  importConfirm,
   importError,
   intake,
 }: ListProps): JSX.Element {
@@ -117,7 +129,7 @@ export function List({
     <main className="list">
       <div className="list__panel">
         <div className="list__bar">
-          <Menu onImport={onImport} error={importError} />
+          <Menu onImport={onImport} confirm={importConfirm} error={importError} />
           {/*
            * §7.7's sheet is #35's. The button is where §7.4 puts it and says what it does; it
            * is unavailable rather than inert until there is a sheet behind it, because a
@@ -392,13 +404,28 @@ function LangRow({
  */
 function Menu({
   onImport,
+  confirm,
   error,
 }: {
   readonly onImport?: () => void;
+  readonly confirm?: ReactNode;
   readonly error?: ReactNode;
 }): JSX.Element {
   const [open, setOpen] = useState(false);
   const menuId = useId();
+
+  /**
+   * Something to say arrives, so the surface that says it opens.
+   *
+   * The OS picker takes the screen while it is up and the menu can be dismissed underneath it,
+   * which would leave §7.8's confirmation or §7.9's message correct and invisible. Keyed on
+   * whether there is one rather than on the node, so Escape still closes a menu that is only
+   * showing what it showed a moment ago.
+   */
+  const speaking = confirm !== undefined || error !== undefined;
+  useEffect(() => {
+    if (speaking) setOpen(true);
+  }, [speaking]);
 
   // Escape closes it, at both sizes and from anywhere in it.
   useEffect(() => {
@@ -431,7 +458,14 @@ function Menu({
         >
           Open a project file…
         </button>
-        {error !== undefined && <p className="notice">{error}</p>}
+        {/*
+         * §7.8's confirmation and §7.9's refusal are the same place — the menu's own surface,
+         * with the project intact behind it — and they cannot both be showing: a file is either
+         * refused outright or held for the confirmation. `<div>` and not `<p>`, because both
+         * carry flow content: a `<details>` in one and the fork's three controls in the other.
+         */}
+        {confirm !== undefined && <div className="notice">{confirm}</div>}
+        {error !== undefined && <div className="notice">{error}</div>}
       </div>
     </div>
   );

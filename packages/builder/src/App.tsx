@@ -1,11 +1,18 @@
-import { useEffect, useMemo, useState, useSyncExternalStore, type JSX } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX } from "react";
 import { DownloadSheet } from "./download/index.js";
 import { Flow } from "./flow/Flow.js";
 import { flowEntry, type FlowEntry } from "./flow/plan.js";
 import { answerLang } from "./flow/topics.js";
 import type { Topic } from "./flow/topics.js";
 import { List } from "./list/index.js";
-import { createProjectStore, type StorageLike } from "./project/index.js";
+import { projectFile, ProjectPicker, RefusalNotice, ReplaceConfirm } from "./open/index.js";
+import {
+  createProjectStore,
+  readProjectFile,
+  REFUSAL_MESSAGES,
+  type Refusal,
+  type StorageLike,
+} from "./project/index.js";
 
 /**
  * The builder's two screens, and the rule that joins them. `SPEC.md` §7.1.
@@ -19,17 +26,24 @@ import { createProjectStore, type StorageLike } from "./project/index.js";
  * from #34, and the seam that hands a ticked topic back to the flow and takes the owner back to
  * the list when it has been answered.
  *
- * **Import is wired only as far as §7.8's quiet line reaches.** #36 owns the rest: the menu
- * entry on the list, the concrete confirmation when there is a project to lose, and the offer
- * to download the outgoing one first. What is settled here is where a failure appears — in
- * place, under the line, with the preset question above it untouched (§7.9).
+ * **Import is one route with two doorways** (§7.8): the quiet line on the first screen and the
+ * review list's menu. Both arrive at `offerFile`, and the decision it makes is about the
+ * *project*, never about which control was pressed — **empty localStorage opens immediately;
+ * anything else is confirmed by name first.** That the quiet line always takes the first branch
+ * is not a rule written here: the preset step only exists on a `kind: "empty"` entry, which is
+ * only reachable with no project at all, so the screen carrying the line is the screen with
+ * nothing to lose.
+ *
+ * **A file is parsed before anything is asked or replaced.** `readProjectFile` is pure, so a
+ * refusal is decided without touching a thing (§4.6) — which is what lets §7.9 put the message
+ * in place beside the control, with the existing project intact behind it, and why the
+ * confirmation is only ever raised for a swap that will actually work.
  *
  * **Download is a sheet over the list, and one boolean is the whole of its state** (§7.7). It is
- * held here rather than inside the list because the sheet is a layer over that screen, and
- * because §7.7's second section is `project.json` — whose write is #36's, and which will be
- * handed in as `projectDownload` from the same place the store already lives. There is
- * deliberately no other state: nothing records that a file was written, and nothing compares it
- * against later edits.
+ * held here rather than inside the list because the sheet is a layer over that screen. Its
+ * second section is the same `projectFile` that §7.8 asks about, which is why one call feeds
+ * both. There is deliberately no other state: nothing records that a file was written, and
+ * nothing compares it against later edits.
  */
 
 /** §4.1: `lang` defaults to the browser's language at first run, never to a hardcoded `"en"`. */
@@ -61,9 +75,17 @@ export function App({ storage }: AppProps = {}): JSX.Element {
   const [request, setRequest] = useState<readonly Topic[] | null>(null);
   /** Bumped when the flow finishes, so escaping the last question still lands on the list. */
   const [runs, setRuns] = useState(0);
-  const [fileError, setFileError] = useState<string | null>(null);
+  /** §7.9's message, from the last picked file. Cleared by picking again, not by dismissing. */
+  const [fileError, setFileError] = useState<Refusal | null>(null);
+  /**
+   * A validated file, waiting on §7.8's confirmation. The text and nothing else — there is no
+   * half-loaded state anywhere, and cancelling drops it.
+   */
+  const [pending, setPending] = useState<string | null>(null);
   /** Whether §7.7's sheet is open. There is no other download state, here or anywhere. */
   const [downloading, setDownloading] = useState(false);
+  /** The list's menu opens this; the quiet line has a picker of its own (§7.8). */
+  const picker = useRef<HTMLInputElement>(null);
 
   const entry: FlowEntry | null =
     request === null ? flowEntry(snapshot.draft) : { kind: "add", topics: request };
@@ -83,17 +105,63 @@ export function App({ storage }: AppProps = {}): JSX.Element {
     store.update(answerLang(draft, browserLang()));
   }, [draft, store]);
 
-  function openFile(file: File): void {
-    void file.text().then(
+  /** The project as a file: §7.7's second section, and §7.8's "is there anything to lose?". */
+  const file = projectFile(store);
+
+  /**
+   * A file the owner picked, from either doorway (§7.8).
+   *
+   * Read, parsed and judged before anything moves. The three outcomes are the spec's three:
+   * refused in place (§7.9), opened immediately because there is nothing to lose, or held for
+   * the confirmation that names what would go.
+   */
+  function offerFile(picked: File): void {
+    void picked.text().then(
       (text) => {
-        const result = store.open(text);
-        // Atomic (§4.6): on a refusal nothing anywhere changed, so there is nothing to restore
+        const result = readProjectFile(text);
+        // Atomic (§4.6): nothing has been touched to get here, so there is nothing to restore
         // and the message is the whole of the recovery.
-        setFileError(result.ok ? null : result.refusal.message);
+        if (!result.ok) {
+          setPending(null);
+          setFileError(result.refusal);
+          return;
+        }
+        setFileError(null);
+        // Asked again rather than closed over: the owner has been in a file dialog since this
+        // render, and §7.8's fork is about the project as it is now. One definition of "is there
+        // a project", so the confirmation and the Download sheet cannot disagree about it.
+        if (projectFile(store) === null) store.open(text);
+        else setPending(text);
       },
-      () => setFileError("This file appears to be damaged."),
+      // The bytes never arrived — a revoked permission, a removed drive. Not a JSON problem, but
+      // it is the same sentence to the owner and the same disclosure for whoever wants more.
+      (error: unknown) => {
+        setPending(null);
+        setFileError({
+          reason: "damaged",
+          message: REFUSAL_MESSAGES.damaged,
+          detail: `The file could not be read: ${error instanceof Error ? error.message : String(error)}`,
+        });
+      },
     );
   }
+
+  /** Replace, now that the owner has said so. Validated already; re-checked because it is free. */
+  function replaceWith(text: string): void {
+    const result = store.open(text);
+    setPending(null);
+    setFileError(result.ok ? null : result.refusal);
+  }
+
+  /**
+   * §7.9's message, wherever the screen puts it.
+   *
+   * A refusal from the picked file first, then the one the store may be holding about what is
+   * *in* storage — a project from a newer builder is still the owner's project and is reported
+   * rather than deleted (#30), and the first screen is where they would meet it.
+   */
+  const refusal = fileError ?? snapshot.refusal;
+  const notice = refusal === null ? undefined : <RefusalNotice refusal={refusal} />;
 
   // `flowEntry` answers `null` only when there is a draft, so the second half of this test is
   // a type narrowing rather than a second rule.
@@ -111,8 +179,8 @@ export function App({ storage }: AppProps = {}): JSX.Element {
           setRequest(null);
           setRuns(runs + 1);
         }}
-        onOpenFile={openFile}
-        fileError={fileError ?? snapshot.refusal?.message}
+        onOpenFile={offerFile}
+        {...(notice === undefined ? {} : { fileError: notice })}
       />
     );
   }
@@ -124,16 +192,40 @@ export function App({ storage }: AppProps = {}): JSX.Element {
         onChange={store.update}
         onAdd={(topic) => setRequest([topic])}
         onDownload={() => setDownloading(true)}
+        // §7.8: the menu, not the Download sheet. The sheet is where things leave; import is the
+        // one action that can destroy what is there.
+        onImport={() => picker.current?.click()}
+        {...(pending === null || file === null
+          ? {}
+          : {
+              importConfirm: (
+                <ReplaceConfirm
+                  {...(file.name === undefined ? {} : { name: file.name })}
+                  outgoing={file.download}
+                  onOpen={() => replaceWith(pending)}
+                  onCancel={() => setPending(null)}
+                />
+              ),
+            })}
+        {...(notice === undefined ? {} : { importError: notice })}
       />
+      {/* The menu item's press reaches the OS dialog through this, and nothing else does. */}
+      <ProjectPicker ref={picker} onPick={offerFile} />
       {/*
        * Mounted only while open, so leaving it and coming back opens the sheet at the top with
        * the page built from the project as it stands — the same reason the preview drawer
        * mounts its frame on demand.
        *
-       * `projectDownload` is #36's and is not passed yet: section two still reads in full, and
-       * its button is unavailable rather than inert.
+       * Section two's file is the same one §7.8 would offer to save on the way out: one rule for
+       * what it is called, one route to disk, and no way for the two to disagree.
        */}
-      {downloading && <DownloadSheet draft={draft} onClose={() => setDownloading(false)} />}
+      {downloading && (
+        <DownloadSheet
+          draft={draft}
+          onClose={() => setDownloading(false)}
+          {...(file === null ? {} : { projectDownload: file.download })}
+        />
+      )}
     </>
   );
 }
