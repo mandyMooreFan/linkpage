@@ -1,9 +1,9 @@
-import type { JSX, ReactNode } from "react";
+import { createContext, useContext, type JSX, type ReactNode } from "react";
 
 /**
- * The shell every question in the flow wears. `SPEC.md` §7.2, §7.6.
+ * The shell every question wears. `SPEC.md` §7.2, §7.4, §7.6.
  *
- * **One question per screen**, so there is one `<h1>`, one group of controls and one way
+ * **One question per screen**, so there is one heading, one group of controls and one way
  * onward. The shape is the same at every width — §7.6's "the same interaction at two sizes"
  * applies to the questions as much as to the drawer, so nothing here branches on a viewport.
  *
@@ -16,7 +16,39 @@ import type { JSX, ReactNode } from "react";
  * business name (§2.3) and the brand colour (§3.1). §4.6 is explicit that these are *collected*
  * rather than defaulted, so declining one would have to invent an answer, and inventing is the
  * thing this flow exists not to do.
+ *
+ * **A question is also what the review list opens when a row is edited** (§7.4, §7.1: "the list
+ * holds everything that already exists"). Editing opening hours a month later *is* the hours
+ * question, so the list renders the same component rather than a second form that could drift
+ * from it — and the escape it already carries is the removal, since both roads end at a project
+ * with no such key. Two things differ between a screen and a row, and both are properties of
+ * the shell rather than of any question: the heading is an `<h2>` under the list's own title,
+ * and the button says *Save* rather than *Continue*. `QuestionShellProvider` carries them, so
+ * no question has to know where it is being rendered.
  */
+
+/** What the surrounding screen makes of a question. See `QuestionShellProvider`. */
+export interface QuestionShell {
+  /** `1` on a screen of its own, `2` inside a review-list row. */
+  readonly level: 1 | 2;
+  /** The verb on the submit button when a question does not name its own. */
+  readonly submitLabel: string;
+}
+
+/** The flow: a question is the screen, and answering it moves on. */
+const FLOW_SHELL: QuestionShell = { level: 1, submitLabel: "Continue" };
+
+const ShellContext = createContext<QuestionShell>(FLOW_SHELL);
+
+export function QuestionShellProvider({
+  shell,
+  children,
+}: {
+  readonly shell: QuestionShell;
+  readonly children: ReactNode;
+}): JSX.Element {
+  return <ShellContext.Provider value={shell}>{children}</ShellContext.Provider>;
+}
 
 export interface Escape {
   /** Written as the owner's own sentence about their business, never as "skip". */
@@ -33,6 +65,7 @@ export interface QuestionProps {
   readonly escape?: Escape;
   /** Absent on step one, which is answered by choosing rather than by continuing. */
   readonly onSubmit?: () => void;
+  /** Overrides the shell's verb, for a question whose button is about something else. */
   readonly submitLabel?: string;
   /**
    * Continue is unavailable until the answer is one.
@@ -54,11 +87,13 @@ export function Question({
   children,
   escape,
   onSubmit,
-  submitLabel = "Continue",
+  submitLabel,
   submitDisabled = false,
   onBack,
   footer,
 }: QuestionProps): JSX.Element {
+  const shell = useContext(ShellContext);
+
   return (
     <section className="question">
       {/*
@@ -73,14 +108,18 @@ export function Question({
           if (!submitDisabled) onSubmit?.();
         }}
       >
-        <h1 className="question__title">{title}</h1>
+        {shell.level === 1 ? (
+          <h1 className="question__title">{title}</h1>
+        ) : (
+          <h2 className="question__title">{title}</h2>
+        )}
         {hint !== undefined && <p className="question__hint">{hint}</p>}
 
         <div className="question__body">{children}</div>
 
         {onSubmit !== undefined && (
           <button type="submit" className="question__submit" disabled={submitDisabled}>
-            {submitLabel}
+            {submitLabel ?? shell.submitLabel}
           </button>
         )}
 
