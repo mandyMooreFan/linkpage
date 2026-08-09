@@ -3,6 +3,7 @@
 import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { App } from "./App.js";
+import { installDownloads, type FakeDownloads } from "./download/downloads.testing.js";
 import { PROJECT_STORAGE_KEY, type StorageLike } from "./project/index.js";
 
 /**
@@ -190,5 +191,69 @@ describe("which screen the owner gets", () => {
     expect(JSON.parse(storage.getItem(PROJECT_STORAGE_KEY) ?? "{}")).toMatchObject({
       header: { name: "Ada's" },
     });
+  });
+});
+
+/**
+ * Download, from the button on the list to the bytes the browser is handed. `SPEC.md` §7.7.
+ *
+ * The sheet's own copy and order are held in `download/download.test.tsx`. What is worth
+ * asserting *here* is the only part neither of those files can see on its own: that the button
+ * §7.4 puts on the list is connected to the sheet, and that pressing the sheet's page button
+ * produces the page **this owner just built** — not a fixture, and not a second rendering of it.
+ */
+describe("download, end to end (§7.7)", () => {
+  let downloads: FakeDownloads;
+  beforeEach(() => {
+    downloads = installDownloads();
+  });
+  afterEach(() => downloads.restore());
+
+  it("writes the owner's own page from the list's Download button", async () => {
+    mount(<App storage={storage} />);
+    firstRun("Ada & Sons <Bakers>");
+
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+
+    // The sheet, in §7.7's order: the page, then the project file.
+    expect(screen.getAllByRole("heading", { level: 3 }).map((node) => node.textContent)).toEqual([
+      "Put your page online",
+      "Keep a copy of your work",
+    ]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Download index.html" }));
+
+    expect(downloads.written).toHaveLength(1);
+    expect(downloads.written[0]?.filename).toBe("index.html");
+    // The owner's name, escaped the way the export escapes it — so this is the file they built
+    // and not a page assembled a second time on the way to disk (§5.2).
+    const text = (await downloads.written[0]?.blob?.text()) ?? "";
+    expect(text.startsWith("<!doctype html>")).toBe(true);
+    expect(text).toContain("Ada &amp; Sons &lt;Bakers&gt;");
+  });
+
+  it("leaves the list where it was when the sheet is closed", () => {
+    mount(<App storage={storage} />);
+    firstRun();
+
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(title()).toBe("Ada's Bakery");
+  });
+
+  it("offers the project file's copy with no way to write it yet — #36's seam", () => {
+    mount(<App storage={storage} />);
+    firstRun();
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+
+    // The consequence sentence is the point of section two and does not wait on a working
+    // button; the button is unavailable rather than inert until #36 supplies the write.
+    expect(document.body.textContent).toContain(
+      "if you lose it, you’d have to build your page again from scratch",
+    );
+    const button = screen.getByRole("button", { name: "Download linkpage.json" });
+    expect((button as HTMLButtonElement).disabled).toBe(true);
   });
 });
