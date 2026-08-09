@@ -1182,6 +1182,13 @@ them recognise a workable answer when someone offers them one.
   means an account, a bucket, a public-access setting and a region, which is a developer's afternoon
   and not a shopkeeper's.
 
+**Say which device this is easier on.** The editing screen is mobile-first (§7.6), so the owner may
+well reach this sheet on a phone — and dragging a file onto a web service is a desktop-shaped
+interaction almost everywhere. Rather than verify that claim host by host and re-verify it forever,
+the copy simply says it is usually easier on a computer and worth waiting for one. **That is true
+whichever way the phone path happens to work**, which is the point: it protects a mobile-first
+audience from a dead end without depending on a fact that would rot like every other step.
+
 **Tell them how to get current steps.** Say plainly that instructions change, that we deliberately do
 not carry them, and that asking an AI assistant — or a search engine, or the person in the previous
 paragraph — for the steps for whichever service they picked will get them something current in a way
