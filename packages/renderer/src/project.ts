@@ -20,6 +20,8 @@
  * unknown keys are §4.4 and §4.5.
  */
 
+import type { IconName, SocialPlatform } from "./icons.js";
+
 /** The only `version` v1 writes. A bump means a breaking change — see `SPEC.md` §4.2. */
 export const SCHEMA_VERSION = 1;
 
@@ -120,11 +122,18 @@ export interface Link {
   label: string;
   url: string;
   /**
-   * A name from the curated, vendored icon set (§2.4). The set is enumerated by #25; until
-   * then this is an open string. An unrecognised name renders with the fallback glyph
-   * rather than failing (§4.4).
+   * A name from the curated, vendored icon set — `IconName`, enumerated in `icons.ts` and
+   * in `SPEC.md` §2.4.
+   *
+   * **Closed, unlike `SocialLink.platform` below, and the asymmetry is the point.** There is
+   * no authored content behind an icon name: the owner picked it from a short list of
+   * glyphs we drew, so it is a *preference* in §4.4's sense. Preferences fall back for
+   * rendering — an unrecognised name renders no glyph rather than failing — and the original
+   * value is preserved in `project.json` by the builder's raw-object merge (§4.5), so a
+   * newer version restores the choice intact. Nothing the owner typed can be lost by
+   * closing this.
    */
-  icon?: string;
+  icon?: IconName;
 }
 
 /**
@@ -163,16 +172,32 @@ export interface Address {
   directionsUrl?: string;
 }
 
+/**
+ * A platform identifier: any string, with the ten that have a vendored brand mark
+ * (`SocialPlatform`, enumerated in `icons.ts` and in `SPEC.md` §2.4) offered as completions.
+ *
+ * **Deliberately open, and it stays open now that the list exists.** §4.4 requires an
+ * unrecognised platform to be *kept, not dropped*, because behind that string is a URL the
+ * owner typed — so a closed union would be a type that lies about what a valid `project.json`
+ * may contain, and every consumer would need a cast or a drop to get past it. The list of
+ * marks we happen to have drawn is not the list of places a business can be.
+ *
+ * The `string & Record<never, never>` half is the usual trick for keeping literal completions
+ * alive alongside `string`: on its own, `SocialPlatform | string` collapses to `string` and
+ * the editor stops suggesting anything.
+ */
+export type PlatformId = SocialPlatform | (string & Record<never, never>);
+
 export interface SocialLink {
   /**
-   * The platform whose brand mark is shown. The closed set is enumerated by #25; until then
-   * this is an open string.
+   * The platform whose brand mark is shown, when we have one.
    *
-   * Unrecognised values are **kept, not dropped** (§4.4): behind that string is a URL the
-   * owner typed, so the entry renders with the generic fallback glyph and the value is
-   * preserved verbatim. The link is the point; the icon is decoration.
+   * Unrecognised values are **kept, not dropped** (§4.4): the entry renders with the generic
+   * `link` glyph and the value is preserved verbatim. The link is the point; the icon is
+   * decoration. `LinkedIn` is the live example — Simple Icons removed the mark at LinkedIn's
+   * request, so a LinkedIn profile travels this path rather than a special one.
    */
-  platform: string;
+  platform: PlatformId;
   url: string;
 }
 

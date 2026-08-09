@@ -1,0 +1,116 @@
+linkpage — third-party notices
+==============================
+
+linkpage itself is MIT licensed; see LICENSE.
+
+This file covers the artwork vendored into `packages/renderer/src/icons.ts`. The renderer
+declares no dependencies (SPEC.md §5.1), so it cannot import an icon library — every glyph it
+uses is copied into its source, and this file is where those copies are attributed.
+
+Two consequences worth stating plainly, because they are the reason these particular sources
+were chosen (SPEC.md §2.4):
+
+  * **Font Awesome Free was specifically avoided.** Its CC BY 4.0 licence attaches an
+    attribution obligation that would follow every page linkpage exports, onto every site
+    those pages are published to. Nothing an owner exports from this tool carries an
+    attribution requirement.
+
+  * **Nothing below requires attribution in an exported `index.html`.** ISC and MIT ask that
+    their notice accompany copies of *the software*, which this file provides for this
+    repository; CC0 asks for nothing. The exported page is the owner's, outright.
+
+
+--------------------------------------------------------------------------------
+Lucide — generic glyphs
+--------------------------------------------------------------------------------
+
+https://lucide.dev
+https://github.com/lucide-icons/lucide
+Vendored from lucide-static 1.31.0.
+
+Glyphs used, as `linkpage name` <- `lucide name`:
+
+    menu       <- utensils          price      <- tag
+    cart       <- shopping-cart     services   <- list
+    bag        <- shopping-bag      portfolio  <- briefcase
+    shop       <- store             calendar   <- calendar
+    location   <- map-pin           phone      <- phone
+    mail       <- mail              message    <- message-circle
+    document   <- file-text         link       <- link
+
+ISC License
+
+Copyright (c) 2026 Lucide Icons and Contributors
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+
+--------------------------------------------------------------------------------
+Feather — three of the Lucide glyphs above
+--------------------------------------------------------------------------------
+
+https://github.com/feathericons/feather
+
+Lucide is a fork of Feather, and it records which of its icons are derived from that project.
+Three of the glyphs vendored here are on that list and carry Feather's MIT licence in
+addition to Lucide's ISC:
+
+    calendar (calendar), bag (shopping-bag), link (link)
+
+The MIT License (MIT)
+
+Copyright (c) 2013-present Cole Bemis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+--------------------------------------------------------------------------------
+Simple Icons — social brand marks
+--------------------------------------------------------------------------------
+
+https://simpleicons.org
+https://github.com/simple-icons/simple-icons
+Vendored from simple-icons 16.28.0.
+
+Marks used: instagram, facebook, x, tiktok, youtube, whatsapp, pinterest, threads, bluesky,
+mastodon. Each was checked to be under the collection's default CC0 licence rather than a
+per-icon exception.
+
+Simple Icons is released under CC0 1.0 Universal:
+
+    https://creativecommons.org/publicdomain/zero/1.0/
+
+CC0 waives copyright. It does not waive trademark, and paragraph 4(a) of the deed says so
+explicitly. A brand mark used to link to that brand's own page is nominative use — it
+identifies the destination and claims nothing else — which is precisely and only what these
+marks do here.
+
+LinkedIn is deliberately absent: Simple Icons removed the mark at LinkedIn's request. A
+LinkedIn URL in a project still renders, with the generic link glyph, by the same mechanism
+that carries any platform the set does not name (SPEC.md §4.4).

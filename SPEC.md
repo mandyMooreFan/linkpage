@@ -110,19 +110,81 @@ A **small curated set, vendored into the renderer source as inline SVG path data
 declares no dependencies (§5.1), so it cannot import an icon library — whatever is used gets copied
 in, with attribution. That forces a small closed set, which fits the rest of this design.
 
-- Generic glyphs: **Lucide** (ISC).
+- Generic glyphs: **Lucide** (ISC). Three of the ones taken are derived from Feather and carry its
+  MIT licence as well.
 - Social brand marks: **Simple Icons** (CC0).
 - **Font Awesome Free is specifically avoided:** CC BY 4.0 attaches an attribution obligation that
   would follow every exported page.
 - CC0 covers copyright, not trademark. Using a platform's mark to link to that platform is nominative
   use, which is exactly what this is.
 - A **`NOTICES` file** listing both sources is a deliverable.
+- **Nothing an owner exports carries an attribution requirement.** ISC and MIT ask that their notice
+  travel with copies of the source, which `NOTICES` does for this repository; CC0 asks for nothing.
 
 **No icon uploads.** They would drag the image size budget into every link button and let a blurry
 JPEG sit where a crisp glyph belongs.
 
 **The set must include a generic link glyph** used as the fallback for an unrecognised social
 platform (§4.4). It is the one icon that exists for a case the owner never deliberately creates.
+
+#### The glyphs
+
+Fourteen. Each earns its place by serving a suggestion the presets make in §7.3 — that mapping is the
+membership rule, and a test asserts it in both directions, so a suggestion with no glyph and a glyph
+no suggestion reaches both fail the build.
+
+| Name        | Lucide source    | The suggestion it serves           |
+| ----------- | ---------------- | ---------------------------------- |
+| `menu`      | `utensils`       | See the menu                       |
+| `cart`      | `shopping-cart`  | Shop online                        |
+| `bag`       | `shopping-bag`   | Order for pickup                   |
+| `shop`      | `store`          | Shop                               |
+| `calendar`  | `calendar`       | Book a table / an appointment      |
+| `location`  | `map-pin`        | Find us                            |
+| `phone`     | `phone`          | Call us                            |
+| `mail`      | `mail`           | Subscribe                          |
+| `message`   | `message-circle` | Get in touch                       |
+| `document`  | `file-text`      | Get a quote                        |
+| `price`     | `tag`            | Prices                             |
+| `services`  | `list`           | Our services                       |
+| `portfolio` | `briefcase`      | See our work                       |
+| `link`      | `link`           | **none — the §4.4 fallback glyph** |
+
+`Link.icon` is **a closed union of these names.** It is a preference in §4.4's sense — nothing the
+owner authored sits behind it — so an unrecognised name renders no glyph and the value survives in
+the file by §4.5's round trip.
+
+#### The platforms with a brand mark
+
+| Identifier  | Mark      |
+| ----------- | --------- |
+| `instagram` | Instagram |
+| `facebook`  | Facebook  |
+| `x`         | X         |
+| `tiktok`    | TikTok    |
+| `youtube`   | YouTube   |
+| `whatsapp`  | WhatsApp  |
+| `pinterest` | Pinterest |
+| `threads`   | Threads   |
+| `bluesky`   | Bluesky   |
+| `mastodon`  | Mastodon  |
+
+**`SocialLink.platform` stays an open string, and this table does not close it.** §4.4 requires an
+unrecognised platform to be kept rather than dropped, because behind it is a URL the owner typed; a
+closed union would be a type that lies about what a valid file may hold. The table decides only which
+entries get a brand mark instead of the `link` glyph. Each identifier carries the platform's own
+spelling of its name, because a social link whose only visible content is a mark still needs an
+accessible name and no rule capitalises `tiktok` into `TikTok`.
+
+**LinkedIn is absent, and not by preference:** Simple Icons removed the mark at LinkedIn's request,
+and a source that still carries it would carry the attribution obligation this section exists to
+avoid. A LinkedIn URL renders with the generic glyph — the same path every unnamed platform takes,
+which is the useful proof that the path works.
+
+**Growth rule.** A new platform earns a mark by being one a small business plausibly publishes, and
+costs nothing else: adding one is additive, never a version bump (§4.8), and removing one degrades to
+the fallback rather than dropping the link. A new _generic_ glyph earns its place only by serving a
+preset suggestion, so the set grows when §7.3 does and not otherwise.
 
 ---
 

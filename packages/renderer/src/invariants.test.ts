@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { render } from "./render.js";
 import { SCHEMA_VERSION, type Project } from "./project.js";
+import { ICON_NAMES, ICONS, SOCIAL_MARKS, SOCIAL_PLATFORMS, glyphSvg } from "./icons.js";
 
 /**
  * The three guards that encode the decisions in issue #4. They are the reason this
@@ -220,6 +221,36 @@ describe("invariant 3: the renderer declares no dependencies", () => {
       dependencies?: Record<string, string>;
     };
     expect(Object.keys(manifest.dependencies ?? {})).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The vendored icon set
+// ---------------------------------------------------------------------------
+
+/**
+ * The icons are the one thing in the export that is *markup we copied from elsewhere*
+ * (SPEC.md §2.4), so they get checked against the real guards rather than against a
+ * restatement of them in `icons.test.ts`.
+ *
+ * They are checked here rather than through `render` because §2.4 landed ahead of the
+ * sections that place them (#26). When those land, the fixtures above start carrying icons
+ * and this block becomes belt as well as braces — which is the right order, since a glyph
+ * that breaches an invariant should fail on the day it is vendored, not on the day it is
+ * first rendered.
+ */
+describe("the vendored icon set satisfies invariants 1 and 2", () => {
+  const glyphs = [
+    ...ICON_NAMES.map((name) => [name, ICONS[name]] as const),
+    ...SOCIAL_PLATFORMS.map((name) => [name, SOCIAL_MARKS[name]] as const),
+  ];
+
+  it.each(glyphs)("%s ships no script, handler or javascript: URL", (_name, glyph) => {
+    expectNoScript(glyphSvg(glyph));
+  });
+
+  it.each(glyphs)("%s references nothing outside the document", (_name, glyph) => {
+    expectSelfContained(glyphSvg(glyph));
   });
 });
 
