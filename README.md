@@ -2,10 +2,11 @@
 
 Build a business link page in your browser. Export **one self-contained HTML file**. Put it anywhere.
 
-> **Status: design phase.** No usable software exists yet. This repo holds the design work
-> for v1 plus a scaffold that builds and tests — the renderer emits a placeholder page and
-> the builder is an empty shell. See the [wayfinder map](../../issues/1) for what has been
-> decided and what is still open.
+> **Status: design complete, implementation not started.** No usable software exists yet.
+> **[SPEC.md](./SPEC.md) is the complete v1 design** — enough to build from without reading
+> anything else. The repo also holds a scaffold that builds and tests: the renderer emits a
+> placeholder page and the builder is an empty shell. The [wayfinder map](../../issues/1)
+> indexes how each decision was reached, and the reasoning behind every rejected option.
 
 ## What this will be
 
