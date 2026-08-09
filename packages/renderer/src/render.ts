@@ -1,5 +1,6 @@
 import { glyphSvg, ICONS, iconSvg, socialIconSvg, socialLabel } from "./icons.js";
-import { hoursView, CLOSED_LABEL, type HoursRow } from "./hours.js";
+import { hoursView, type HoursRow } from "./hours.js";
+import { direction, languageTag, vocabulary, type Vocabulary } from "./locale.js";
 import { derivePalette } from "./palette.js";
 import { resolveChrome } from "./chrome.js";
 import { stylesheet } from "./stylesheet.js";
@@ -30,7 +31,10 @@ import { asArray, asPositiveInt, asRecord, asText } from "./values.js";
  * "Phone". That is not minimalism for its own sake — invented copy is copy in *our* language
  * on a page carrying the owner's `lang`, and §7.3's rule that the tool never asserts a fact
  * about the business points the same way. The two unavoidable exceptions are the weekday
- * abbreviations and "Closed"; see `hours.ts`.
+ * abbreviations and "closed", and they are **translated rather than English** (§2.3, #48):
+ * `lang` is resolved once here and the same answer drives `<html lang>`, `<html dir>` and
+ * every word in the hours section, so the page cannot declare one language and speak another.
+ * `locale.ts` holds the table and the reasoning.
  *
  * **The markup does not know which shape it is in.** The four shapes, the three type pairings
  * and the corner slider (§3.1) reach the page entirely through the stylesheet — see
@@ -58,10 +62,17 @@ export function render(project: Project): string {
   const palette = derivePalette(style as Style | undefined);
   const chrome = resolveChrome(style);
 
+  // The page's language, decided once. `lang` is validated first and everything downstream
+  // reads the *validated* tag, so a file whose `lang` we could not use declares `en`, renders
+  // English and reads left to right — three answers that agree rather than three lookups that
+  // might not.
+  const tag = languageTag(root?.lang);
+  const words = vocabulary(tag);
+
   const sections = [
     headerSection(root?.header),
     linksSection(root?.links),
-    hoursSection(root?.hours),
+    hoursSection(root?.hours, words),
     contactSection(root?.contact),
     addressSection(root?.address),
     socialSection(root?.social),
@@ -70,7 +81,7 @@ export function render(project: Project): string {
   return [
     "<!doctype html>",
     PROVENANCE,
-    `<html lang="${escapeHtml(language(root?.lang))}">`,
+    `<html lang="${escapeHtml(tag)}" dir="${direction(tag)}">`,
     "<head>",
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
@@ -163,28 +174,6 @@ function metaTags(value: unknown): string[] {
   const description =
     tagline === undefined ? [] : [`<meta name="description" content="${escapeHtml(tagline)}">`];
   return [...description, GENERATOR];
-}
-
-/** A BCP 47 tag's shape: subtags of one to eight alphanumerics, joined by hyphens. */
-const LANGUAGE_TAG = /^[A-Za-z]{1,8}(-[A-Za-z0-9]{1,8})*$/;
-
-/**
- * The `lang` attribute WCAG 2.2 SC 3.1.1 requires (§4.1), or `"en"`.
- *
- * Shape-checked rather than passed through, for the same reason every other value here is: an
- * arbitrary string in an attribute is how a hand-edited file would reach the one place the
- * page's markup is not the owner's content. Anything that is not tag-shaped is absent (§4.7).
- *
- * > **The declaration is honest about the owner's content and not about ours.** The weekday
- * > abbreviations and "Closed" in `hours.ts` are English on every page whichever tag lands
- * > here. That gap is real, it is recorded in #48, and it is not fixed by weakening this: a
- * > page whose content is Welsh should say so. `Intl` is ruled out there because its output
- * > tracks the host's ICU data, which would cost §6.7's byte-identical guarantee and, with it,
- * > §5.2's "the preview *is* the export".
- */
-function language(value: unknown): string {
-  const tag = asText(value);
-  return tag !== undefined && LANGUAGE_TAG.test(tag) ? tag : "en";
 }
 
 /**
@@ -310,14 +299,18 @@ function linkButton(value: unknown): string {
  * A day absent from the file is unspecified and gets no row; a day present with no intervals
  * is explicitly closed and gets one that says so. `hours.ts` holds that distinction, the time
  * formatting, the week rotation, and the reasoning about collapsed runs.
+ *
+ * This is the only section that carries a word of ours, so it is the only one that needs the
+ * page's vocabulary; `hoursView` returns the row labels and the closed text already resolved.
  */
-function hoursSection(value: unknown): string {
-  const hours = hoursView(value);
+function hoursSection(value: unknown, words: Vocabulary): string {
+  const hours = hoursView(value, words);
   if (!hours) return "";
 
   const parts: string[] = [];
   if (hours.rows.length > 0) {
-    parts.push(`<dl class="lp-hours">\n${hours.rows.map(hoursRow).join("\n")}\n</dl>`);
+    const rows = hours.rows.map((row) => hoursRow(row, hours.closed));
+    parts.push(`<dl class="lp-hours">\n${rows.join("\n")}\n</dl>`);
   }
   if (hours.note !== undefined) {
     parts.push(`<p class="lp-note">${escapeHtml(hours.note)}</p>`);
@@ -325,10 +318,10 @@ function hoursSection(value: unknown): string {
   return `<section class="lp-panel">\n${parts.join("\n")}\n</section>`;
 }
 
-function hoursRow(row: HoursRow): string {
+function hoursRow(row: HoursRow, closed: string): string {
   const times =
     row.intervals.length === 0
-      ? `<span>${escapeHtml(CLOSED_LABEL)}</span>`
+      ? `<span>${escapeHtml(closed)}</span>`
       : row.intervals.map((interval) => `<span>${escapeHtml(interval)}</span>`).join("");
 
   return `<dt class="lp-day">${escapeHtml(row.label)}</dt><dd class="lp-times">${times}</dd>`;

@@ -62,6 +62,23 @@ exports[`hours > renders a row per specified day, closed days included, plus the
 </main>"
 `;
 
+exports[`hours > renders a translated, right-to-left week 1`] = `
+"<main class="lp-page" itemscope itemtype="https://schema.org/LocalBusiness">
+<header class="lp-header">
+<h1 class="lp-name" itemprop="name">Ada&#39;s Bakery</h1>
+</header>
+<section class="lp-panel">
+<dl class="lp-hours">
+<dt class="lp-day">الاثنين</dt><dd class="lp-times"><span>9:00 AM – 5:00 PM</span></dd>
+<dt class="lp-day">الجمعة</dt><dd class="lp-times"><span>9:00 AM – 5:00 PM</span></dd>
+<dt class="lp-day">السبت</dt><dd class="lp-times"><span>10:00 AM – 2:00 PM</span><span>5:00 PM – 9:00 PM</span></dd>
+<dt class="lp-day">الأحد</dt><dd class="lp-times"><span>مغلق</span></dd>
+</dl>
+<p class="lp-note">Closed bank holidays.</p>
+</section>
+</main>"
+`;
+
 exports[`hours > renders the 24-hour clock and a Sunday-first week 1`] = `
 "<main class="lp-page" itemscope itemtype="https://schema.org/LocalBusiness">
 <header class="lp-header">
@@ -108,7 +125,7 @@ exports[`social > renders brand marks, and the generic glyph for a platform with
 exports[`the document skeleton > renders the whole page 1`] = `
 "<!doctype html>
 <!-- Built with linkpage: https://github.com/mandyMooreFan/linkpage -->
-<html lang="en-GB">
+<html lang="en-GB" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -133,7 +150,7 @@ a:focus-visible{outline:2px solid var(--lp-accent-ink);outline-offset:3px}
 .lp-panel{margin:0;padding:1rem 1.125rem;border:1px solid var(--lp-rule);border-radius:var(--lp-radius);background:var(--lp-surface)}
 .lp-hours{display:grid;grid-template-columns:auto 1fr;gap:0.375rem 1rem;margin:0;font-variant-numeric:tabular-nums}
 .lp-day{margin:0;color:var(--lp-ink-muted)}
-.lp-times{margin:0;display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+.lp-times{margin:0;display:flex;flex-direction:column;align-items:flex-end;text-align:end}
 .lp-note{margin:1rem 0 0;color:var(--lp-ink-muted);font-size:0.875rem}
 .lp-note:first-child{margin-top:0}
 .lp-rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.625rem}

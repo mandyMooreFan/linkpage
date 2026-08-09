@@ -91,6 +91,9 @@ reliable, prose where it is not.**
 Times are stored as 24-hour `"HH:MM"`. `clock` and `weekStart` are display preferences. Collapsing
 "Mon–Fri 9–5" is a render-time nicety and is never stored.
 
+The seven weekday abbreviations and the word for a closed day are **the only words on the page that
+are not the owner's**, and they are written in the page's own language — see §2.5.
+
 **Contact.** Phone and email, rendered as `tel:` and `mailto:` links.
 
 **Address.** **Free-text lines plus an optional directions URL** — not structured street/city/region/
@@ -185,6 +188,80 @@ which is the useful proof that the path works.
 costs nothing else: adding one is additive, never a version bump (§4.8), and removing one degrades to
 the fallback rather than dropping the link. A new _generic_ glyph earns its place only by serving a
 preset suggestion, so the set grows when §7.3 does and not otherwise.
+
+### 2.5 The eight words the page writes
+
+The page declares `<html lang>` from the owner's `lang` (§4.1) because WCAG 2.2 SC 3.1.1 asks for it
+and because the content is the owner's own words. **The renderer then writes eight words of its own:
+the seven weekday abbreviations and the word for a closed day.** They must be in the language the
+page declares, or the declaration is not true — a Cardiff bakery shipping `lang="cy"` alongside `Mon`,
+`Tue` and `Closed` has told a Welsh screen reader to pronounce English abbreviations with Welsh
+phonetics, and the declaration is what we asked assistive technology to trust.
+
+**Eight strings is the whole translatable surface, by design rather than by luck.** §2.3 made the
+address free text, the contact rows are identified by a glyph rather than by the word "Phone", and
+the address _is_ the directions link. Nothing else on the exported page is our prose, and a change
+that adds a ninth string is a change to this section.
+
+**`Intl.DateTimeFormat` is ruled out.** Its output tracks the ICU data compiled into the host, so the
+same `project.json` renders differently across Node versions — which costs §6.7's byte-identical
+guarantee — and, more sharply, the preview runs in the owner's browser while the tests and the export
+path run in Node. Two ICU versions means the preview and the artifact can differ **in the bytes**,
+which is the exact drift §5.2's `srcdoc` iframe exists to make structurally impossible; it would also
+break the property that two owners who reach the same page get identical files. A CI test fails if
+anything in the renderer so much as constructs an `Intl` formatter. **Anyone proposing `Intl` here
+must answer §5.2 first.**
+
+**Emitting no day names at all was considered and rejected.** An hours block still has to say which
+day each row is, so the day would have to move into the owner's own text — which turns structured
+hours back into the free-text note §2.3 deliberately kept for what structure cannot model, and loses
+the closed/unspecified distinction that section is built on.
+
+**So the strings are vendored, exactly as the icon set is (§2.4)**, keyed by language tag, with
+English as the fallback. **Only the selected language's strings reach the export**, so the table
+costs §6.5's chrome budget nothing however long it grows.
+
+#### Where the strings come from
+
+- **The weekday abbreviations are CLDR's** — the `format`/`abbreviated` weekday names from **Unicode
+  CLDR 48**, extracted once and frozen in the source. That is a pinned, citable, reproducible source,
+  and it is the same data `Intl` would have read: the objection above was never to CLDR, it was to
+  reading CLDR at _render_ time from whichever host happens to be running. Licence and attribution
+  live in `NOTICES`, and nothing an owner exports carries an attribution requirement (§2.4).
+- **The word for a closed day is not a CLDR field.** No locale database holds the word a shop puts on
+  its door, so each one is hand-authored. **That asymmetry is the table's weak point and it is stated
+  rather than hidden:** an abbreviation can be checked against a version number, and the closed word
+  can only be checked by someone who speaks the language.
+
+#### Growth rule
+
+A language earns a place when both halves are answerable: CLDR ships abbreviated weekday names for
+it, **and** someone can name the word a business in that language writes on its own opening hours.
+The set is the languages the repository could answer both for; it is not a claim about which
+languages matter.
+
+- Adding a language is **additive and never a version bump** (§4.8). `project.json` does not change
+  shape, and an older reader of the same file renders English.
+- **A correction is not a version bump either.** A speaker saying "that is not the word" is the
+  highest-quality evidence this table can receive, and `CONTRIBUTING.md` asks for it by name. This is
+  the one part of the renderer that is explicitly provisional.
+- **An unknown language degrades to English, never to a failure and never to a guess.** English
+  abbreviations on a Welsh page are a visible limitation; the wrong word in the owner's own language
+  is worse than the honest foreign one.
+
+#### Direction
+
+**The page also declares `<html dir>`, derived from the same tag.** A page that says `lang="ar"` and
+lays itself out left to right has declared a language it does not support — the same root cause as
+the words above, only visibly wrong rather than subtly wrong. An explicit script subtag decides on
+its own (`az-Arab` reads right to left, `ku-Latn` left to right); otherwise the primary subtag does.
+
+`dir` is emitted unconditionally, including `dir="ltr"`: a document's base direction is a thing to
+state, not a thing to inherit from whatever default the reader's browser holds, and it is ten bytes.
+**The stylesheet names no physical side** — the hours grid and the contact rows follow the inline
+axis on their own, the times column is `text-align:end`, and §3.1's `ruledLeft` shape was written
+with logical properties from the start. A rule reaching for `left`, `right`, `margin-left` or
+`padding-right` is how this quietly regresses.
 
 ---
 
@@ -341,6 +418,11 @@ reversible** override layer.
 `<html lang>`, and hardcoding `"en"` would mislead screen readers and translation tools about a page
 whose content is the owner's own words. It is consistent with the free-text decisions elsewhere: the
 address is written the way the owner would write it, and the language declares what language that is.
+
+The tag is shape-checked on the way out, and anything that is not tag-shaped renders as `"en"` (§4.7).
+**`lang` decides three things and is resolved once**, so they cannot disagree: the `lang` attribute,
+the `dir` attribute, and the eight words the renderer writes (§2.5). A file whose `lang` we could not
+use therefore declares English, renders English and reads left to right.
 
 **There is no `preset` field**, deliberately — see §7.3.
 
@@ -763,6 +845,11 @@ about 20 bytes, and it prevents layout shift while the data URI decodes.
 **Determinism is a stated guarantee: the same `project.json` produces a byte-identical `index.html`.
 No timestamps.**
 
+> **This is what rules `Intl` out of §2.5.** `Intl` reads no clock, so the "renders the same bytes on
+> two different days" test would not catch it; its output tracks the host's ICU data instead, which
+> is a dependency on the runtime rather than on the argument. The eight strings the renderer writes
+> are vendored for that reason, and CI asserts that no `Intl` formatter is ever constructed.
+
 > The guarantee attaches to the **renderer**, not the pipeline. Image encoding happens once, in the
 > builder, at upload time, and its result is stored in `project.json`. By the time the renderer runs,
 > the image is a string it was handed.
@@ -781,6 +868,10 @@ existing exports.
 
 The exported page claims **WCAG 2.2 AA by default**. "By default" is precise: the advanced tier (§3.4)
 can be used to produce a page that does not, and it reports contrast rather than preventing it.
+
+SC 3.1.1 is the criterion with a second half: `<html lang>` has to be **true**, which is why the
+renderer's own eight words follow it rather than staying English underneath it (§2.5), and why the
+page declares `<html dir>` from the same tag.
 
 ---
 

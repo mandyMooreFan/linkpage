@@ -1,7 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "./render.js";
+import { VOCABULARIES } from "./locale.js";
 import { FIXTURES, MAXIMAL, POPULATED } from "./fixtures.js";
 import type { Project } from "./project.js";
+
+/**
+ * `MAXIMAL` in every language the table holds (#48).
+ *
+ * Both guarantees in this file have to survive the translation table, and each is at risk in
+ * its own way: the abbreviations are multi-byte in most languages, which the *byte* budget
+ * notices where `String.length` would not, and a table is the one thing in the renderer that
+ * could plausibly make output depend on something other than the argument.
+ */
+const TRANSLATED = Object.keys(VOCABULARIES).map(
+  (lang) => ({ ...MAXIMAL, lang }) satisfies Project,
+);
 
 /**
  * The two guarantees the export makes about itself as a *file* rather than as a page: it is
@@ -81,6 +94,17 @@ describe("the chrome budget (§6.5)", () => {
 
   it("keeps the worst realistic page under the tripwire, with headroom to spare", () => {
     expect(chromeBytes(render(MAXIMAL))).toBeLessThanOrEqual(CHROME_TRIPWIRE);
+  });
+
+  /**
+   * §6.5 counts **encoded bytes**, and translation is where that stops being pedantry: `月` is
+   * one character and three bytes, `จันทร์` is six characters and eighteen. Only the selected
+   * language's strings reach the export (`locale.ts`), so the table's own length costs nothing
+   * however far it grows — but the *widest* language still has to fit, and this is the
+   * assertion that says so rather than assuming it.
+   */
+  it.each(TRANSLATED)("keeps the worst page under the tripwire in every language ($lang)", (p) => {
+    expect(chromeBytes(render(p))).toBeLessThanOrEqual(CHROME_TRIPWIRE);
   });
 
   /**
@@ -173,10 +197,7 @@ describe("determinism (§6.7)", () => {
    * cache key or a generated element id that happened not to change within a test run. This
    * fails on the *call*, on the day someone writes it.
    *
-   * `Intl` is the near miss worth naming: it reads no clock, so nothing here would catch it,
-   * and it would still break §6.7 — its output tracks the host's ICU data, so the same project
-   * would render differently on two Node versions and, worse for §5.2, differently in the
-   * owner's browser than in the export. That is why #48 rules it out for weekday names.
+   * `Intl` reads no clock, so it needs its own guard — see the test below.
    */
   it("reads no clock and no random source", () => {
     const now = vi.spyOn(Date, "now");
@@ -189,6 +210,52 @@ describe("determinism (§6.7)", () => {
       now.mockRestore();
       random.mockRestore();
     }
+  });
+
+  /**
+   * **The guard #48 is really about.** `Intl` is the near miss the clock spy above cannot
+   * catch: it reads no clock and no random source, and it still breaks §6.7 — its output
+   * tracks the ICU data compiled into the host, so the same project renders differently on two
+   * Node versions and, worse for §5.2, differently in the owner's *browser* than in the
+   * exported file. That is the exact drift the `srcdoc` preview exists to make impossible.
+   *
+   * It is asserted across every language in the table rather than over the fixtures alone,
+   * because the shape this would come back in is somebody "improving" `locale.ts` into an
+   * `Intl.DateTimeFormat` call for the languages the table does not hold.
+   */
+  it("constructs no Intl formatter, in any language (#48)", () => {
+    const spies = [
+      vi.spyOn(Intl, "DateTimeFormat"),
+      vi.spyOn(Intl, "NumberFormat"),
+      vi.spyOn(Intl, "Collator"),
+    ];
+    try {
+      for (const project of [...FIXTURES, ...TRANSLATED]) render(project);
+      for (const spy of spies) expect(spy).not.toHaveBeenCalled();
+    } finally {
+      for (const spy of spies) spy.mockRestore();
+    }
+  });
+
+  /**
+   * Determinism, restated over the axis this change added. A table is the one place in the
+   * renderer where output could start depending on iteration order or on a shared mutable
+   * object, and neither of those failures is visible in a single render.
+   */
+  it.each(TRANSLATED)("renders the same bytes twice in every language ($lang)", (project) => {
+    expect(render(structuredClone(project))).toBe(render(project));
+  });
+
+  /**
+   * The translation table must not leak *between* renders. Rendering every language in turn
+   * and then rendering the first one again catches a cached vocabulary, a mutated tuple, or a
+   * lookup that remembered its last answer — none of which the pairwise test above can see.
+   */
+  it("renders a language the same before and after every other language", () => {
+    const first = TRANSLATED.map((project) => render(project));
+    const again = TRANSLATED.map((project) => render(project));
+    expect(again).toEqual(first);
+    expect(new Set(first).size).toBeGreaterThan(1);
   });
 
   /**

@@ -15,6 +15,11 @@
  * - **`clock` and `weekStart` are display preferences.** Storage is always 24-hour `"HH:MM"`
  *   and always Monday-first here; neither preference changes what is in the file.
  *
+ * **The words are not this file's** (#48). The seven abbreviations and "closed" are the only
+ * text the renderer writes that the owner did not, and they arrive as a `Vocabulary` resolved
+ * from the same `lang` that `<html lang>` declares — see `locale.ts` for the table, for why
+ * `Intl` is ruled out, and for what happens to a language the table does not hold.
+ *
  * **Runs are not collapsed.** §2.3 offers "Mon–Fri 9–5" as a render-time nicety and this file
  * deliberately does not do it yet. A collapse has to agree with `weekStart` (a run that is
  * contiguous Monday-first may wrap when the week starts on Sunday), with multi-interval days,
@@ -24,6 +29,7 @@
  * returns rows, so collapsing is a pure list-to-list step added in front of the markup.
  */
 
+import { dayName, type Vocabulary } from "./locale.js";
 import type { Clock, Weekday, WeekStart } from "./project.js";
 import { asArray, asEnum, asRecord, asText } from "./values.js";
 
@@ -40,29 +46,6 @@ const STORED_TIME = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
  */
 const WEEK_FROM_MONDAY: readonly Weekday[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
-/**
- * The abbreviations the rows carry.
- *
- * **These are the only words the renderer writes that the owner did not** — together with
- * `CLOSED_LABEL` below. Everything else on the exported page is the owner's own text. They are
- * English, and on a page whose `lang` is not English that is a real limitation; it is recorded
- * here rather than papered over. `Intl.DateTimeFormat` would localise them but its output
- * tracks the host's ICU version, which would cost the byte-identical guarantee in §6.7 — that
- * guarantee is the harder one to give back, so it wins.
- */
-const DAY_LABELS: Readonly<Record<Weekday, string>> = {
-  mon: "Mon",
-  tue: "Tue",
-  wed: "Wed",
-  thu: "Thu",
-  fri: "Fri",
-  sat: "Sat",
-  sun: "Sun",
-};
-
-/** What a day with zero intervals says. See the note on `DAY_LABELS`. */
-export const CLOSED_LABEL = "Closed";
-
 /** The en dash and its spaces, between the two halves of an interval. */
 const RANGE = " \u2013 ";
 
@@ -72,7 +55,7 @@ const WEEK_STARTS: readonly WeekStart[] = ["mon", "sun"];
 /** One day's row. `intervals` empty means the day is explicitly closed. */
 export interface HoursRow {
   readonly day: Weekday;
-  /** The day's display label — `"Mon"`. */
+  /** The day's display label in the page's language — `"Mon"`, `"Llun"`, `"月"`. */
   readonly label: string;
   /** Formatted ranges — `["9:00 AM – 5:00 PM"]`. Empty means closed. */
   readonly intervals: readonly string[];
@@ -81,6 +64,14 @@ export interface HoursRow {
 /** Everything the hours section needs, with nothing left to decide. */
 export interface HoursView {
   readonly rows: readonly HoursRow[];
+  /**
+   * What a row with no intervals says, already in the page's language.
+   *
+   * It sits on the view rather than being a constant `render.ts` imports because it is one of
+   * the eight strings `locale.ts` translates, and this interface's promise is that nothing is
+   * left to decide.
+   */
+  readonly closed: string;
   /** The free-text note: bank holidays, "by appointment", seasonal changes (§2.3). */
   readonly note?: string;
 }
@@ -128,8 +119,13 @@ function formatInterval(value: unknown, clock: Clock): string | undefined {
  *
  * Nothing to show means no readable day *and* no note — an hours block that survives as an
  * empty object in a hand-edited file produces no section rather than an empty panel.
+ *
+ * **`words` is the page's language, resolved** (`locale.ts`). It is a parameter rather than a
+ * lookup done here because the tag it came from is the same one `<html lang>` declares, and
+ * the renderer resolves that once: the page must never announce one language and label its
+ * days in another.
  */
-export function hoursView(value: unknown): HoursView | undefined {
+export function hoursView(value: unknown, words: Vocabulary): HoursView | undefined {
   const hours = asRecord(value);
   if (!hours) return undefined;
 
@@ -154,13 +150,14 @@ export function hoursView(value: unknown): HoursView | undefined {
         const formatted = formatInterval(entry, clock);
         if (formatted !== undefined) intervals.push(formatted);
       }
-      rows.push({ day, label: DAY_LABELS[day], intervals });
+      rows.push({ day, label: dayName(words, day), intervals });
     }
   }
 
   const note = asText(hours.note);
   if (rows.length === 0 && note === undefined) return undefined;
-  return note === undefined ? { rows } : { rows, note };
+  const closed = words.closed;
+  return note === undefined ? { rows, closed } : { rows, closed, note };
 }
 
 /** The week rotated to start where the owner reads it starting. */

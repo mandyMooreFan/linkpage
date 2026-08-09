@@ -42,14 +42,42 @@ describe("the document skeleton", () => {
   });
 
   it("carries the project's lang, which WCAG 2.2 SC 3.1.1 requires", () => {
-    expect(render({ ...base, lang: "cy" })).toContain('<html lang="cy">');
-    expect(render({ ...base, lang: "pt-BR" })).toContain('<html lang="pt-BR">');
+    expect(render({ ...base, lang: "cy" })).toContain('<html lang="cy" dir="ltr">');
+    expect(render({ ...base, lang: "pt-BR" })).toContain('<html lang="pt-BR" dir="ltr">');
   });
 
   it("falls back to en when lang is not a language tag", () => {
     for (const lang of ["", "  ", "not a tag", 'en" onload="x', "javascript:x"]) {
-      expect(render({ ...base, lang } as Project)).toContain('<html lang="en">');
+      expect(render({ ...base, lang } as Project)).toContain('<html lang="en" dir="ltr">');
     }
+  });
+
+  /**
+   * The other half of #48. A page that declares Arabic and lays itself out left to right has
+   * declared a language it does not support — only visibly rather than subtly. `dir` is
+   * emitted unconditionally: a document's base direction is a thing to state, not a thing to
+   * inherit from whichever default the reader's browser holds.
+   */
+  it("declares the direction the page reads in, both ways round", () => {
+    expect(render({ ...base, lang: "ar" })).toContain('<html lang="ar" dir="rtl">');
+    expect(render({ ...base, lang: "he-IL" })).toContain('<html lang="he-IL" dir="rtl">');
+    expect(render({ ...base, lang: "ja" })).toContain('<html lang="ja" dir="ltr">');
+    // A tag we could not use declares `en`, and `en` reads left to right — the declaration and
+    // the layout are never allowed to disagree.
+    expect(render({ ...base, lang: "not a tag" } as Project)).toContain('dir="ltr"');
+  });
+
+  /**
+   * And nothing in the stylesheet pins the page to one side, so `dir` is enough on its own.
+   */
+  it("names no physical side in the stylesheet, so dir is all the layout needs", () => {
+    const html = render(full);
+    for (const shape of SHAPES) {
+      const styled = render({ ...full, style: { ...full.style, shape } } as Project);
+      expect(styled).not.toMatch(/(?:text-align|float|clear):\s*(?:left|right)/);
+      expect(styled).not.toMatch(/(?:margin|padding|border)-(?:left|right)\b/);
+    }
+    expect(html).toContain("text-align:end");
   });
 
   it("titles the page with the business name, then the tagline, then nothing", () => {
@@ -190,6 +218,46 @@ describe("hours", () => {
     const html = page({ ...base, hours });
     expect(html).toContain("By appointment.");
     expect(html).not.toContain("lp-hours");
+  });
+
+  it("renders a translated, right-to-left week", () => {
+    expect(page({ ...base, lang: "ar", hours: full.hours })).toMatchSnapshot();
+  });
+
+  /**
+   * #48, end to end: the Cardiff bakery. The eight words the renderer writes are the only
+   * words on the page that are not the owner's, and they now follow the tag the page declares
+   * rather than staying English underneath it.
+   */
+  it("writes its own eight words in the language the page declares", () => {
+    const welsh = render({ ...base, lang: "cy", hours: full.hours });
+    expect(welsh).toContain('<html lang="cy" dir="ltr">');
+    expect(welsh).toContain(">Llun</dt>");
+    expect(welsh).toContain(">Ar gau<");
+    for (const english of [">Mon<", ">Sun<", ">Closed<"]) expect(welsh).not.toContain(english);
+  });
+
+  it("falls back to English words rather than failing on a language it does not hold", () => {
+    // A visible limitation beats a guess: the wrong word in the owner's own language is worse
+    // than the honest foreign one (`locale.ts`).
+    const html = render({ ...base, lang: "qq-ZZ", hours: full.hours });
+    expect(html).toContain('<html lang="qq-ZZ" dir="ltr">');
+    expect(html).toContain(">Mon</dt>");
+    expect(html).toContain(">Closed<");
+  });
+
+  it("leaves the owner's own values alone when it translates its own", () => {
+    // The times are formatted by rule from stored `"HH:MM"`, and the note is the owner's
+    // prose. Neither is ours to translate, and neither moves.
+    const hours = { ...full.hours, clock: "24h" } as Project["hours"];
+    const english = page({ ...base, lang: "en", hours });
+    const japanese = page({ ...base, lang: "ja", hours });
+    expect(japanese).toContain(">月</dt>");
+    expect(japanese).toContain(">定休日<");
+    for (const times of english.match(/<dd class="lp-times">.*?<\/dd>/g) ?? []) {
+      if (!times.includes("Closed")) expect(japanese).toContain(times);
+    }
+    expect(japanese).toContain(escapeHtml(full.hours!.note!));
   });
 });
 
