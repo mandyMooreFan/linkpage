@@ -1,9 +1,10 @@
 import { glyphSvg, ICONS, iconSvg, socialIconSvg, socialLabel } from "./icons.js";
 import { hoursView, CLOSED_LABEL, type HoursRow } from "./hours.js";
 import { derivePalette } from "./palette.js";
+import { resolveChrome } from "./chrome.js";
 import { stylesheet } from "./stylesheet.js";
-import type { Mode, Project, Style } from "./project.js";
-import { asArray, asEnum, asPositiveInt, asRecord, asText } from "./values.js";
+import type { Project, Style } from "./project.js";
+import { asArray, asPositiveInt, asRecord, asText } from "./values.js";
 
 /**
  * Render a project to the complete text of a self-contained `index.html`.
@@ -31,9 +32,14 @@ import { asArray, asEnum, asPositiveInt, asRecord, asText } from "./values.js";
  * about the business points the same way. The two unavoidable exceptions are the weekday
  * abbreviations and "Closed"; see `hours.ts`.
  *
- * Two things deliberately left out, because they belong to the issues that own them:
- * the four shapes, three type pairings and corner softness (#27), and the export's structural
- * guarantees — microdata, provenance, the size assertion (#28).
+ * **The markup does not know which shape it is in.** The four shapes, the three type pairings
+ * and the corner slider (§3.1) reach the page entirely through the stylesheet — see
+ * `chrome.ts` — so all twelve combinations emit byte-identical `<main>` content. That is not a
+ * coincidence to be preserved by luck: it is what keeps a shape a *presentation* choice, and
+ * it means §6.3's microdata and everything else attached to the markup is written once.
+ *
+ * One thing deliberately left out, because it belongs to the issue that owns it: the export's
+ * structural guarantees — microdata, provenance, the size assertion (#28).
  */
 export function render(project: Project): string {
   // `project` is typed, but types are a compile-time promise and this function has to survive
@@ -41,10 +47,13 @@ export function render(project: Project): string {
   const root = asRecord(project);
 
   const style = asRecord(root?.style);
-  const mode = asEnum(style?.mode, MODES, "light");
+  // The two halves of §3.1's controls, resolved separately because they are separate things:
+  // `derivePalette` owns every colour on the page (§3.2), and `resolveChrome` owns the shape,
+  // the type pairing and the corner slider — which carry structure and never a palette.
   // `derivePalette` is itself total (§4.7) and reads its argument defensively; the cast hands
   // it the raw record rather than pretending we validated one.
   const palette = derivePalette(style as Style | undefined);
+  const chrome = resolveChrome(style);
 
   const sections = [
     headerSection(root?.header),
@@ -62,7 +71,7 @@ export function render(project: Project): string {
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     `<title>${escapeHtml(documentTitle(root?.header))}</title>`,
-    `<style>${stylesheet(palette, mode)}</style>`,
+    `<style>${stylesheet(palette, chrome)}</style>`,
     "</head>",
     "<body>",
     '<main class="lp-page">',
@@ -72,8 +81,6 @@ export function render(project: Project): string {
     "</html>",
   ].join("\n");
 }
-
-const MODES: readonly Mode[] = ["light", "dark"];
 
 // ---------------------------------------------------------------------------
 // The document
