@@ -168,6 +168,13 @@ describe("section one describes the shape, not the steps (§8)", () => {
     expect(section("page").textContent).toContain("text with no picture");
   });
 
+  it("says which device the drop route is easier on (§8)", () => {
+    open();
+    // The editing screen is mobile-first (§7.6), so this sheet is often reached on a phone. The
+    // line is true whichever way the phone path works, which is why it needs no verification.
+    expect(section("page").textContent).toMatch(/easier on a computer than a phone/i);
+  });
+
   it("warns that a free host may forbid a business (§8)", () => {
     open();
     // The trap a business owner falls into and never finds out about until it matters.

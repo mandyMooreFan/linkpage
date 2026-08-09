@@ -54,10 +54,11 @@ export function Hosting(): JSX.Element {
           them a minute.
         </li>
         <li>
-          <strong>Or use a service you drag a file onto.</strong> Several are free, and this is the
-          quickest way to do it yourself. Search for one, or ask an AI assistant which to use and
-          how — they change often enough that we would rather you got current instructions than
-          ours.
+          <strong>Or use a service you drag a file onto.</strong> Several are free. Search for one,
+          or ask an AI assistant which to use and how — they change often enough that we would
+          rather you got current instructions than ours.{" "}
+          <strong>This part is usually easier on a computer than a phone</strong>, so it is worth
+          waiting until you are at one.
         </li>
       </ul>
 
