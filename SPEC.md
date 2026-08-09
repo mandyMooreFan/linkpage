@@ -814,6 +814,20 @@ Step one is the preset question (§7.3). After that, the flow asks for each thin
 covered. **Every step carries an always-present "not for us" escape.** Answer it and you have the
 section; skip it and you don't.
 
+**A run is planned once, when it is entered. Answering a question inside it never re-plans it.**
+
+That sentence is here because its absence cost the product its central interaction. There are three
+ways into the flow — a first run, an existing project resuming because a required field is missing
+(§4.6), and a section ticked on from the list (§7.1) — and they plan different sequences. Which one
+you are in is decided **on entry**, from the state at that moment, and then held. Answering the
+business name creates the project, which makes a first run momentarily indistinguishable from a
+resume; an implementation that re-derives the plan as the owner types will silently switch to the
+narrower one and skip everything it had not yet asked. It is not a hypothetical: it shipped, and it
+skipped the tagline, the logo, the link buttons and every section the preset had selected.
+
+The rule this gives a test to write: assert the **sequence of questions** a run asks, not that it
+terminates. A run that ends early terminates perfectly well.
+
 **Two steps are the exception, and the exception follows from §4.6 rather than being a carve-out.**
 The business name and the brand colour are the two required inputs (§3.1, §4.1), and §4.6 forbids
 inventing either — a file missing `style.brand` is collected _by the flow_ precisely because
