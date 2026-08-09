@@ -13,13 +13,15 @@ import type { Project } from "./project.js";
  * 1. the output contains no `<script>` tag;
  * 2. the output references nothing outside itself — no external URLs, no relative paths.
  *
- * The body below is a placeholder. What actually goes in it is decided in issue #6
- * (export spec) and issue #3 (block set).
+ * The body below is still a placeholder: it renders the business name and nothing else.
+ * The six sections, the styling model and the export's structural guarantees are specified
+ * in `SPEC.md` §2, §3 and §6, and are built in #26, #27 and #28.
  */
 export function render(project: Project): string {
   // Read defensively. `project` is typed, but types are a compile-time promise and this
   // function has to survive a hand-edited `project.json` at runtime — see SPEC.md §4.7.
-  const title = escapeHtml((project as Partial<Project> | null | undefined)?.title as string);
+  const name = (project as Partial<Project> | null | undefined)?.header?.name;
+  const title = escapeHtml(name as string);
 
   return [
     "<!doctype html>",

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { render } from "./render.js";
-import type { Project } from "./project.js";
+import { SCHEMA_VERSION, type Project } from "./project.js";
 
 /**
  * The three guards that encode the decisions in issue #4. They are the reason this
@@ -16,7 +16,25 @@ import type { Project } from "./project.js";
  * with no tests of its own is how they survived.
  */
 
-const sample: Project = { title: "Ada's Bakery" };
+/**
+ * A minimal well-formed v1 project: the two required inputs (brand colour and business
+ * name) plus the fields the schema does not make optional. This is exactly what a first run
+ * produces before the owner answers anything else — see SPEC.md §7.2.
+ */
+const sample: Project = {
+  version: SCHEMA_VERSION,
+  lang: "en",
+  style: {
+    brand: "#c2185b",
+    shape: "centred",
+    type: "classic",
+    corners: 0.6,
+    mode: "light",
+    advanced: { enabled: false, colors: {} },
+  },
+  header: { name: "Ada's Bakery", logo: null },
+  links: [],
+};
 
 /** Every project fixture the invariants are checked against. Grow this as blocks land. */
 const fixtures: Project[] = [sample];
