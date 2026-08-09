@@ -1,14 +1,28 @@
-import { render, type Project } from "@linkpage/renderer";
+import { render, SCHEMA_VERSION, type Project } from "@linkpage/renderer";
 
 /**
  * Scaffold shell — not the editing screen.
  *
- * The editing screen is being designed in issue #5 and none of the layout below survives
- * that. What is worth keeping is the shape: builder state is one `Project` object, and the
- * preview is `render(project)` dropped into a `srcdoc` iframe. Because that string is
- * byte-for-byte what export writes to disk, the preview cannot drift from the export.
+ * The editing screen is specified in `SPEC.md` §7 and built in #33 and #34; none of the
+ * layout below survives that. What is worth keeping is the shape: builder state is one
+ * `Project` object, and the preview is `render(project)` dropped into a `srcdoc` iframe.
+ * Because that string is byte-for-byte what export writes to disk, the preview cannot drift
+ * from the export.
  */
-const placeholder: Project = { title: "Ada's Bakery" };
+const placeholder: Project = {
+  version: SCHEMA_VERSION,
+  lang: "en",
+  style: {
+    brand: "#c2185b",
+    shape: "centred",
+    type: "classic",
+    corners: 0.6,
+    mode: "light",
+    advanced: { enabled: false, colors: {} },
+  },
+  header: { name: "Ada's Bakery", logo: null },
+  links: [],
+};
 
 export function App() {
   const html = render(placeholder);
