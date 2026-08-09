@@ -533,6 +533,7 @@ on desktop it greys designer files out of the picker so the failure never happen
    dark mode, and baking one in produces a logo visibly wrong in the other.
 4. **Dimension is the lever that enforces the budget, not format.** Resize to **3× the maximum CSS
    width the logo can occupy, bounding the longest edge.** 3× covers every phone shipping today.
+   §6.8 fixes that width at 400 CSS px, so **the constant is 1200 px**.
 5. Store the result in `project.json` as `{ src, width, height }`.
 
 **Why rasterise SVG rather than embed it.** The export is the artifact we make guarantees about.
@@ -616,6 +617,57 @@ existing exports.
 
 The exported page claims **WCAG 2.2 AA by default**. "By default" is precise: the advanced tier (§3.4)
 can be used to produce a page that does not, and it reports contrast rather than preventing it.
+
+### 6.8 The column
+
+**The page is a single column of `min(100%, 25rem)` — 400 CSS px at the browser's default text size —
+sitting inside a page gutter.** Below the cap the column is fluid. The cap therefore does nothing on a
+phone; it exists to stop the page sprawling on everything wider than one.
+
+**The number is a phone's content width, not a desktop measure.** Phones in use sit between roughly
+360 and 430 CSS px of viewport, which is 330–400 px of content once a gutter is taken off. A cap at
+400 sits at the top of that range, so on every phone the column runs the full width the reader has,
+and the page never leaves a strip of unused screen beside itself. Capping lower — 360, say — would
+give a large phone margins it did not ask for, which is the one screen this product cannot afford to
+waste.
+
+**Not wider, because §5.2 and §7.6 already spent this decision.** §7.6 drops a "see it on a laptop"
+control on the grounds that a wide screen shows "the identical page with more whitespace", and §5.2
+makes the preview _be_ the export. Both sentences are true only while the cap is about a phone's
+width. A 640 px column would reflow the buttons, change the measure and change the size the logo
+renders at, so a desktop visitor would see a page the owner never previewed — the second rendering
+§5.2 exists to forbid, arriving through the stylesheet instead of through React.
+
+**Not wider, on the content.** The 45–75 character measure that justifies a wide column is a rule for
+paragraphs, and this page has none: six sections of labels, hours rows, an address and at most a
+tagline (§2.1). What it does have is a stack of full-width tap targets, and a button much past 400 px
+stops reading as a button and starts reading as a rule drawn across the page.
+
+**Not wider, on bytes.** §6.5 sizes the logo at 3× the column, so the raster's pixel count grows with
+the _square_ of this number. At 400 the logo is 1200 px and sits inside §6.4's ~120 KB line with
+roughly 10× headroom for a real wordmark; at 600 it would be 1800 px and 2.25× the pixels. **The
+column width is an input to the size budget**, not just to the layout.
+
+**`rem` rather than `px`, deliberately.** Expressed as `25rem`, the cap tracks the reader's default
+text size: someone who has raised it gets a proportionally wider column and keeps the same number of
+characters per line, instead of a measure that tightens as the type grows. Page zoom scales `px` and
+`rem` alike, so the two choices differ only under the default-font-size setting — which is precisely
+the setting a reader with low vision uses.
+
+> The consequence, recorded rather than left to be discovered: §6.5's logo constant is derived from
+> the default root size, so for a reader who has enlarged their default text the logo raster falls
+> below 3×. The logo is decorative and carries `alt=""` (§6.5). Trading its density for text that
+> scales is the right way round.
+
+**The cap is on the content column; the gutter sits outside it.** So "the column width" and "the
+maximum CSS width the logo can occupy" (§6.5) are the same 400 px, with no padding to subtract. The
+gutter's own size is a shape concern (§3) and is free to differ per shape without moving this number.
+
+**§6.5's provisional 1200 px is confirmed, not replaced.** 3 × 400 = 1200 on the longest edge. Because
+the column is capped at the widest phone's content width and is _narrower_ than that on every other
+phone, the fixed constant behaves as a floor rather than a target: a 1200 px raster across a 358 px
+column on a 390 px phone is 3.35×. The constant is at its stated 3× only in the one case it was sized
+for, and better everywhere else.
 
 ---
 
@@ -910,15 +962,17 @@ a decision above; each could change a constant or a code path.
 2. **The flat-vs-photo heuristic's reliability.** §6.5. If unique-colour counting proves flaky, the
    honest retreat is **PNG-only plus aggressive resizing** — simpler, no detection, correct for every
    logo that is actually a logo, and wrong only for the photograph case.
-3. **The logo's target dimension.** §6.5 states the rule (3× the maximum CSS width, longest edge); the
-   constant follows once the page's column width is fixed. **1200px is the working figure** — a
-   full-column wordmark at 3× for a ~400 CSS px column, generous for a square mark.
-4. **The page's column width**, which item 3 depends on and which §6 does not yet pin.
-5. **Real encode and decode timing** for a large image on a genuinely low-end Android and an older
+3. **Whether 3× is enough at the highest device-pixel ratios.** The column is now pinned (§6.8) and
+   the logo constant with it: **1200 px on the longest edge**. §6.5 claims 3× covers every phone
+   shipping today, and the case to check is the Android flagships running a device-pixel ratio of
+   3.5 — a 380 px column there asks for about 1330 physical pixels, and 1200 is short of it. If the
+   softness is visible on a wordmark, **the honest fix is to raise the constant, not the column**:
+   §6.8's number is load-bearing for §5.2 and §7.6, and §6.4's budget has the headroom.
+4. **Real encode and decode timing** for a large image on a genuinely low-end Android and an older
    iPhone. No trustworthy data was found, and none is assumed above.
-6. **The iOS canvas-area ceiling** and its silent-empty-result behaviour, which bounds how large a
+5. **The iOS canvas-area ceiling** and its silent-empty-result behaviour, which bounds how large a
    source image can be decoded before resizing.
-7. **The final icon and social-platform lists.** The mechanism is decided (§2.4); the contents are
+6. **The final icon and social-platform lists.** The mechanism is decided (§2.4); the contents are
    transcription — but the list must cover every glyph the preset suggestions in §7.3 imply, plus the
    generic fallback link glyph.
 
