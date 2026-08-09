@@ -1,0 +1,116 @@
+import { parseHex } from "@linkpage/renderer";
+import { useState, type JSX } from "react";
+import { Field, Question } from "./Question.js";
+
+/**
+ * The brand colour. `SPEC.md` §3.1, §3.3, §4.6.
+ *
+ * **Required, and the one thing the owner must give** — so, like the business name, this
+ * screen has no "not for us". §4.6 is explicit that a file arriving without `style.brand` is
+ * walked through this question rather than defaulted, which is exactly what an owner ticking a
+ * new section gets, and why this file is reached identically on day one and on an import.
+ *
+ * **Readability is guaranteed by a constrained field rather than by warnings** (§3.3). The
+ * swatches are that field: every one of them carries a filled button as given, so an owner who
+ * picks from it is never quietly stepped back and never told off. The exact-hex box beside them
+ * is the escape hatch
+ * §3.3 requires — **a hand-typed hex is honoured exactly**, and if it cannot carry the page it
+ * steps back to a quieter role in the derivation rather than being rejected or corrected here.
+ *
+ * The one thing this screen refuses is a value that is not a colour at all: `#brand` cannot be
+ * honoured exactly because there is nothing to honour. That is a format hint, not a judgement
+ * about the owner's taste, and §3.3's promise is untouched by it.
+ *
+ * **No `style` field but this one is set here**, and the preset sets none of them (§7.3). The
+ * remaining five controls have defaults and meet the owner on _How it looks_ (§7.4).
+ */
+
+/**
+ * The constrained field (§3.3).
+ *
+ * Twelve, spread around the hue circle and dark enough that each carries a filled button in the
+ * default mode without the derivation having to step it back — which is the property
+ * `ColourQuestion.test.tsx` holds, and the one that makes this a *constrained* field rather than
+ * a nice palette. They are ordinary brand colours rather than a designed sequence, because the
+ * owner is looking for *theirs*: a florist scans for green, a barber for something dark.
+ *
+ * Kept here rather than in the renderer on purpose. The renderer derives a palette from
+ * whatever it is given and has no opinion about what an owner might pick; a list of nice
+ * starting colours is a builder concern, and §7.4's _How it looks_ step is its second caller.
+ */
+export const BRAND_SWATCHES: readonly string[] = [
+  "#b0122f",
+  "#c2185b",
+  "#7b1fa2",
+  "#4527a0",
+  "#1565c0",
+  "#00695c",
+  "#2e7d32",
+  "#556b2f",
+  "#a05a00",
+  "#bf360c",
+  "#5d4037",
+  "#37474f",
+];
+
+export interface ColourQuestionProps {
+  readonly initial: string | undefined;
+  readonly onAnswer: (brand: string) => void;
+  readonly onBack?: () => void;
+}
+
+export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProps): JSX.Element {
+  const [brand, setBrand] = useState(initial ?? "");
+  const [typed, setTyped] = useState(
+    initial !== undefined && !BRAND_SWATCHES.includes(initial) ? initial : "",
+  );
+
+  // A typed value only becomes the answer once it is a colour, and while it is half-typed
+  // Continue waits — writing the swatch underneath it would quietly discard what the owner is
+  // in the middle of saying.
+  const typedIsColour = typed.trim() !== "" && parseHex(typed.trim()) !== null;
+  const halfTyped = typed.trim() !== "" && !typedIsColour;
+  const answer = typedIsColour ? typed.trim() : brand;
+
+  return (
+    <Question
+      title="What's your colour?"
+      hint="Everything else on the page is worked out from it."
+      onSubmit={() => onAnswer(answer)}
+      submitDisabled={answer === "" || halfTyped}
+      onBack={onBack}
+    >
+      <ul className="swatches">
+        {BRAND_SWATCHES.map((colour) => (
+          <li key={colour}>
+            <button
+              type="button"
+              className="swatches__swatch"
+              style={{ background: colour }}
+              aria-label={colour}
+              aria-pressed={answer.toLowerCase() === colour}
+              onClick={() => {
+                setBrand(colour);
+                setTyped("");
+              }}
+            />
+          </li>
+        ))}
+      </ul>
+
+      <Field
+        label="Or type your exact colour"
+        hint={halfTyped ? "A colour looks like #c2185b." : "Like #c2185b."}
+      >
+        <input
+          type="text"
+          className="input"
+          value={typed}
+          spellCheck={false}
+          autoCapitalize="none"
+          onChange={(event) => setTyped(event.target.value)}
+        />
+      </Field>
+    </Question>
+  );
+}

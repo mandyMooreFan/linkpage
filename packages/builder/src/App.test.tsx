@@ -1,0 +1,126 @@
+// @vitest-environment jsdom
+
+import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { App } from "./App.js";
+import { PROJECT_STORAGE_KEY } from "./project/index.js";
+
+/**
+ * The seam, end to end. `SPEC.md` §7.1.
+ *
+ * > **The flow is the empty state; the review list is the editing screen. They are the same
+ * > product at two moments.**
+ *
+ * Everything below is one claim: which screen the owner gets is decided by what is in the
+ * project, and nothing else. There is no "have they seen the wizard" flag, no first-run
+ * marker, and nothing to keep in step — which is why coming back a month later opens the list
+ * and ticking a section opens the flow, without either being a case anybody wrote.
+ */
+
+afterEach(cleanup);
+beforeEach(() => localStorage.clear());
+
+const title = (): string => screen.getByRole("heading", { level: 1 }).textContent ?? "";
+const submit = (): Element => document.querySelector(".question__submit") as Element;
+const escapeButton = (): Element | null => document.querySelector(".question__escape");
+
+/** Walk a first run, declining everything optional. */
+function firstRun(name = "Ada's Bakery"): void {
+  fireEvent.click(screen.getByRole("button", { name: /Food & drink/ }));
+  fireEvent.change(screen.getByLabelText(/Business name/), { target: { value: name } });
+  fireEvent.click(submit());
+  for (let guard = 0; guard < 20; guard += 1) {
+    if (title() === "What's your colour?") {
+      fireEvent.click(document.querySelectorAll(".swatches__swatch")[0] as Element);
+      fireEvent.click(submit());
+      continue;
+    }
+    const escape = escapeButton();
+    if (escape === null) break;
+    fireEvent.click(escape);
+  }
+}
+
+describe("which screen the owner gets", () => {
+  it("opens on the preset question when there is nothing stored (§7.8)", () => {
+    mount(<App />);
+
+    expect(title()).toBe("What kind of business is this?");
+    expect(screen.getByText(/Already have a project file/)).toBeTruthy();
+  });
+
+  it("lands on the list when the questions run out, and stays there on the next visit", () => {
+    mount(<App />);
+    firstRun();
+    expect(title()).toBe("Ada's Bakery");
+
+    // A month later. The project came back from storage, so the list opens — not the flow.
+    cleanup();
+    mount(<App />);
+    expect(title()).toBe("Ada's Bakery");
+    expect(screen.queryByText(/Already have a project file/)).toBeNull();
+  });
+
+  it("re-enters the flow for a section ticked on the list, and returns to it (§7.1)", () => {
+    mount(<App />);
+    firstRun();
+
+    // "An owner who skipped opening hours and comes back to add them ticks the box, and the
+    // flow picks them up and walks them through hours, then puts them back on the list."
+    fireEvent.click(screen.getByRole("button", { name: "Opening hours" }));
+    expect(title()).toBe("When are you open?");
+    expect(screen.queryByText("What kind of business is this?")).toBeNull();
+
+    fireEvent.change(screen.getByLabelText("Monday"), { target: { value: "closed" } });
+    fireEvent.click(submit());
+
+    expect(title()).toBe("Ada's Bakery");
+    // Answered, so it is no longer territory the owner has not covered.
+    expect(screen.queryByRole("button", { name: "Opening hours" })).toBeNull();
+  });
+
+  it("leaves the list unchanged when the owner declines the thing they ticked", () => {
+    mount(<App />);
+    firstRun();
+    const before = localStorage.getItem(PROJECT_STORAGE_KEY);
+
+    fireEvent.click(screen.getByRole("button", { name: "Address" }));
+    fireEvent.click(escapeButton() as Element);
+
+    expect(title()).toBe("Ada's Bakery");
+    expect(localStorage.getItem(PROJECT_STORAGE_KEY)).toBe(before);
+    // Still on offer, because a declined section is not a section (§7.1).
+    expect(screen.getByRole("button", { name: "Address" })).toBeTruthy();
+  });
+
+  it("collects what an imported file is missing instead of reporting it (§4.6)", () => {
+    // A hand-written file with no colour: exactly the territory the flow exists for.
+    localStorage.setItem(
+      PROJECT_STORAGE_KEY,
+      JSON.stringify({ version: 1, lang: "en-GB", header: { name: "Ada's Bakery" } }),
+    );
+    mount(<App />);
+
+    expect(title()).toBe("What's your colour?");
+    expect(document.querySelector(".quiet-line__error")).toBeNull();
+
+    fireEvent.click(document.querySelectorAll(".swatches__swatch")[0] as Element);
+    fireEvent.click(submit());
+    expect(title()).toBe("Ada's Bakery");
+  });
+
+  it("autosaves each answer as it is given, not at the end", () => {
+    mount(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /Food & drink/ }));
+
+    // A preset is not an answer about the business, so nothing has been stored yet (§7.3).
+    expect(localStorage.getItem(PROJECT_STORAGE_KEY)).toBeNull();
+
+    fireEvent.change(screen.getByLabelText(/Business name/), { target: { value: "Ada's" } });
+    fireEvent.click(submit());
+
+    expect(JSON.parse(localStorage.getItem(PROJECT_STORAGE_KEY) ?? "{}")).toMatchObject({
+      header: { name: "Ada's" },
+    });
+  });
+});
