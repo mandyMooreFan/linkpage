@@ -81,8 +81,12 @@ export function PresetQuestion({
                 if (file) onOpenFile(file);
               }}
             />
+            {/*
+             * A `<div>` and not a `<p>`: §4.6 puts the technical half of a refusal behind a
+             * disclosure, and a `<details>` is flow content that cannot live inside a paragraph.
+             */}
             {fileError !== undefined && fileError !== null && (
-              <p className="quiet-line__error">{fileError}</p>
+              <div className="quiet-line__error">{fileError}</div>
             )}
           </>
         )

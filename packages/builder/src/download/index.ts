@@ -19,12 +19,12 @@
  * - `save.ts` — the browser's file-write, and the `FileDownload` shape both sections are made
  *   of. The builder's only route to disk.
  *
- * **The seam #36 fills.** The page is complete here: `index.html` is a fixed filename (§6.1) and
- * `page.ts` already holds its bytes. `project.json` is not — its slug rule (§7.7) and its write
- * are one decision with one owner, so they arrive together as a single optional
- * `projectDownload: FileDownload` and #36 supplies it. Until then section two reads in full,
- * because the consequence sentence is the point of it, and its button is unavailable rather
- * than inert — the convention the review list already set.
+ * **The seam, and who fills it.** The page is complete here: `index.html` is a fixed filename
+ * (§6.1) and `page.ts` already holds its bytes. `project.json` is not — its slug rule (§7.7) and
+ * its write are one decision with one owner, so they arrive together as a single optional
+ * `projectDownload: FileDownload`, and `src/open/` supplies it from the same call that answers
+ * §7.8's _is there anything to lose?_. Without one, section two still reads in full — the
+ * consequence sentence is the point of it — and its button is unavailable rather than inert.
  */
 
 export { DownloadSheet, PROJECT_FILENAME_FALLBACK } from "./DownloadSheet.js";

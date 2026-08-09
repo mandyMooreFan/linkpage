@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { App } from "./App.js";
 import { installDownloads, type FakeDownloads } from "./download/downloads.testing.js";
@@ -243,17 +243,264 @@ describe("download, end to end (§7.7)", () => {
     expect(title()).toBe("Ada's Bakery");
   });
 
-  it("offers the project file's copy with no way to write it yet — #36's seam", () => {
+  it("writes the owner's project file under §7.7's name for it", async () => {
     mount(<App storage={storage} />);
-    firstRun();
+    firstRun("Ada's Bakery");
     fireEvent.click(screen.getByRole("button", { name: "Download" }));
 
-    // The consequence sentence is the point of section two and does not wait on a working
-    // button; the button is unavailable rather than inert until #36 supplies the write.
+    // The consequence sentence is the point of section two, and the name is what the owner has
+    // to recognise a month later in a folder where `index.html` is anonymous.
     expect(document.body.textContent).toContain(
       "if you lose it, you’d have to build your page again from scratch",
     );
-    const button = screen.getByRole("button", { name: "Download linkpage.json" });
-    expect((button as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Download adas-bakery.linkpage.json" }));
+
+    expect(downloads.written).toHaveLength(1);
+    expect(downloads.written[0]?.filename).toBe("adas-bakery.linkpage.json");
+    expect(downloads.written[0]?.blob?.type).toBe("application/json");
+    // The exact bytes in storage — so what the owner keeps is what a reload would read, and
+    // opening it again is a no-op rather than a re-formatting (§4.5).
+    expect(await downloads.written[0]?.blob?.text()).toBe(storage.getItem(PROJECT_STORAGE_KEY));
+  });
+});
+
+/**
+ * Opening a project you already have, from both doorways. `SPEC.md` §7.8, §7.9, §4.6.
+ *
+ * > **Import always replaces. It never merges.**
+ *
+ * The pieces are held apart in `open/open.test.tsx` — what the confirmation says, what the escape
+ * writes, what a refusal shows. What only exists here is the wiring, and the two claims that are
+ * about the whole application rather than about any component in it:
+ *
+ * 1. **Which branch of §7.8 a picked file takes is decided by the project, not by the control.**
+ *    The quiet line always opens immediately because the screen carrying it is the screen with
+ *    nothing to lose; the menu always confirms because the list only exists once there is a
+ *    project. Neither is a rule anybody wrote down twice.
+ * 2. **A refusal leaves the existing project exactly where it was** — asserted against the bytes
+ *    in storage, because "untouched" is a claim about the file and not about the screen.
+ */
+describe("opening a project you already have (§7.8, §7.9)", () => {
+  let downloads: FakeDownloads;
+  beforeEach(() => {
+    downloads = installDownloads();
+  });
+  afterEach(() => downloads.restore());
+
+  /** A project file as we write them, so seeding storage and picking a file agree on the bytes. */
+  const projectJson = (project: object): string => `${JSON.stringify(project, null, 2)}\n`;
+
+  const ADAS = {
+    version: 1,
+    lang: "en-GB",
+    style: { brand: "#c2185b" },
+    header: { name: "Ada's Bakery" },
+    hours: { days: { mon: [["07:00", "14:00"]] } },
+  };
+
+  const BOS = {
+    version: 1,
+    lang: "en-GB",
+    style: { brand: "#1a3ea8" },
+    header: { name: "Bo's Books" },
+  };
+
+  /** Hand the OS picker's answer to whichever screen is showing. */
+  async function pick(text: string, filename = "project.json"): Promise<void> {
+    const input = screen.getByLabelText("Open a project file");
+    await act(async () => {
+      fireEvent.change(input, {
+        target: { files: [new File([text], filename, { type: "application/json" })] },
+      });
+    });
+  }
+
+  /** Open the list's menu and reach for a file, as the owner does. */
+  function openTheMenu(): void {
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open a project file…" }));
+  }
+
+  const confirmation = (): string => document.querySelector(".replace")?.textContent ?? "";
+
+  describe("the quiet line, with nothing to lose", () => {
+    it("opens the file immediately, with no confirmation (§7.8)", async () => {
+      mount(<App storage={storage} />);
+      expect(title()).toBe("What kind of business is this?");
+
+      await pick(projectJson(ADAS));
+
+      // The majority path: a second device, an empty browser, an owner holding a file. Nothing
+      // is at risk, so nothing is asked.
+      expect(title()).toBe("Ada's Bakery");
+      expect(confirmation()).toBe("");
+      expect(JSON.parse(storage.getItem(PROJECT_STORAGE_KEY) ?? "{}")).toMatchObject({
+        header: { name: "Ada's Bakery" },
+      });
+    });
+
+    it("opens a file whose name says nothing about it (§7.7)", async () => {
+      mount(<App storage={storage} />);
+
+      // Import validates by content, not by filename. A renamed file still opens.
+      await pick(projectJson(ADAS), "backup (3).txt");
+      expect(title()).toBe("Ada's Bakery");
+    });
+
+    it("refuses in place, with the preset question above it untouched (§7.9)", async () => {
+      mount(<App storage={storage} />);
+
+      await pick("{ this is not a file");
+
+      const message = document.querySelector(".quiet-line__error")?.textContent ?? "";
+      expect(message).toContain("This file appears to be damaged.");
+      // Never a modal, never a navigation: the next action is pick again, and in place makes
+      // that one press rather than dismiss → re-find the control → re-open the picker.
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(title()).toBe("What kind of business is this?");
+      expect(screen.getByRole("button", { name: /Food & drink/ })).toBeTruthy();
+      expect(storage.getItem(PROJECT_STORAGE_KEY)).toBeNull();
+    });
+
+    it("clears the message by picking again, which is the whole recovery (§7.9)", async () => {
+      mount(<App storage={storage} />);
+
+      await pick("[1, 2, 3]");
+      expect(document.querySelector(".quiet-line__error")?.textContent).toContain(
+        "This doesn't look like a linkpage file.",
+      );
+
+      await pick(projectJson(ADAS));
+      expect(title()).toBe("Ada's Bakery");
+      expect(document.querySelector(".quiet-line__error")).toBeNull();
+    });
+
+    it("says nothing at all about a file that is only missing things (§4.6)", async () => {
+      mount(<App storage={storage} />);
+
+      // No `style.brand`: exactly the territory the flow exists for. No error, no repair dialog,
+      // no invented default — the owner is walked through the colour question instead.
+      await pick(projectJson({ version: 1, lang: "en", header: { name: "Ada's Bakery" } }));
+
+      expect(title()).toBe("What's your colour?");
+      expect(document.querySelector(".quiet-line__error")).toBeNull();
+      expect(document.querySelector(".refusal")).toBeNull();
+    });
+  });
+
+  describe("the list's menu, with a project to lose", () => {
+    beforeEach(() => {
+      storage.setItem(PROJECT_STORAGE_KEY, projectJson(ADAS));
+      mount(<App storage={storage} />);
+    });
+
+    it("confirms by name, and changes nothing until it is answered (§7.8)", async () => {
+      const before = storage.getItem(PROJECT_STORAGE_KEY);
+      openTheMenu();
+
+      await pick(projectJson(BOS));
+
+      expect(confirmation()).toContain(
+        "You’re working on Ada's Bakery. Opening this file will replace it.",
+      );
+      expect(title()).toBe("Ada's Bakery");
+      expect(storage.getItem(PROJECT_STORAGE_KEY)).toBe(before);
+    });
+
+    it("replaces on the press that says so, and never merges (§7.8)", async () => {
+      openTheMenu();
+      await pick(projectJson(BOS));
+      fireEvent.click(screen.getByRole("button", { name: "Open the file" }));
+
+      expect(title()).toBe("Bo's Books");
+      // Ada's opening hours are gone rather than carried across: whose name wins and which hours
+      // are real have no answer behind a one-page file, so there is no merge to get wrong.
+      expect(screen.getByRole("button", { name: "Opening hours" })).toBeTruthy();
+      expect(JSON.parse(storage.getItem(PROJECT_STORAGE_KEY) ?? "{}")).not.toHaveProperty("hours");
+    });
+
+    it("offers to download the outgoing project first — both paths safe (§7.8)", async () => {
+      const before = storage.getItem(PROJECT_STORAGE_KEY);
+      openTheMenu();
+      await pick(projectJson(BOS));
+
+      fireEvent.click(screen.getByRole("button", { name: "Download my work first" }));
+
+      // §7.7's name for it, and the outgoing bytes — not the incoming ones.
+      expect(downloads.written[0]?.filename).toBe("adas-bakery.linkpage.json");
+      expect(await downloads.written[0]?.blob?.text()).toBe(before);
+      // And it has not opened anything: the escape and the replacement are two presses.
+      expect(title()).toBe("Ada's Bakery");
+
+      fireEvent.click(screen.getByRole("button", { name: "Open the file" }));
+      expect(title()).toBe("Bo's Books");
+    });
+
+    it("keeps what is there when the confirmation is cancelled, and downloads nothing", async () => {
+      const before = storage.getItem(PROJECT_STORAGE_KEY);
+      openTheMenu();
+      await pick(projectJson(BOS));
+
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(confirmation()).toBe("");
+      expect(title()).toBe("Ada's Bakery");
+      expect(storage.getItem(PROJECT_STORAGE_KEY)).toBe(before);
+      // No silent auto-download either: the same preservation without consent (§7.8).
+      expect(downloads.written).toEqual([]);
+    });
+
+    it("leaves the existing project untouched when a file is refused (§4.6, §7.9)", async () => {
+      const before = storage.getItem(PROJECT_STORAGE_KEY);
+      openTheMenu();
+
+      await pick("<!doctype html>\n<html>…", "index.html");
+
+      // The most likely mistake in the room: they grabbed `index.html` instead of the project
+      // file. Nothing was parsed far enough to touch anything, so there is nothing to restore.
+      expect(storage.getItem(PROJECT_STORAGE_KEY)).toBe(before);
+      expect(title()).toBe("Ada's Bakery");
+      expect(confirmation()).toBe("");
+      // Ada's hours are still hers: the row is a row, not a tick-on offering to add them.
+      expect(screen.queryByRole("button", { name: "Opening hours" })).toBeNull();
+    });
+
+    it("puts the refusal in the menu's own surface, not in a modal (§7.9)", async () => {
+      openTheMenu();
+      await pick("{ this is not a file");
+
+      const panel = document.querySelector(".list__menu-panel");
+      expect(panel?.textContent).toContain("This file appears to be damaged.");
+      expect((panel as HTMLElement).hidden).toBe(false);
+      expect(screen.queryByRole("dialog")).toBeNull();
+      // The project is intact behind it — the list, its rows and the preview are all still there.
+      expect(title()).toBe("Ada's Bakery");
+      expect(document.querySelectorAll(".list__row").length).toBeGreaterThan(0);
+    });
+
+    it("puts the technical half behind a disclosure, closed (§4.6)", async () => {
+      openTheMenu();
+      await pick('{"version": 99}');
+
+      expect(document.querySelector(".refusal__message")?.textContent).toContain(
+        "This page was made with a newer version of linkpage",
+      );
+      const disclosure = document.querySelector(".refusal__detail") as HTMLDetailsElement;
+      expect(disclosure.open).toBe(false);
+      expect(disclosure.textContent).toContain("Technical detail");
+    });
+
+    it("recovers by picking again, straight from the refusal (§7.9)", async () => {
+      openTheMenu();
+      await pick("{ this is not a file");
+      expect(document.querySelector(".refusal")).not.toBeNull();
+
+      await pick(projectJson(BOS));
+
+      // The message is gone and the confirmation has taken its place: pick again, and the fork
+      // is where it always was.
+      expect(document.querySelector(".refusal")).toBeNull();
+      expect(confirmation()).toContain("Opening this file will replace it.");
+    });
   });
 });

@@ -1,0 +1,102 @@
+/**
+ * Opening a project you already have (SPEC.md §7.8, §7.9).
+ *
+ * Two surfaces and one hidden control, and none of them is a layer. Both the refusal and the
+ * replace confirmation sit **inside** whatever box the host screen already gives them — the
+ * quiet line's notice on the first screen, the menu's own panel on the list — so the rules here
+ * are about type and spacing and never about position, elevation or a scrim. That is §7.9's
+ * "never a modal" expressed as the absence of the CSS that would make one.
+ */
+
+/*
+ * The picker itself is never seen; the control that opens it is the menu item. Clipped rather
+ * than `display: none`, which would take it out of the accessibility tree and make the label
+ * unreachable.
+ */
+.open__picker {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- a refusal */
+
+.refusal__message {
+  margin: 0;
+}
+
+.refusal__link {
+  color: var(--accent);
+}
+
+/*
+ * §4.6: technical detail sits behind a disclosure — invisible to the owner, one click away for
+ * whoever hand-edited the file. Quiet enough that it reads as an aside rather than as a second
+ * half of the message.
+ */
+.refusal__detail {
+  margin-top: 0.5rem;
+  color: var(--ink-quiet);
+  font-size: 0.875rem;
+}
+
+.refusal__summary {
+  cursor: pointer;
+}
+
+.refusal__text {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------- the replace confirmation */
+
+.replace__message {
+  margin: 0;
+}
+
+/*
+ * A column at every width. The escape is first because it is the branch that loses nothing, and
+ * three full-width controls cannot be mis-tapped on a phone the way three side by side can.
+ */
+.replace__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.replace__save,
+.replace__open,
+.replace__cancel {
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* The escape carries the weight, because it is the one that makes both paths safe. */
+.replace__save {
+  border-color: transparent;
+  background: var(--ink);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+.replace__cancel {
+  border-color: transparent;
+  color: var(--ink-quiet);
+}
+
+.replace__saved {
+  margin: 0.5rem 0 0;
+  color: var(--ink-quiet);
+  font-size: 0.875rem;
+}

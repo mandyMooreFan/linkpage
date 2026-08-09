@@ -38,11 +38,12 @@ import { HTML_TYPE, saveTextFile, type FileDownload } from "./save.js";
  */
 
 /**
- * §7.7's own fallback, used here as the name shown before #36 supplies the real one.
+ * §7.7's own fallback: the name a project file lands under when there is no business name to
+ * slug, and the label this sheet shows when it has not been handed a `projectDownload` at all.
  *
  * The spec's rule is `⟨business-name⟩.linkpage.json`, slugified, **falling back to
- * `linkpage.json` when there is no name yet** — so this is the one project filename this issue
- * can state without owning the rule that produces the other one.
+ * `linkpage.json` when there is no name yet**. The rule itself lives with the write, in
+ * `src/open/projectFile.ts`, which reads this constant rather than re-stating it.
  */
 export const PROJECT_FILENAME_FALLBACK = "linkpage.json";
 
@@ -52,13 +53,14 @@ export interface DownloadSheetProps {
   /** Leave the sheet. Escape, the Close button and the scrim all mean this. */
   readonly onClose: () => void;
   /**
-   * The project file, wired by #36 (§7.8's mechanics, and §7.7's slug rule).
+   * The project file, wired from `src/open/` (§7.7's slug rule, and §7.8's mechanics).
    *
    * **The whole of `project.json` belongs to one owner**: what it is called and how it is
    * written are the same decision, so they arrive here together or not at all. Absent, section
    * two still reads in full — the consequence sentence is the point of it and does not depend
-   * on a working button — and the button is unavailable rather than inert, which is the
-   * convention the review list already set for a control whose issue has not landed.
+   * on a working button — and the button is unavailable rather than inert. In the shipped
+   * builder it is absent only when there is no project at all, which is a state this sheet
+   * cannot be reached from; it stays optional so that the sheet can be read on its own.
    */
   readonly projectDownload?: FileDownload;
 }
