@@ -32,6 +32,49 @@ describe("the exported page", () => {
  *
  * If this fails, the fix is to import `pageHtml` rather than to add a name to the list.
  */
+/**
+ * Comments in this repo say `render(project)` constantly — describing the guarantee is half of
+ * what the doc comments are for — so only code counts.
+ */
+const code = (text: string): string =>
+  text.replaceAll(/\/\*[\s\S]*?\*\//g, "").replaceAll(/(^|[^:])\/\/.*$/gm, "$1");
+
+/**
+ * Does this source reach the renderer's `render` as a value?
+ *
+ * **Keyed on the import, not on the token `render(`.** The first version of this guard grepped
+ * for a bare call and was fooled the moment #31 landed a rasterise step whose method happened to
+ * be called `render` — it reported two rendering paths that did not exist, and turned a
+ * green-plus-green merge red (#55). A method name is not evidence of anything; importing
+ * `render` from `@linkpage/renderer` is exactly the thing §5.2 cares about, and nothing else can
+ * spell it.
+ *
+ * Type-only imports do not count: a file naming `Project` has not acquired a second way to
+ * produce HTML.
+ */
+export function importsRenderer(text: string): boolean {
+  const source = code(text);
+
+  // `await import("@linkpage/renderer")` — a value import by another spelling.
+  if (/\bimport\s*\(\s*["']@linkpage\/renderer["']\s*\)/.test(source)) return true;
+
+  for (const match of source.matchAll(
+    /import\s+([\s\S]*?)\s+from\s*["']@linkpage\/renderer["']/g,
+  )) {
+    const clause = (match[1] ?? "").trim();
+    if (clause.startsWith("type")) continue; // `import type { … }` — no values at all
+    if (/\*\s+as\s+\w+/.test(clause)) return true; // namespace import reaches everything
+    const braces = /\{([\s\S]*)\}/.exec(clause);
+    if (!braces) continue;
+    for (const binding of (braces[1] ?? "").split(",")) {
+      const name = binding.trim();
+      if (name.startsWith("type ")) continue; // inline `type Project`
+      if (/^render(\s+as\s+\w+)?$/.test(name)) return true;
+    }
+  }
+  return false;
+}
+
 describe("the single rendering path", () => {
   const sources = import.meta.glob("./**/*.{ts,tsx}", {
     query: "?raw",
@@ -39,19 +82,10 @@ describe("the single rendering path", () => {
     eager: true,
   }) as Record<string, string>;
 
-  /**
-   * Comments in this repo say `render(project)` constantly — describing the guarantee is half
-   * of what the doc comments are for — so only code counts.
-   */
-  const code = (text: string): string =>
-    text.replaceAll(/\/\*[\s\S]*?\*\//g, "").replaceAll(/(^|[^:])\/\/.*$/gm, "$1");
-
-  it("has one file in the builder that calls the renderer", () => {
+  it("has one file in the builder that reaches the renderer", () => {
     const callers = Object.entries(sources)
       .filter(([path]) => !path.endsWith(".test.ts") && !path.endsWith(".test.tsx"))
-      // A bare `render(` — `createRoot(root).render(` in `main.tsx` is a method on a React
-      // root, not the renderer, and is what the lookbehind is there to let through.
-      .filter(([, text]) => /(?<![.\w$])render\s*\(/.test(code(text)))
+      .filter(([, text]) => importsRenderer(text))
       .map(([path]) => path)
       .sort();
 
@@ -61,5 +95,42 @@ describe("the single rendering path", () => {
   it("found the sources it claims to be scanning", () => {
     // A glob that silently matched nothing would make the assertion above vacuous.
     expect(Object.keys(sources)).toContain("./preview/Preview.tsx");
+  });
+});
+
+describe("the guard itself", () => {
+  it("counts a direct value import", () => {
+    expect(importsRenderer(`import { render } from "@linkpage/renderer";`)).toBe(true);
+    expect(importsRenderer(`import { render as r } from "@linkpage/renderer";`)).toBe(true);
+    expect(importsRenderer(`import { SCHEMA_VERSION, render } from "@linkpage/renderer";`)).toBe(
+      true,
+    );
+    expect(importsRenderer(`import * as renderer from "@linkpage/renderer";`)).toBe(true);
+    expect(importsRenderer(`const m = await import("@linkpage/renderer");`)).toBe(true);
+  });
+
+  it("does not count a type-only import", () => {
+    expect(importsRenderer(`import type { Project } from "@linkpage/renderer";`)).toBe(false);
+    expect(importsRenderer(`import { type Project } from "@linkpage/renderer";`)).toBe(false);
+    expect(importsRenderer(`import { SCHEMA_VERSION } from "@linkpage/renderer";`)).toBe(false);
+  });
+
+  it("does not count a method that merely shares the name — the #55 regression", () => {
+    // Both shapes are real, from packages/builder/src/logo/. Neither is a second rendering path.
+    expect(
+      importsRenderer(`async render(size: Size, smooth: boolean): Promise<RenderedImage> {}`),
+    ).toBe(false);
+    expect(importsRenderer(`render(size: Size, smooth: boolean): Promise<RenderedImage>;`)).toBe(
+      false,
+    );
+    expect(importsRenderer(`const out = await decoded.render(size, true);`)).toBe(false);
+    expect(importsRenderer(`createRoot(root).render(<App />);`)).toBe(false);
+  });
+
+  it("does not count prose about the guarantee", () => {
+    expect(importsRenderer(`// the preview is render(project) in an iframe`)).toBe(false);
+    expect(
+      importsRenderer(`/* import { render } from "@linkpage/renderer" — what page.ts does */`),
+    ).toBe(false);
   });
 });
