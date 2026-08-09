@@ -1,0 +1,146 @@
+import { describe, expect, it } from "vitest";
+import {
+  contrastRatio,
+  oklchToRgb,
+  parseHex,
+  pickInk,
+  relativeLuminance,
+  rgbToOklch,
+  toContrast,
+  toHex,
+  withLightness,
+  type Rgb,
+} from "./color.js";
+
+const BLACK: Rgb = { r: 0, g: 0, b: 0 };
+const WHITE: Rgb = { r: 255, g: 255, b: 255 };
+
+describe("parseHex", () => {
+  it("accepts both lengths, with or without the hash, in any case", () => {
+    const expected = { r: 0xc2, g: 0x18, b: 0x5b };
+    expect(parseHex("#c2185b")).toEqual(expected);
+    expect(parseHex("c2185b")).toEqual(expected);
+    expect(parseHex("#C2185B")).toEqual(expected);
+    expect(parseHex("  #c2185b  ")).toEqual(expected);
+    expect(parseHex("#abc")).toEqual({ r: 0xaa, g: 0xbb, b: 0xcc });
+  });
+
+  it("returns null rather than throwing on anything else", () => {
+    // The renderer is total (SPEC.md §4.7) and a hand-edited file can put any string here.
+    for (const bad of ["", "#", "#12", "#12345", "rebeccapurple", "#gggggg", null, 42, {}, []]) {
+      expect(parseHex(bad), String(bad)).toBeNull();
+    }
+  });
+
+  it("round-trips through toHex", () => {
+    for (const hex of ["#000000", "#ffffff", "#c2185b", "#00695c"]) {
+      expect(toHex(parseHex(hex) as Rgb)).toBe(hex);
+    }
+  });
+});
+
+describe("contrastRatio", () => {
+  it("matches the WCAG reference points", () => {
+    expect(contrastRatio(BLACK, WHITE)).toBeCloseTo(21, 5);
+    expect(contrastRatio(WHITE, WHITE)).toBeCloseTo(1, 5);
+    // #767676 on white is the canonical "exactly AA" grey.
+    expect(contrastRatio(parseHex("#767676") as Rgb, WHITE)).toBeCloseTo(4.54, 1);
+  });
+
+  it("is order-independent", () => {
+    const a = parseHex("#c2185b") as Rgb;
+    expect(contrastRatio(a, WHITE)).toBeCloseTo(contrastRatio(WHITE, a), 10);
+  });
+
+  it("puts pure green above pure blue, as luminance weighting requires", () => {
+    expect(relativeLuminance(parseHex("#00ff00") as Rgb)).toBeGreaterThan(
+      relativeLuminance(parseHex("#0000ff") as Rgb),
+    );
+  });
+});
+
+describe("OKLCh", () => {
+  it("round-trips every corner of the cube within a rounding step", () => {
+    const corners = ["#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff", "#c2185b", "#5d4037"];
+    for (const hex of corners) {
+      const rgb = parseHex(hex) as Rgb;
+      const back = oklchToRgb(rgbToOklch(rgb));
+      expect(Math.abs(back.r - rgb.r), hex).toBeLessThanOrEqual(1);
+      expect(Math.abs(back.g - rgb.g), hex).toBeLessThanOrEqual(1);
+      expect(Math.abs(back.b - rgb.b), hex).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("preserves hue when lightness changes — the reason this is not HSL", () => {
+    const yellow = parseHex("#ffff00") as Rgb;
+    const darker = withLightness(yellow, 0.5);
+    expect(rgbToOklch(darker).h).toBeCloseTo(rgbToOklch(yellow).h, 0);
+    // Still recognisably yellow: red and green high, blue low.
+    expect(darker.r).toBeGreaterThan(darker.b);
+    expect(darker.g).toBeGreaterThan(darker.b);
+  });
+
+  it("reports a perceptual lightness that tracks luminance ordering", () => {
+    const order = ["#000000", "#5d4037", "#808080", "#e1bee7", "#ffffff"];
+    const lightness = order.map((hex) => rgbToOklch(parseHex(hex) as Rgb).l);
+    for (let i = 1; i < lightness.length; i++) {
+      expect(lightness[i] as number).toBeGreaterThan(lightness[i - 1] as number);
+    }
+  });
+});
+
+describe("toContrast", () => {
+  it("returns the colour untouched when it already clears the target", () => {
+    const pink = parseHex("#c2185b") as Rgb;
+    expect(toContrast(pink, WHITE, 3, "darker")).toEqual(pink);
+  });
+
+  it("moves only as far as needed, and lands at or above the target", () => {
+    const pale = parseHex("#fff59d") as Rgb;
+    const fixed = toContrast(pale, WHITE, 3, "darker");
+    expect(contrastRatio(fixed, WHITE)).toBeGreaterThanOrEqual(3);
+    // "Only as far as needed": one step lighter would fall short.
+    const lighter = withLightness(fixed, rgbToOklch(fixed).l + 0.02);
+    expect(contrastRatio(lighter, WHITE)).toBeLessThan(3);
+  });
+
+  it("respects the direction it was given rather than flipping to the easy side", () => {
+    // Black asked to go darker against black cannot succeed. Returning the endpoint keeps
+    // the caller in charge; silently going lighter would change the design.
+    const result = toContrast(BLACK, BLACK, 4.5, "darker");
+    expect(contrastRatio(result, BLACK)).toBeLessThan(4.5);
+  });
+
+  it("works in both directions", () => {
+    const navy = parseHex("#0d1b3e") as Rgb;
+    expect(contrastRatio(toContrast(navy, BLACK, 3, "lighter"), BLACK)).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(toContrast(navy, WHITE, 3, "darker"), WHITE)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("pickInk", () => {
+  it("prefers an earlier candidate that clears the minimum", () => {
+    expect(pickInk(BLACK, [WHITE, { r: 1, g: 1, b: 1 }], 4.5)).toEqual(WHITE);
+  });
+
+  it("falls back to black or white when no candidate clears it", () => {
+    const mid = parseHex("#767676") as Rgb;
+    const ink = pickInk(mid, [{ r: 0x80, g: 0x80, b: 0x80 }], 4.5);
+    expect([toHex(BLACK), toHex(WHITE)]).toContain(toHex(ink));
+    expect(contrastRatio(ink, mid)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("always reaches AA — the fact the readability guarantee rests on", () => {
+    // For any colour, the better of black and white is at least 4.58:1. The worst case is
+    // the mid-tone where the two are equal, so there is no fill an owner can pick that
+    // cannot carry legible text.
+    for (let r = 0; r <= 255; r += 15) {
+      for (let g = 0; g <= 255; g += 15) {
+        for (let b = 0; b <= 255; b += 15) {
+          const fill = { r, g, b };
+          expect(contrastRatio(pickInk(fill, [], 4.5), fill)).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
+  });
+});
