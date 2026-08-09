@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { App } from "./App.js";
-import { PROJECT_STORAGE_KEY } from "./project/index.js";
+import { PROJECT_STORAGE_KEY, type StorageLike } from "./project/index.js";
 
 /**
  * The seam, end to end. `SPEC.md` §7.1.
@@ -18,7 +18,28 @@ import { PROJECT_STORAGE_KEY } from "./project/index.js";
  */
 
 afterEach(cleanup);
-beforeEach(() => localStorage.clear());
+
+/**
+ * The one project, somewhere the test owns.
+ *
+ * Handed to `App` rather than reached for as a global: Node 26 ships a `localStorage` of its
+ * own that shadows jsdom's and answers `undefined`, so the ambient one is a different object
+ * depending on which runtime CI picked. This is also what makes "a month later" expressible —
+ * the storage outlives the mount, which is the whole of what a second visit is.
+ */
+function memory(): StorageLike {
+  const entries = new Map<string, string>();
+  return {
+    getItem: (key) => entries.get(key) ?? null,
+    setItem: (key, value) => void entries.set(key, value),
+    removeItem: (key) => void entries.delete(key),
+  };
+}
+
+let storage: StorageLike;
+beforeEach(() => {
+  storage = memory();
+});
 
 const title = (): string => screen.getByRole("heading", { level: 1 }).textContent ?? "";
 const submit = (): Element => document.querySelector(".question__submit") as Element;
@@ -43,26 +64,26 @@ function firstRun(name = "Ada's Bakery"): void {
 
 describe("which screen the owner gets", () => {
   it("opens on the preset question when there is nothing stored (§7.8)", () => {
-    mount(<App />);
+    mount(<App storage={storage} />);
 
     expect(title()).toBe("What kind of business is this?");
     expect(screen.getByText(/Already have a project file/)).toBeTruthy();
   });
 
   it("lands on the list when the questions run out, and stays there on the next visit", () => {
-    mount(<App />);
+    mount(<App storage={storage} />);
     firstRun();
     expect(title()).toBe("Ada's Bakery");
 
     // A month later. The project came back from storage, so the list opens — not the flow.
     cleanup();
-    mount(<App />);
+    mount(<App storage={storage} />);
     expect(title()).toBe("Ada's Bakery");
     expect(screen.queryByText(/Already have a project file/)).toBeNull();
   });
 
   it("re-enters the flow for a section ticked on the list, and returns to it (§7.1)", () => {
-    mount(<App />);
+    mount(<App storage={storage} />);
     firstRun();
 
     // "An owner who skipped opening hours and comes back to add them ticks the box, and the
@@ -80,26 +101,26 @@ describe("which screen the owner gets", () => {
   });
 
   it("leaves the list unchanged when the owner declines the thing they ticked", () => {
-    mount(<App />);
+    mount(<App storage={storage} />);
     firstRun();
-    const before = localStorage.getItem(PROJECT_STORAGE_KEY);
+    const before = storage.getItem(PROJECT_STORAGE_KEY);
 
     fireEvent.click(screen.getByRole("button", { name: "Address" }));
     fireEvent.click(escapeButton() as Element);
 
     expect(title()).toBe("Ada's Bakery");
-    expect(localStorage.getItem(PROJECT_STORAGE_KEY)).toBe(before);
+    expect(storage.getItem(PROJECT_STORAGE_KEY)).toBe(before);
     // Still on offer, because a declined section is not a section (§7.1).
     expect(screen.getByRole("button", { name: "Address" })).toBeTruthy();
   });
 
   it("collects what an imported file is missing instead of reporting it (§4.6)", () => {
     // A hand-written file with no colour: exactly the territory the flow exists for.
-    localStorage.setItem(
+    storage.setItem(
       PROJECT_STORAGE_KEY,
       JSON.stringify({ version: 1, lang: "en-GB", header: { name: "Ada's Bakery" } }),
     );
-    mount(<App />);
+    mount(<App storage={storage} />);
 
     expect(title()).toBe("What's your colour?");
     expect(document.querySelector(".quiet-line__error")).toBeNull();
@@ -110,16 +131,16 @@ describe("which screen the owner gets", () => {
   });
 
   it("autosaves each answer as it is given, not at the end", () => {
-    mount(<App />);
+    mount(<App storage={storage} />);
     fireEvent.click(screen.getByRole("button", { name: /Food & drink/ }));
 
     // A preset is not an answer about the business, so nothing has been stored yet (§7.3).
-    expect(localStorage.getItem(PROJECT_STORAGE_KEY)).toBeNull();
+    expect(storage.getItem(PROJECT_STORAGE_KEY)).toBeNull();
 
     fireEvent.change(screen.getByLabelText(/Business name/), { target: { value: "Ada's" } });
     fireEvent.click(submit());
 
-    expect(JSON.parse(localStorage.getItem(PROJECT_STORAGE_KEY) ?? "{}")).toMatchObject({
+    expect(JSON.parse(storage.getItem(PROJECT_STORAGE_KEY) ?? "{}")).toMatchObject({
       header: { name: "Ada's" },
     });
   });

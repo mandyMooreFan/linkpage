@@ -3,7 +3,7 @@ import { Flow } from "./flow/Flow.js";
 import { flowEntry, uncoveredTopics, type FlowEntry } from "./flow/plan.js";
 import { TOPIC_LABELS, type Topic } from "./flow/topics.js";
 import { Preview } from "./preview/Preview.js";
-import { createProjectStore, type Draft } from "./project/index.js";
+import { createProjectStore, type Draft, type StorageLike } from "./project/index.js";
 
 /**
  * The builder's two screens, and the rule that joins them. `SPEC.md` §7.1.
@@ -33,8 +33,24 @@ function browserLang(): string {
   return globalThis.navigator?.language ?? "en";
 }
 
-export function App(): JSX.Element {
-  const store = useMemo(() => createProjectStore(), []);
+export interface AppProps {
+  /**
+   * Where the project lives. Omitted in the browser, where the store finds `localStorage`
+   * itself (#30).
+   *
+   * Passed by the tests, and not only for isolation: Node 26 defines a `localStorage` global of
+   * its own, which shadows the one jsdom installs and answers `undefined`. A test that reached
+   * for the ambient global would then be asserting against whichever runtime CI happened to
+   * use. Handing the storage in is both the smaller dependency and the honest one.
+   */
+  readonly storage?: StorageLike;
+}
+
+export function App({ storage }: AppProps = {}): JSX.Element {
+  const store = useMemo(
+    () => createProjectStore(storage === undefined ? {} : { storage }),
+    [storage],
+  );
   const snapshot = useSyncExternalStore(store.subscribe, store.snapshot, store.snapshot);
 
   /** A topic the list handed back, or `null` when the flow is not there on request. */
