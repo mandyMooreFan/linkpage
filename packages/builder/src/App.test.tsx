@@ -130,6 +130,53 @@ describe("which screen the owner gets", () => {
     expect(title()).toBe("Ada's Bakery");
   });
 
+  it("shows what a file arrived without as ordinary rows (§4.3)", () => {
+    // A hand-written file with the two required answers and nothing else: `lang` comes from
+    // the browser (§4.1) and the five structural style controls take their defaults. Neither
+    // is announced — but §4.3's rule is that a field defaulted on load is on the list, so the
+    // way to find out is the product's normal surface rather than a dialog that fires once.
+    storage.setItem(
+      PROJECT_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        header: { name: "Ada's Bakery" },
+        style: { brand: "#c2185b" },
+      }),
+    );
+    mount(<App storage={storage} />);
+
+    expect(title()).toBe("Ada's Bakery");
+    expect(screen.getByRole("button", { name: /^How it looks/ }).textContent).toContain("Centred");
+
+    const language = screen.getByRole("button", { name: /^Page language/ });
+    expect(language.textContent).toContain(navigator.language);
+    // Silently, and permanently the moment the file opens — which is safe because the upgrade
+    // only ever adds defaults for things that were absent.
+    expect(JSON.parse(storage.getItem(PROJECT_STORAGE_KEY) ?? "{}")).toMatchObject({
+      lang: navigator.language,
+    });
+  });
+
+  it("re-enters the flow for another link button, and lands back on the list (§7.1)", () => {
+    mount(<App storage={storage} />);
+    firstRun();
+
+    fireEvent.click(screen.getByRole("button", { name: "Link buttons" }));
+    expect(title()).toBe("Which of these do you have?");
+
+    fireEvent.change(screen.getByLabelText("Something else"), { target: { value: "Our menu" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(submit());
+    fireEvent.change(screen.getByLabelText("Web address"), {
+      target: { value: "https://ada.example/menu" },
+    });
+    fireEvent.click(submit());
+
+    expect(title()).toBe("Ada's Bakery");
+    // And it is a row now, with the answer in it, rather than a tick-on.
+    expect(screen.getByRole("button", { name: /^Link buttons\s*Our menu/ })).toBeTruthy();
+  });
+
   it("autosaves each answer as it is given, not at the end", () => {
     mount(<App storage={storage} />);
     fireEvent.click(screen.getByRole("button", { name: /Food & drink/ }));

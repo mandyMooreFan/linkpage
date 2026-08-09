@@ -1,9 +1,10 @@
-import { useMemo, useState, useSyncExternalStore, type JSX } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, type JSX } from "react";
 import { Flow } from "./flow/Flow.js";
-import { flowEntry, uncoveredTopics, type FlowEntry } from "./flow/plan.js";
-import { TOPIC_LABELS, type Topic } from "./flow/topics.js";
-import { Preview } from "./preview/Preview.js";
-import { createProjectStore, type Draft, type StorageLike } from "./project/index.js";
+import { flowEntry, type FlowEntry } from "./flow/plan.js";
+import { answerLang } from "./flow/topics.js";
+import type { Topic } from "./flow/topics.js";
+import { List } from "./list/index.js";
+import { createProjectStore, type StorageLike } from "./project/index.js";
 
 /**
  * The builder's two screens, and the rule that joins them. `SPEC.md` §7.1.
@@ -13,19 +14,15 @@ import { createProjectStore, type Draft, type StorageLike } from "./project/inde
  *
  * There is one decision here and `flowEntry` makes it: no project, or a project missing
  * something required, and the flow owns the window; otherwise the list does. Everything else on
- * this page is wiring — the store from #30, the preview from #32, and the seam that hands a
- * ticked topic back to the flow and takes the owner back to the list when it has been answered.
+ * this page is wiring — the store from #30, the preview from #32, the flow from #33, the list
+ * from #34, and the seam that hands a ticked topic back to the flow and takes the owner back to
+ * the list when it has been answered.
  *
- * **The review list below is a placeholder and #34 replaces all of it.** What is not a
- * placeholder is the two lines it uses: `uncoveredTopics(draft)` is what the list may offer,
- * and `{ kind: "add", topics: [...] }` is how it asks. Ticking _Opening hours_ a month later
- * walks the owner through hours and returns them here — the same code path a first run takes,
- * which is what §7.1 means by one mental model instead of two.
- *
- * **Import is wired only as far as §7.8's quiet line reaches.** #36 owns the rest: the menu on
- * the list, the concrete confirmation when there is a project to lose, and the offer to
- * download the outgoing one first. What is settled here is where a failure appears — in place,
- * under the line, with the preset question above it untouched (§7.9).
+ * **Import is wired only as far as §7.8's quiet line reaches.** #36 owns the rest: the menu
+ * entry on the list, the concrete confirmation when there is a project to lose, and the offer
+ * to download the outgoing one first. What is settled here is where a failure appears — in
+ * place, under the line, with the preset question above it untouched (§7.9). **Download is
+ * #35's** for the same reason; the list already says where the button is.
  */
 
 /** §4.1: `lang` defaults to the browser's language at first run, never to a hardcoded `"en"`. */
@@ -62,6 +59,21 @@ export function App({ storage }: AppProps = {}): JSX.Element {
   const entry: FlowEntry | null =
     request === null ? flowEntry(snapshot.draft) : { kind: "add", topics: request };
 
+  const draft = snapshot.draft;
+
+  /**
+   * The one required field that is not a question (§4.1).
+   *
+   * The flow fills it for a project that passes through it, but a file arriving with a name and
+   * a colour and no `lang` goes straight to the list — so the default belongs here, where both
+   * roads meet, rather than in the flow. It is silent, as §4.3 requires, and it is visible for
+   * the same reason: a field defaulted on load is an ordinary row on the list.
+   */
+  useEffect(() => {
+    if (draft === null || draft.lang !== undefined) return;
+    store.update(answerLang(draft, browserLang()));
+  }, [draft, store]);
+
   function openFile(file: File): void {
     void file.text().then(
       (text) => {
@@ -73,8 +85,6 @@ export function App({ storage }: AppProps = {}): JSX.Element {
       () => setFileError("This file appears to be damaged."),
     );
   }
-
-  const draft = snapshot.draft;
 
   // `flowEntry` answers `null` only when there is a draft, so the second half of this test is
   // a type narrowing rather than a second rule.
@@ -98,52 +108,5 @@ export function App({ storage }: AppProps = {}): JSX.Element {
     );
   }
 
-  return <ReviewList draft={draft} onAdd={(topic) => setRequest([topic])} />;
-}
-
-/**
- * **Scaffold — #34 builds the real one** (§7.4): every answer a row, the page beside it,
- * Download, the import menu, and _How it looks_.
- *
- * What is real here is the seam. The second list is §7.1's mechanism in its simplest possible
- * form: the things this page does not have yet, each of which hands the flow a topic and gets
- * the owner walked through it.
- */
-function ReviewList({
-  draft,
-  onAdd,
-}: {
-  readonly draft: Draft;
-  readonly onAdd: (topic: Topic) => void;
-}): JSX.Element {
-  const uncovered = uncoveredTopics(draft);
-
-  return (
-    <main className="flow">
-      <div className="flow__question">
-        <h1 className="question__title">{draft.header.name}</h1>
-        <p className="question__hint">
-          Your page is ready. This is where you live from now on — the real list is #34.
-        </p>
-
-        {uncovered.length > 0 && (
-          <>
-            <h2 className="question__title">Anything else?</h2>
-            <ul className="presets">
-              {uncovered.map((topic) => (
-                <li key={topic}>
-                  <button type="button" className="presets__option" onClick={() => onAdd(topic)}>
-                    <span className="presets__label">{TOPIC_LABELS[topic]}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </div>
-      <div className="flow__preview">
-        <Preview project={draft} />
-      </div>
-    </main>
-  );
+  return <List draft={draft} onChange={store.update} onAdd={(topic) => setRequest([topic])} />;
 }
