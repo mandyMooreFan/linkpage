@@ -55,6 +55,7 @@ export {
   answerTagline,
   hasContent,
   SECTIONS,
+  TOPIC_LABELS,
   TOPICS,
   WEEKDAYS,
 } from "./topics.js";
