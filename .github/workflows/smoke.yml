@@ -1,0 +1,70 @@
+# Smokes the **deployed** builder at https://mandymoorefan.github.io/linkpage/.
+#
+# Runs after a Pages deploy finishes, and never on a push. That ordering is the whole point: this
+# asks whether the thing now serving at a URL works, which is only answerable once it is serving.
+# `ci.yml` and the local end-to-end already cover the code; this covers the deploy.
+#
+# It stays off the critical path deliberately. A push is not blocked on it, because by the time it
+# can run the code is already merged — the useful output is "the deploy is broken, roll it back or
+# fix forward", not a red X on a PR that cannot have caused it.
+#
+# **If this is red and nothing was deployed, suspect the world before your diff**: GitHub Pages,
+# a browser change, a network blip. That is the reverse of the usual rule, and it is right here
+# because this job's inputs include the internet.
+#
+# No schedule. A weekly run against a static page would mostly prove GitHub is up, and a job that
+# goes red while nobody is on call teaches people to ignore it. Add one only if the deploy starts
+# breaking in ways a deploy-triggered run misses.
+name: Smoke the deployed builder
+
+on:
+  workflow_run:
+    workflows: ["Deploy builder to Pages"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL to smoke (defaults to the production deploy)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    # A deploy that failed has nothing worth smoking; its own job already went red.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - run: pnpm install --frozen-lockfile
+
+      # Chromium alone, and the headless shell: this asks whether the deploy works, not whether
+      # the page is cross-browser.
+      - name: Install Chromium
+        run: pnpm --filter @linkpage/builder exec playwright install --with-deps chromium-headless-shell
+
+      - name: Smoke
+        env:
+          SMOKE_URL: ${{ inputs.url }}
+        run: pnpm --filter @linkpage/builder test:smoke
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-trace
+          path: packages/builder/test-results/
+          retention-days: 7

@@ -10,14 +10,15 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.e2e.json",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:smoke": "playwright test --config playwright.smoke.config.ts"
   },
   "dependencies": {
     "@linkpage/renderer": "workspace:*",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
-  "//devDependencies": "jsdom and the Testing Library pair are here rather than at the root because the renderer has no DOM to test and must stay dependency-free (§5.1). They are what lets the preview drawer be tested as a document — its one control, its srcdoc, its sandbox — without a browser in CI. Playwright is here for the same reason and no other: §5.3's single end-to-end needs a real browser, a real download and a real file on disk, which is exactly the boundary jsdom cannot cross. It is builder-side only — the renderer's dependencies block stays empty (invariant 3) — and @types/node is what lets the end-to-end read that file back.",
+  "//devDependencies": "jsdom and the Testing Library pair are here rather than at the root because the renderer has no DOM to test and must stay dependency-free (\u00a75.1). They are what lets the preview drawer be tested as a document \u2014 its one control, its srcdoc, its sandbox \u2014 without a browser in CI. Playwright is here for the same reason and no other: \u00a75.3's single end-to-end needs a real browser, a real download and a real file on disk, which is exactly the boundary jsdom cannot cross. It is builder-side only \u2014 the renderer's dependencies block stays empty (invariant 3) \u2014 and @types/node is what lets the end-to-end read that file back.",
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "@testing-library/dom": "^10.4.1",
