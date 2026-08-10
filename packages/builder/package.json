@@ -1,6 +1,6 @@
 {
   "name": "@linkpage/builder",
-  "version": "0.0.0",
+  "version": "0.9.0-beta",
   "private": true,
   "type": "module",
   "license": "MIT",
