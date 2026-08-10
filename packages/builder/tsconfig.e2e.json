@@ -1,10 +1,10 @@
 {
-  "//": "The end-to-end runs in Node and drives a browser, so it needs both sets of globals. It is a separate project from tsconfig.json so that `src` keeps its browser-only type environment: nothing shipped to the page should typecheck against `node:fs`.",
+  "//": "The end-to-end and the smoke test both run in Node and drive a browser, so it needs both sets of globals. It is a separate project from tsconfig.json so that `src` keeps its browser-only type environment: nothing shipped to the page should typecheck against `node:fs`.",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["e2e", "playwright.config.ts"]
+  "include": ["e2e", "smoke", "playwright.config.ts", "playwright.smoke.config.ts"]
 }
