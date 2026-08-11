@@ -1,4 +1,13 @@
-import { createContext, useContext, type JSX, type ReactNode } from "react";
+import {
+  cloneElement,
+  createContext,
+  isValidElement,
+  useContext,
+  useId,
+  type JSX,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 
 /**
  * The shell every question wears. `SPEC.md` §7.2, §7.4, §7.6.
@@ -141,7 +150,26 @@ export function Question({
   );
 }
 
-/** A labelled control. The label is always visible — a placeholder is not a label. */
+/**
+ * A labelled control. The label is always visible — a placeholder is not a label.
+ *
+ * **A hint is a description, and the two shapes below are what keeps it one.** The whole of a
+ * `<label>` names the control inside it, so a hint sitting in there was read out as part of the
+ * name: the colour box announced as *"Or type your exact colour Like #c2185b."*, one string, with
+ * no way to hear the label without the example or to skip the example once heard.
+ *
+ * So a hinted field puts the hint **outside** the label's subtree and points at it with
+ * `aria-describedby`, which is the attribute that means *supplementary*. Naming then has to be
+ * explicit too, since the control is no longer inside a `<label>` — `aria-labelledby` rather than
+ * `htmlFor`, because it needs no id on the control and so no id plumbed through every caller.
+ *
+ * **An unhinted field is left exactly as it was**, wrapping its children in the label. That is
+ * not laziness: `Field` is also used for composites — the *Something else* row is an input and an
+ * Add button inside one `<span>` — and implicit labelling handles those correctly, where anything
+ * that reaches for "the control" would have to guess which of the two it meant. A hinted field
+ * does need to reach for it, which is why hinted fields take exactly one control and unhinted
+ * ones may take whatever they like.
+ */
 export function Field({
   label,
   hint,
@@ -151,11 +179,38 @@ export function Field({
   readonly hint?: ReactNode;
   readonly children: ReactNode;
 }): JSX.Element {
+  const labelId = useId();
+  const hintId = useId();
+
+  if (hint === undefined) {
+    return (
+      <label className="field">
+        <span className="field__label">{label}</span>
+        {children}
+      </label>
+    );
+  }
+
   return (
-    <label className="field">
-      <span className="field__label">{label}</span>
-      {hint !== undefined && <span className="field__hint">{hint}</span>}
-      {children}
-    </label>
+    <div className="field">
+      <span className="field__label" id={labelId}>
+        {label}
+      </span>
+      <span className="field__hint" id={hintId}>
+        {hint}
+      </span>
+      {isValidElement(children)
+        ? cloneElement(children as ReactElement<AriaAssociation>, {
+            "aria-labelledby": labelId,
+            "aria-describedby": hintId,
+          })
+        : children}
+    </div>
   );
+}
+
+/** What `Field` adds to a hinted field's control. */
+interface AriaAssociation {
+  "aria-labelledby"?: string;
+  "aria-describedby"?: string;
 }
