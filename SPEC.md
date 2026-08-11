@@ -179,6 +179,13 @@ entries get a brand mark instead of the `link` glyph. Each identifier carries th
 spelling of its name, because a social link whose only visible content is a mark still needs an
 accessible name and no rule capitalises `tiktok` into `TikTok`.
 
+**Matching an identifier ignores case and surrounding space; storing it does not.** The owner types
+this field, and the builder offers the ten as completions whose _label_ reads `Instagram` while the
+value behind it is `instagram` — so an owner who types what the list shows them must reach the same
+mark as one who clicks it. `project.json` still holds what they typed, per §4.4: the loose match is a
+read-time resolution, not a rewrite. A form that matches nothing is unchanged — it keeps its URL and
+takes the generic glyph — so this widens what is recognised without narrowing what is kept.
+
 **LinkedIn is absent, and not by preference:** Simple Icons removed the mark at LinkedIn's request,
 and a source that still carries it would carry the attribution obligation this section exists to
 avoid. A LinkedIn URL renders with the generic glyph — the same path every unnamed platform takes,

@@ -27,6 +27,7 @@ export {
   isSocialPlatform,
   socialIconSvg,
   socialLabel,
+  socialPlatform,
 } from "./icons.js";
 export type { Glyph, IconName, SocialGlyph, SocialPlatform } from "./icons.js";
 export { VOCABULARIES, dayName, direction, languageTag, vocabulary } from "./locale.js";
