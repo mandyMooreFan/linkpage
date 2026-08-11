@@ -47,6 +47,33 @@ import { HTML_TYPE, saveTextFile, type FileDownload } from "./save.js";
  */
 export const PROJECT_FILENAME_FALLBACK = "linkpage.json";
 
+/**
+ * What Tab can land on inside the sheet.
+ *
+ * Deliberately a small, literal list rather than a general-purpose one: this sheet contains
+ * buttons and nothing else today, and the only variation it has is a Save button that can be
+ * `disabled`. A borrowed focus-trap utility would bring `contenteditable`, `<audio controls>`,
+ * `iframe`, positive `tabindex` ordering and visibility checks to serve a surface that has none
+ * of them — and the renderer's no-dependencies rule (§5.1) does not bind the builder, so this is
+ * a judgement about weight rather than a constraint.
+ *
+ * The panel is `tabIndex={-1}` and so is excluded by the last clause: it is where focus starts,
+ * never somewhere Tab stops.
+ */
+const FOCUS_STOPS = [
+  "a[href]",
+  "button:not(:disabled)",
+  "input:not(:disabled)",
+  "select:not(:disabled)",
+  "textarea:not(:disabled)",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
+/** The sheet's tab stops, in document order. */
+function focusStops(surface: HTMLElement): HTMLElement[] {
+  return [...surface.querySelectorAll<HTMLElement>(FOCUS_STOPS)];
+}
+
 export interface DownloadSheetProps {
   /** The project as the builder holds it. The page is built from it on the press. */
   readonly draft: Draft;
@@ -85,19 +112,79 @@ export function DownloadSheet({
     save: () => saveTextFile(EXPORT_FILENAME, pageHtml(draft), HTML_TYPE),
   };
 
-  // Escape leaves, from anywhere in the sheet, at both sizes — the same key the preview drawer
-  // answers to, so stepping out of a layer is one gesture across the whole builder.
+  /**
+   * The two keys this layer owns.
+   *
+   * **Escape leaves**, from anywhere in the sheet, at both sizes — the same key the preview
+   * drawer answers to, so stepping out of a layer is one gesture across the whole builder.
+   *
+   * **Tab stays.** `aria-modal` below is a promise to assistive technology that the rest of the
+   * page is not there, and until now the Tab key did not keep it: three stops into the sheet and
+   * the fourth landed on the review list behind, which the owner cannot see and did not ask for.
+   * A dialog that says it is modal and then hands the keyboard to the page underneath is worse
+   * than one that never claimed it, because a screen-reader user is told the background is inert
+   * by the same document that lets them tab into it.
+   */
   useEffect(() => {
-    const close = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") onClose();
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const surface = panel.current;
+      if (surface === null) return;
+
+      const stops = focusStops(surface);
+      const active = document.activeElement;
+
+      // Nothing to land on — the project button can be unavailable (see `projectDownload`), and
+      // in principle every stop could be. Hold the keyboard on the panel rather than let it out.
+      if (stops.length === 0) {
+        event.preventDefault();
+        surface.focus();
+        return;
+      }
+
+      const first = stops[0]!;
+      const last = stops[stops.length - 1]!;
+
+      // The panel itself is `tabIndex={-1}`, so it is where focus starts and never a stop:
+      // shift-tabbing from it means going to the end, exactly as if it were before the first.
+      if (!surface.contains(active)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && (active === first || active === surface)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  // The sheet covers the list, so the keyboard has to come with it.
+  /**
+   * The sheet covers the list, so the keyboard comes with it — and goes back where it came from.
+   *
+   * Restoring to whatever was focused when the sheet opened, rather than naming the Download
+   * button, because the sheet does not know who opened it and should not have to: the list's
+   * button today, plausibly a menu item or a keyboard shortcut later. It also makes the three
+   * ways out — Escape, Close, the scrim — land in the same place without each having to
+   * remember to.
+   */
   useEffect(() => {
+    const opener = document.activeElement;
     panel.current?.focus();
+    return () => {
+      // `isConnected` because the list behind can re-render while the sheet is open; focusing a
+      // detached node silently sends focus to `<body>`, which is the bug this exists to avoid.
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
   }, []);
 
   return (

@@ -283,3 +283,113 @@ describe("nothing here tracks downloads (§7.7)", () => {
     expect(document.body.textContent).not.toMatch(/downloaded/i);
   });
 });
+
+describe("it is a modal, and the keyboard is held to it (#90)", () => {
+  const panel = (): HTMLElement => {
+    const found = screen.getByRole("dialog");
+    if (!(found instanceof HTMLElement)) throw new Error("no dialog");
+    return found;
+  };
+
+  const tab = (shiftKey = false): void => {
+    // jsdom does not move focus on Tab, which is exactly why these assertions are about the
+    // sheet's own handler: every case below is one where it must take the key and place focus
+    // itself, and a case it declines is a case the browser would have got right anyway.
+    fireEvent.keyDown(document.activeElement ?? document, { key: "Tab", shiftKey });
+  };
+
+  it("is a dialog that says what it is", () => {
+    open();
+    // Already true before #90 and asserted here so it stays true: the bug was never the
+    // semantics, it was that the Tab key did not honour them.
+    expect(panel().getAttribute("aria-modal")).toBe("true");
+    expect(screen.getByRole("dialog", { name: "Download" })).toBe(panel());
+  });
+
+  it("takes the keyboard when it opens", () => {
+    open();
+    // The sheet covers the list; a keyboard left behind it would be typing into a screen the
+    // owner cannot see.
+    expect(document.activeElement).toBe(panel());
+  });
+
+  it("wraps forward off the last control instead of leaving for the list", () => {
+    open({ projectDownload: { filename: "adas-bakery.linkpage.json", save: () => {} } });
+
+    const stops = screen.getAllByRole("button");
+    const last = stops[stops.length - 1]!;
+    last.focus();
+    tab();
+
+    // The bug: the fourth Tab used to land on the review list behind the sheet — a screen the
+    // owner cannot see, reached from a dialog that claims the background is inert.
+    expect(document.activeElement).toBe(stops[0]);
+  });
+
+  it("wraps backward off the panel, which is before the first control", () => {
+    open({ projectDownload: { filename: "adas-bakery.linkpage.json", save: () => {} } });
+
+    // Focus starts on the panel itself, which is `tabIndex={-1}`: never a stop, so shift-tabbing
+    // from it means going round to the end rather than out of the front.
+    expect(document.activeElement).toBe(panel());
+    tab(true);
+
+    const stops = screen.getAllByRole("button");
+    expect(document.activeElement).toBe(stops[stops.length - 1]);
+  });
+
+  it("pulls focus back if it is adrift outside the sheet", () => {
+    open();
+    // Whatever put focus outside — a stray programmatic call, a re-render behind the sheet —
+    // the next Tab belongs to the dialog rather than to the page under it.
+    document.body.focus();
+    tab();
+    expect(panel().contains(document.activeElement)).toBe(true);
+  });
+
+  it("skips a Save button that has nothing to save", () => {
+    open(); // no `projectDownload`, so section two's button is disabled
+
+    const disabled = screen.getAllByRole("button").filter((b) => (b as HTMLButtonElement).disabled);
+    expect(disabled).toHaveLength(1);
+
+    const stops = screen.getAllByRole("button").filter((b) => !(b as HTMLButtonElement).disabled);
+    stops[stops.length - 1]!.focus();
+    tab();
+
+    // A disabled control is not a tab stop, so the wrap has to be computed from the ones that are
+    // — otherwise the trap parks focus on something that cannot be pressed.
+    expect(document.activeElement).toBe(stops[0]);
+    expect(disabled[0]).not.toBe(document.activeElement);
+  });
+
+  it("gives focus back to whoever opened it", () => {
+    const opener = document.createElement("button");
+    opener.textContent = "Download";
+    document.body.append(opener);
+    opener.focus();
+
+    const view = mount(<DownloadSheet draft={POPULATED} onClose={() => {}} />);
+    expect(document.activeElement).not.toBe(opener);
+
+    view.unmount();
+
+    // Closing used to drop the keyboard on `<body>`, so an owner who pressed Close was returned
+    // to the top of the document and had to tab all the way back to where they were.
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
+  });
+
+  it("does not chase a node that left while the sheet was open", () => {
+    const opener = document.createElement("button");
+    document.body.append(opener);
+    opener.focus();
+
+    const view = mount(<DownloadSheet draft={POPULATED} onClose={() => {}} />);
+    opener.remove(); // the list behind re-rendered
+
+    // Focusing a detached node silently sends focus to `<body>` — the very thing this restore
+    // exists to prevent — so it must not be attempted.
+    expect(() => view.unmount()).not.toThrow();
+  });
+});
