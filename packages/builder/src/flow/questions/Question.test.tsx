@@ -44,9 +44,20 @@ describe("a hinted field", () => {
   it("does not let the hint into the name", () => {
     openHinted();
     const control = screen.getByRole("textbox");
-    const labelId = control.getAttribute("aria-labelledby");
-    expect(document.getElementById(labelId ?? "")?.textContent).toBe("Or type your exact colour");
-    expect(document.getElementById(labelId ?? "")?.textContent).not.toContain("#c2185b");
+    const label = document.querySelector<HTMLLabelElement>("label.field__label");
+    expect(label?.htmlFor).toBe(control.id);
+    expect(label?.textContent).toBe("Or type your exact colour");
+    expect(label?.textContent).not.toContain("#c2185b");
+  });
+
+  it("labels with a real <label>, so the words are a click target (#98)", () => {
+    openHinted();
+    // #91 used `aria-labelledby`, which names correctly and silently costs this: clicking the
+    // words stopped focusing the control, because only a real label association does that.
+    const label = document.querySelector<HTMLLabelElement>("label.field__label");
+    expect(label?.tagName).toBe("LABEL");
+    expect(label?.htmlFor).not.toBe("");
+    expect(document.getElementById(label?.htmlFor ?? "")).toBe(screen.getByRole("textbox"));
   });
 
   it("carries the hint as a description instead", () => {
@@ -72,8 +83,8 @@ describe("a hinted field", () => {
   });
 });
 
-describe("an unhinted field is left as it was", () => {
-  it("labels its control implicitly, with no ids to plumb", () => {
+describe("an unhinted field", () => {
+  it("still points a real label at its control", () => {
     mount(
       <Field label="Business name">
         <input type="text" className="input" defaultValue="" />
@@ -81,10 +92,10 @@ describe("an unhinted field is left as it was", () => {
     );
 
     const control = screen.getByRole("textbox", { name: "Business name" });
-    // No association attributes at all: the control is inside the label, which is enough.
-    expect(control.getAttribute("aria-labelledby")).toBeNull();
+    // Named by a real label, and described by nothing, because there is no hint.
     expect(control.getAttribute("aria-describedby")).toBeNull();
-    expect(document.querySelector("label.field")).not.toBeNull();
+    const label = document.querySelector<HTMLLabelElement>("label.field__label");
+    expect(label?.htmlFor).toBe(control.id);
   });
 
   it("still handles a composite of more than one control", () => {
@@ -99,13 +110,38 @@ describe("an unhinted field is left as it was", () => {
       </Field>,
     );
 
-    // Pinned as it is rather than as it should be: the input's name comes out
-    // "Something elseAdd", because an implicit label names from everything inside it and the Add
-    // button is inside it. Same family as #91 and a different cause — the button, not a hint — so
-    // it is filed separately rather than smuggled into this fix. If that changes, this assertion
-    // is where it will be noticed.
+    // Without `htmlFor` there is nothing to point at, so this falls back to wrapping — the shape
+    // that produced #98's "Something elseAdd". No caller is in this state; the assertion records
+    // that the fallback is imprecise rather than broken.
     expect(screen.getByRole("textbox", { name: "Something elseAdd" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Add" })).toBeDefined();
+  });
+
+  it("names only the control a composite points at (#98)", () => {
+    mount(
+      <Field label="Something else" htmlFor="typed">
+        <span className="row">
+          <input id="typed" type="text" className="input" defaultValue="" />
+          <button type="button">Add</button>
+        </span>
+      </Field>,
+    );
+
+    // The whole of #98: the Add button no longer joins the input's name.
+    expect(screen.getByRole("textbox", { name: "Something else" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Add" })).toBeDefined();
+    expect(document.querySelector<HTMLLabelElement>("label.field__label")?.htmlFor).toBe("typed");
+  });
+
+  it("leaves a caller's own id alone", () => {
+    mount(
+      <Field label="Where">
+        <input id="mine" type="text" className="input" defaultValue="" />
+      </Field>,
+    );
+
+    // An id the caller set may already be referenced by something else — a datalist, a test.
+    expect(screen.getByRole("textbox", { name: "Where" }).id).toBe("mine");
   });
 });
 

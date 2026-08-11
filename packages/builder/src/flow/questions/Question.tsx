@@ -151,41 +151,82 @@ export function Question({
 }
 
 /**
+ * The elements a `<label>` can actually be *for*.
+ *
+ * `htmlFor` pointing at anything else associates the label with nothing, which is worse than the
+ * imprecise name it would have replaced — so `Field` checks rather than assumes. The check exists
+ * because the obvious version of it does not work: the *Something else* row **is** a single valid
+ * element, a `<span>` wrapping two controls, so "did I get one element?" cheerfully answers yes
+ * and produces a label attached to a span.
+ *
+ * A component rather than a host element (`typeof type !== "string"`) is also excluded: what it
+ * renders is its own business and may not be labelable at all.
+ */
+const LABELABLE = new Set(["button", "input", "meter", "output", "progress", "select", "textarea"]);
+
+type Associable = ReactElement<{ id?: string; "aria-describedby"?: string }>;
+
+function labelableControl(children: ReactNode): Associable | undefined {
+  if (!isValidElement(children)) return undefined;
+  return typeof children.type === "string" && LABELABLE.has(children.type)
+    ? (children as Associable)
+    : undefined;
+}
+
+/**
  * A labelled control. The label is always visible — a placeholder is not a label.
  *
- * **A hint is a description, and the two shapes below are what keeps it one.** The whole of a
- * `<label>` names the control inside it, so a hint sitting in there was read out as part of the
- * name: the colour box announced as *"Or type your exact colour Like #c2185b."*, one string, with
- * no way to hear the label without the example or to skip the example once heard.
+ * **A real `<label>` pointed at one control, always.** Two bugs came out of not doing that, and
+ * they were the same bug twice: a `<label>` names the control inside it from *everything* inside
+ * it, so anything else in there joins the name. A hint did (#91), and so did the Add button in the
+ * *Something else* row, whose input announced as `"Something elseAdd"` (#98).
  *
- * So a hinted field puts the hint **outside** the label's subtree and points at it with
- * `aria-describedby`, which is the attribute that means *supplementary*. Naming then has to be
- * explicit too, since the control is no longer inside a `<label>` — `aria-labelledby` rather than
- * `htmlFor`, because it needs no id on the control and so no id plumbed through every caller.
+ * So `Field` stopped wrapping and started pointing. It generates an id, clones it onto the control
+ * and uses `htmlFor`, which fixes both by construction: the only thing that can join a name now is
+ * the label's own text. A composite — more than one control in a row — names which one it means by
+ * passing `htmlFor` itself.
  *
- * **An unhinted field is left exactly as it was**, wrapping its children in the label. That is
- * not laziness: `Field` is also used for composites — the *Something else* row is an input and an
- * Add button inside one `<span>` — and implicit labelling handles those correctly, where anything
- * that reaches for "the control" would have to guess which of the two it meant. A hinted field
- * does need to reach for it, which is why hinted fields take exactly one control and unhinted
- * ones may take whatever they like.
+ * **`htmlFor` rather than `aria-labelledby`, and the difference is a real one I got wrong first.**
+ * #91 used `aria-labelledby` because it needs no id on the control. It names correctly and reads
+ * correctly, and it silently costs the click target: clicking the words *Corner softness* stopped
+ * focusing the slider, because only a real label association does that. An id is cheap; that is not.
+ *
+ * A hint sits outside the label and is attached with `aria-describedby` — the attribute that means
+ * *supplementary*, which is what a hint is.
  */
 export function Field({
   label,
   hint,
+  htmlFor,
   children,
 }: {
   readonly label: ReactNode;
   readonly hint?: ReactNode;
+  /**
+   * The id of the control this labels, for a field holding more than one.
+   *
+   * Only composites need it. The *Something else* row is an input and an Add button, and `Field`
+   * must not guess which of the two the label belongs to — so that caller says.
+   */
+  readonly htmlFor?: string;
   readonly children: ReactNode;
 }): JSX.Element {
-  const labelId = useId();
+  const generatedId = useId();
   const hintId = useId();
 
-  if (hint === undefined) {
+  const control = labelableControl(children);
+
+  // A caller's own id wins over ours: it may already be referenced by something else.
+  const target = htmlFor ?? control?.props.id ?? (control === undefined ? undefined : generatedId);
+
+  // Nothing to point at — several controls and no `htmlFor`. Wrapping is the only association
+  // left, and it is what this component did before; the name is imprecise but present, which
+  // beats a label attached to nothing. No caller is in this state.
+  if (target === undefined) {
     return (
       <label className="field">
         <span className="field__label">{label}</span>
+        {hint !== undefined && <span className="field__hint">{hint}</span>}
         {children}
       </label>
     );
@@ -193,24 +234,20 @@ export function Field({
 
   return (
     <div className="field">
-      <span className="field__label" id={labelId}>
+      <label className="field__label" htmlFor={target}>
         {label}
-      </span>
-      <span className="field__hint" id={hintId}>
-        {hint}
-      </span>
-      {isValidElement(children)
-        ? cloneElement(children as ReactElement<AriaAssociation>, {
-            "aria-labelledby": labelId,
-            "aria-describedby": hintId,
-          })
-        : children}
+      </label>
+      {hint !== undefined && (
+        <span className="field__hint" id={hintId}>
+          {hint}
+        </span>
+      )}
+      {htmlFor !== undefined || control === undefined
+        ? children
+        : cloneElement(control, {
+            id: target,
+            ...(hint === undefined ? {} : { "aria-describedby": hintId }),
+          })}
     </div>
   );
-}
-
-/** What `Field` adds to a hinted field's control. */
-interface AriaAssociation {
-  "aria-labelledby"?: string;
-  "aria-describedby"?: string;
 }

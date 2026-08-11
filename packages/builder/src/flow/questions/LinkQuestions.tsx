@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react";
+import { useId, useState, type JSX } from "react";
 import type { Pick } from "../plan.js";
 import type { Suggestion } from "../presets.js";
 import { Field, Question } from "./Question.js";
@@ -50,6 +50,7 @@ export function LinksQuestion({
     initial.filter((pick) => !pick.id.startsWith("suggested:")),
   );
   const [typed, setTyped] = useState("");
+  const typedId = useId();
 
   // Suggestions keep the preset's order, then the owner's own in the order they added them.
   const picks: Pick[] = [
@@ -117,9 +118,15 @@ export function LinksQuestion({
         </ul>
       )}
 
-      <Field label="Something else">
+      {/*
+       * Two controls in one row, so the label has to say which one it means (#98). Left to wrap
+       * them both, it named the input "Something elseAdd" — an implicit label takes its text from
+       * everything inside it, and the Add button is inside it.
+       */}
+      <Field label="Something else" htmlFor={typedId}>
         <span className="row">
           <input
+            id={typedId}
             type="text"
             className="input"
             value={typed}
