@@ -31,7 +31,15 @@ import "./prototype.css";
 import { VariantA, NAME as NAME_A, HINT as HINT_A } from "./VariantA.js";
 import { VariantB, NAME as NAME_B, HINT as HINT_B } from "./VariantB.js";
 import { VariantC, NAME as NAME_C, HINT as HINT_C } from "./VariantC.js";
-import { VariantD, NAME as NAME_D, HINT as HINT_D } from "./VariantD.js";
+import {
+  VariantD,
+  VariantE,
+  VariantF,
+  NAME as NAME_D,
+  NAME_E,
+  NAME_F,
+  HINT as HINT_D,
+} from "./VariantD.js";
 
 const VARIANTS = [
   { key: "T", name: "Today's screen (baseline)", hint: "" },
@@ -39,6 +47,8 @@ const VARIANTS = [
   { key: "B", name: NAME_B, hint: HINT_B },
   { key: "C", name: NAME_C, hint: HINT_C },
   { key: "D", name: NAME_D, hint: HINT_D },
+  { key: "E", name: NAME_E, hint: HINT_D },
+  { key: "F", name: NAME_F, hint: HINT_D },
 ] as const;
 
 type Key = (typeof VARIANTS)[number]["key"];
@@ -126,6 +136,8 @@ export function HoursPrototype(): JSX.Element {
             {variant === "B" && <VariantB {...shared} />}
             {variant === "C" && <VariantC {...shared} />}
             {variant === "D" && <VariantD {...shared} />}
+            {variant === "E" && <VariantE {...shared} />}
+            {variant === "F" && <VariantF {...shared} />}
           </Question>
         )}
       </div>
