@@ -1,0 +1,334 @@
+/**
+ * PROTOTYPE — throwaway. Ticket #80.
+ *
+ * Only what the four variants need on top of `flow.css`, whose variables and controls they
+ * otherwise reuse so the shapes are judged at the real density rather than in a vacuum.
+ */
+
+.proto-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.proto-to {
+  color: var(--ink-quiet);
+  font-size: 0.875rem;
+}
+
+.proto-time {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.proto-typed {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.proto-typed__warn {
+  color: #8a1c1c;
+  font-size: 0.8125rem;
+}
+
+.proto-link {
+  align-self: start;
+  padding: 0.375rem 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.9375rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------- pills */
+
+.proto-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proto-pill {
+  min-width: 3rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.proto-pill[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--surface);
+}
+
+/* ------------------------------------------------------------------- chips */
+
+.proto-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.proto-chip {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.proto-chip[aria-pressed="true"] {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+  font-weight: 600;
+}
+
+.proto-first {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--rule);
+}
+
+/* --------------------------------------------------------------- sentences */
+
+.proto-sentences {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proto-sentence {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+}
+
+.proto-sentence__text {
+  font-size: 1.0625rem;
+}
+
+.proto-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--ink);
+  border-radius: 0.5rem;
+}
+
+/* ------------------------------------------------------------- rest of week */
+
+.proto-rest {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.proto-rest__option {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  min-height: 2.5rem;
+}
+
+/* ------------------------------------------------------------- dense table */
+
+.proto-table {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proto-table__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-block: 0.375rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.proto-table__head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.proto-table__day {
+  min-width: 2.5rem;
+  font-weight: 600;
+}
+
+.proto-table__times {
+  padding-inline-start: 3.25rem;
+}
+
+.proto-table__actions {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.proto-segmented {
+  display: flex;
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.proto-segmented__button {
+  min-height: 2.5rem;
+  padding: 0.375rem 0.75rem;
+  border: 0;
+  border-inline-start: 1px solid var(--rule);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.proto-segmented__button:first-child {
+  border-inline-start: 0;
+}
+
+.proto-segmented__button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+/* ----------------------------------------------------------------- readout */
+
+.proto-readout {
+  padding: 0.875rem 1rem;
+  border: 1px dashed var(--rule);
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+}
+
+.proto-readout__title {
+  margin: 0 0 0.5rem;
+  color: var(--ink-quiet);
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.proto-readout__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proto-readout__list li {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.proto-readout__note {
+  margin: 0.5rem 0 0;
+  font-style: italic;
+}
+
+.proto-readout__absent,
+.proto-readout__empty {
+  margin: 0.5rem 0 0;
+  color: var(--ink-quiet);
+  font-size: 0.8125rem;
+}
+
+/* --------------------------------------------------------------------- bar */
+
+.proto-bar {
+  position: fixed;
+  bottom: 0.75rem;
+  left: 50%;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid #333842;
+  border-radius: 0.75rem;
+  background: #0b0d12;
+  color: #fff;
+  font-size: 0.75rem;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 40%);
+  transform: translateX(-50%);
+}
+
+.proto-bar__row {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.proto-bar__key,
+.proto-bar__toggle {
+  min-height: 1.75rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #333842;
+  border-radius: 0.375rem;
+  background: #171b24;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.proto-bar__key[aria-pressed="true"] {
+  background: #fff;
+  color: #0b0d12;
+  font-weight: 700;
+}
+
+.proto-bar__name {
+  padding-inline-start: 0.25rem;
+  color: #b9c0cc;
+}
+
+.proto-bar__count {
+  margin-inline-start: auto;
+  padding-inline-start: 0.5rem;
+  color: #b9c0cc;
+}
