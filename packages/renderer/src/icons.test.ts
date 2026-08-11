@@ -12,8 +12,10 @@ import {
   isSocialPlatform,
   socialIconSvg,
   socialLabel,
+  socialPlatform,
   type Glyph,
   type IconName,
+  type SocialPlatform,
 } from "./icons.js";
 import type { Link, SocialLink } from "./project.js";
 
@@ -245,6 +247,69 @@ describe("unknown values (SPEC.md §4.4)", () => {
   it("still uses the brand mark for a platform it knows", () => {
     expect(socialIconSvg("instagram")).toBe(glyphSvg(SOCIAL_MARKS.instagram));
     expect(socialIconSvg("instagram")).not.toBe(glyphSvg(ICONS.link));
+  });
+});
+
+describe("the owner's capitalisation, not ours (#89)", () => {
+  /**
+   * The owner types the platform, and the builder's completion list *displays* `Instagram`
+   * while its value is `instagram`. Typing what the list shows used to match nothing, and the
+   * failure looked exactly like the legitimate no-mark fallback above — so it read as a
+   * decision rather than a fault. Every form below has to reach the same mark.
+   */
+  it.each([
+    ["Instagram", "instagram"],
+    ["INSTAGRAM", "instagram"],
+    ["TikTok", "tiktok"],
+    ["X", "x"],
+    ["  Facebook  ", "facebook"],
+    ["bLuEsKy", "bluesky"],
+  ])("resolves %j to %j", (typed, canonical) => {
+    expect(socialPlatform(typed)).toBe(canonical);
+    expect(socialIconSvg(typed)).toBe(socialIconSvg(canonical));
+    expect(socialLabel(typed)).toBe(SOCIAL_MARKS[canonical as SocialPlatform].label);
+  });
+
+  it("gives every platform's own display label back as a match", () => {
+    // The exact string the datalist puts in front of the owner. If a future mark's label stops
+    // resolving — a space, a dot, an ampersand — this is where it is caught rather than in an
+    // export nobody looked at.
+    for (const platform of SOCIAL_PLATFORMS) {
+      const shown = SOCIAL_MARKS[platform].label;
+      expect(socialPlatform(shown)).toBe(platform);
+      expect(socialIconSvg(shown)).toBe(glyphSvg(SOCIAL_MARKS[platform]));
+    }
+  });
+
+  it("still does not invent a mark for a platform we have none for", () => {
+    // The fix must not turn the fallback into a guess: LinkedIn is absent on purpose.
+    for (const value of ["LinkedIn", "linkedin", "My-Forum", "Threads Local"]) {
+      expect(socialPlatform(value)).toBeUndefined();
+      expect(socialIconSvg(value)).toBe(glyphSvg(ICONS.link));
+      expect(socialLabel(value)).toBe("");
+    }
+  });
+
+  it("is not fooled by inherited properties, whatever the casing", () => {
+    // The `Object.hasOwn` guard has to survive the lowercasing added in front of it.
+    for (const value of ["constructor", "Constructor", "__proto__", "toString", "ToString"]) {
+      expect(socialPlatform(value)).toBeUndefined();
+      expect(socialIconSvg(value)).toBe(glyphSvg(ICONS.link));
+    }
+  });
+
+  it("stays total for anything that is not a string", () => {
+    for (const value of [undefined, null, 42, {}, [], Symbol("x")]) {
+      expect(socialPlatform(value)).toBeUndefined();
+    }
+  });
+
+  it("keeps the strict guard strict", () => {
+    // `isSocialPlatform` narrows to `SocialPlatform`, so it must keep answering about the value
+    // it was handed rather than the one it could be folded into — otherwise a caller indexes
+    // `SOCIAL_MARKS` with a key that is not there.
+    expect(isSocialPlatform("Instagram")).toBe(false);
+    expect(isSocialPlatform("instagram")).toBe(true);
   });
 });
 

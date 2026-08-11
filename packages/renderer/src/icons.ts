@@ -243,8 +243,41 @@ export function isIconName(value: unknown): value is IconName {
   return typeof value === "string" && Object.hasOwn(ICONS, value);
 }
 
+/**
+ * An exact platform key, and nothing else.
+ *
+ * Kept strict deliberately, now that `socialPlatform` below matches loosely: this narrows to
+ * `SocialPlatform`, so a caller that passed `"Instagram"` and got `true` would go on to index
+ * `SOCIAL_MARKS` with a key that is not in it. A type guard has to be honest about the value it
+ * was handed, not about the value it could be turned into.
+ */
 export function isSocialPlatform(value: unknown): value is SocialPlatform {
   return typeof value === "string" && Object.hasOwn(SOCIAL_MARKS, value);
+}
+
+/**
+ * However the owner wrote a platform, resolved to the key we hold a mark under.
+ *
+ * **The owner types this, so the owner's capitalisation has to work.** The builder offers the
+ * ten as completions whose *label* reads `Instagram` while their *value* is `instagram` — so
+ * anyone who typed what the list showed them, rather than picking it with a mouse, stored
+ * `"Instagram"`, matched nothing, and silently got the generic glyph and a bare domain in place
+ * of their brand mark. Worse, that outcome is indistinguishable from the legitimate one this
+ * fallback exists for (LinkedIn, and anything else with no vendored mark), so it read as a
+ * decision rather than a fault.
+ *
+ * Matching here rather than normalising on the way in, because §4.4 keeps `platform` as the
+ * owner's data: `project.json` goes on holding what they typed, and a builder that later learns
+ * a mark for it still has the original string to work from.
+ *
+ * `toLowerCase` and not `toLocaleLowerCase`: these keys are ASCII identifiers, and a Turkish
+ * locale would fold `INSTAGRAM` to `ınstagram` and match nothing.
+ */
+export function socialPlatform(value: unknown): SocialPlatform | undefined {
+  if (typeof value !== "string") return undefined;
+  const key = value.trim().toLowerCase();
+  // `Object.hasOwn`, so `"constructor"` and `"__proto__"` are misses rather than inherited hits.
+  return Object.hasOwn(SOCIAL_MARKS, key) ? (key as SocialPlatform) : undefined;
 }
 
 /**
@@ -286,7 +319,8 @@ export function iconSvg(icon: unknown): string {
  * the icon is decoration.
  */
 export function socialIconSvg(platform: unknown): string {
-  return isSocialPlatform(platform) ? glyphSvg(SOCIAL_MARKS[platform]) : glyphSvg(ICONS.link);
+  const resolved = socialPlatform(platform);
+  return resolved === undefined ? glyphSvg(ICONS.link) : glyphSvg(SOCIAL_MARKS[resolved]);
 }
 
 /**
@@ -297,5 +331,6 @@ export function socialIconSvg(platform: unknown): string {
  * capitalisation rule applied to `"my-forum"`.
  */
 export function socialLabel(platform: unknown): string {
-  return isSocialPlatform(platform) ? SOCIAL_MARKS[platform].label : "";
+  const resolved = socialPlatform(platform);
+  return resolved === undefined ? "" : SOCIAL_MARKS[resolved].label;
 }
