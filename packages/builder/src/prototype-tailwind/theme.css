@@ -1,0 +1,43 @@
+/**
+ * PROTOTYPE — throwaway. Ticket #84, the builder in Tailwind.
+ *
+ * **The migration path for the tokens, shown rather than described.** Today `--ink`,
+ * `--ink-quiet`, `--rule`, `--surface` and `--accent` are declared **four times** — on `.flow`,
+ * on `.list`, on `.sheet` — with `preview.css` holding the same values under a fourth set of
+ * names (`--preview-surface`, `--preview-rule`, `--preview-ink`). The values agree today; nothing
+ * makes them agree tomorrow.
+ *
+ * v4's `@theme` is one declaration that both defines the custom properties **and** generates the
+ * utilities, so `--color-ink` gives `text-ink`, `bg-ink`, `border-ink` and `var(--color-ink)` for
+ * anything hand-written. The existing names survive intact — this is the argument for v4 over v3,
+ * where the same thing needs a JS config plus a separate `:root` block to keep the properties.
+ *
+ * The three variants below add their own tokens on top of these; the shared five are what every
+ * variant agrees on.
+ */
+
+@import "tailwindcss";
+
+@theme {
+  /* The five, once. Names unchanged from `flow.css` so the diff is legible. */
+  --color-ink: #1c1c1e;
+  --color-ink-quiet: #55555c;
+  --color-rule: #d8d8dc;
+  --color-surface: #ffffff;
+  --color-accent: #1a3ea8;
+
+  /* The one breakpoint `flow.css` and `preview.css` currently agree on by hand (§7.6). */
+  --breakpoint-wide: 60rem;
+}
+
+/**
+ * Dark, as a class rather than a media query, so the prototype's bar can toggle it and so an
+ * owner's own choice could later win over the OS. `@custom-variant` is v4's replacement for v3's
+ * `darkMode: "class"`.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Tap targets: 2.75rem is the floor every control in `flow.css` already keeps (§7.6). */
+@utility tap {
+  min-height: 2.75rem;
+}
