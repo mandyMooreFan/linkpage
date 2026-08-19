@@ -333,6 +333,21 @@ function hoursRow(row: HoursRow, closed: string): string {
 
 /** Everything that is not a digit. The `tel:` href is built from a filter, not from text. */
 const NOT_A_DIGIT = /[^0-9]/g;
+/**
+ * The charset a dialable number may be written in: digits, and the punctuation businesses
+ * actually print. `+` is permitted at the front only, because a `+` anywhere else is not a
+ * country code — it is a second number, or a note.
+ */
+const DIALABLE = /^\+?[0-9 ().-]+$/;
+/**
+ * A parenthesised trunk `0` sitting directly behind a leading country code, as in
+ * `+44 (0)161 496 0000`. Reading it is not guessing: the owner supplied the country
+ * themselves, and the parentheses are their own notation for *omit this when calling in*.
+ */
+const PARENTHESISED_TRUNK = /^(\+[0-9]{1,3})[ .-]*\(0\)/;
+/** §2.3's bounds. E.164 caps a number at 15 digits; below four there is nothing to dial. */
+const FEWEST_DIGITS = 4;
+const MOST_DIGITS = 15;
 /** A conservative address shape. Notably no `:`, so a scheme can never appear inside one. */
 const EMAIL = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/;
 
@@ -382,20 +397,44 @@ function contactRow(
 }
 
 /**
- * A `tel:` URL, or `undefined` when there is no number in there to dial.
+ * A `tel:` URL, or `undefined` when nothing in there can be dialled (`SPEC.md` §2.3).
  *
- * Digits, and a `+` only where the owner put one at the front — which is the whole of what a
- * dialler needs and, more to the point, a charset a `javascript:` URL cannot be spelled in.
- * Nothing here tries to be clever about national conventions: the `(0)` in `+44 (0)20 …` is
- * kept as a digit because guessing at trunk prefixes is how a tool dials the wrong number, and
- * the text beside the link is still exactly what the owner wrote.
+ * **The four clauses are the whole rule, and no country is ever learned, inferred or asked
+ * for.** `lang` carries a region, but §4.1 establishes that a wrong region is *harmless*
+ * today — so reading the phone off it would make a wrong region **harmful**, and a Manchester
+ * baker on a US-configured laptop would be dialled as `+1`.
+ *
+ * **Returning `undefined` is a real answer, not a failure.** `contactRow` renders the text
+ * without a link, the owner's number still reads correctly on the page, and §7.9 marks it in
+ * the builder. An extension, a vanity number or two numbers in one box are all deliberate and
+ * correct; they simply do not dial.
+ *
+ * **What the old filter-everything approach did**, and why four of the six notations
+ * businesses print were broken: `+44 (0)161 496 0000` kept the trunk `0` inside a `+44`
+ * number and dialled nothing; `020 7123 4567 ext 12` and two numbers in one box dialled
+ * *wrong* numbers; and `0800 CHICKEN` became `tel:0800` — a **dialable wrong number** rather
+ * than a visibly dead one. The stated caution against guessing at trunk prefixes produced
+ * exactly the outcome it was avoiding.
+ *
+ * **The limit, stated rather than buried:** nothing merely mistyped is caught. `07700 90012`,
+ * a digit short, still links. Catching that needs the country §2.3 declined.
+ *
+ * Exported because the builder has to ask this exact question — §7.4's row mark and §7.7's
+ * line are *"could a target be derived?"*, and asking anything else would let the builder and
+ * the page disagree.
  */
-function telHref(value: unknown): string | undefined {
+export function telHref(value: unknown): string | undefined {
   const raw = asText(value);
   if (raw === undefined) return undefined;
-  const digits = raw.replace(NOT_A_DIGIT, "");
-  if (digits === "") return undefined;
-  return `tel:${raw.startsWith("+") ? "+" : ""}${digits}`;
+  // Clauses 1 and 2: an out-of-charset character means no target at all, rather than a target
+  // built from whatever survived a filter.
+  if (!DIALABLE.test(raw)) return undefined;
+  // Clause 3.
+  const trimmed = raw.replace(PARENTHESISED_TRUNK, "$1");
+  const digits = trimmed.replace(NOT_A_DIGIT, "");
+  // Clause 4. The upper bound is what catches two whole numbers sharing one box.
+  if (digits.length < FEWEST_DIGITS || digits.length > MOST_DIGITS) return undefined;
+  return `tel:${trimmed.startsWith("+") ? "+" : ""}${digits}`;
 }
 
 function mailtoHref(value: unknown): string | undefined {

@@ -275,6 +275,74 @@ describe("contact", () => {
     );
   });
 
+  // §2.3's four clauses. The six notations below are the ones businesses actually print, and
+  // four of them were broken before the rule existed — see `telHref`'s comment for what each
+  // one used to do.
+  describe("the tel: target (§2.3)", () => {
+    const tel = (phone: string) => page({ ...base, contact: { phone } });
+
+    it("dials a plain national number, and an international one", () => {
+      expect(tel("020 7123 4567")).toContain('href="tel:02071234567"');
+      expect(tel("+44 20 7123 4567")).toContain('href="tel:+442071234567"');
+    });
+
+    it("drops a parenthesised trunk zero behind a country code", () => {
+      // Not a guess: the owner supplied the country, and `(0)` is their own notation for
+      // "omit this when calling in". Keeping it dialled a dead number.
+      expect(tel("+44 (0)161 496 0000")).toContain('href="tel:+441614960000"');
+      expect(tel("+44(0)161 496 0000")).toContain('href="tel:+441614960000"');
+    });
+
+    it("leaves a bare parenthesised area code alone", () => {
+      // Clause 3 fires only behind a leading `+CC`. A US number has no country code here and
+      // its parentheses mean something else entirely.
+      expect(tel("(0161) 496 0000")).toContain('href="tel:01614960000"');
+    });
+
+    it("refuses a vanity number rather than dialling part of it", () => {
+      // The worst of the old behaviour: `0800 CHICKEN` became `tel:0800`, which is not a dead
+      // link, it is a *wrong number that connects*.
+      const html = tel("0800 CHICKEN");
+      expect(html).toContain("0800 CHICKEN");
+      expect(html).not.toContain("tel:");
+    });
+
+    it("refuses an extension rather than dialling the number without it", () => {
+      const html = tel("020 7123 4567 ext 12");
+      expect(html).toContain("020 7123 4567 ext 12");
+      expect(html).not.toContain("tel:");
+    });
+
+    it("refuses two numbers sharing one box", () => {
+      // Caught twice over: the separator is out of charset, and the digits exceed 15.
+      expect(tel("020 7123 4567 / 020 7123 4568")).not.toContain("tel:");
+      expect(tel("020 7123 4567 020 7123 4568")).not.toContain("tel:");
+    });
+
+    it("bounds the digits at both ends", () => {
+      expect(tel("123")).not.toContain("tel:");
+      expect(tel("1234")).toContain('href="tel:1234"');
+      expect(tel("123456789012345")).toContain("tel:123456789012345");
+      expect(tel("1234567890123456")).not.toContain("tel:");
+    });
+
+    it("permits a `+` only at the front", () => {
+      expect(tel("020 7123 4567+020 7123 4568")).not.toContain("tel:");
+    });
+
+    it("still shows the owner's own text whenever it refuses", () => {
+      // The number reads correctly on the page in every case above; only the tap-to-call is
+      // withheld. §7.9 is what tells the owner so.
+      const html = tel("0800 CHICKEN");
+      expect(html).toContain('<span itemprop="telephone">0800 CHICKEN</span>');
+    });
+
+    it("does not catch a number that is merely mistyped, and that limit is deliberate", () => {
+      // A UK mobile a digit short. Catching this needs the country §2.3 declined to learn.
+      expect(tel("07700 90012")).toContain('href="tel:0770090012"');
+    });
+  });
+
   it("keeps a value it cannot turn into a link, as text", () => {
     const html = page({ ...base, contact: { phone: "ask at the counter", email: "not an email" } });
     expect(html).toContain("ask at the counter");
