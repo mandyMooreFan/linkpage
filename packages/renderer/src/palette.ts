@@ -59,7 +59,19 @@ export interface Palette {
   buttonInk: string;
   /** The secondary colour, exactly as given; falls back to `brand` when absent. */
   accent: string;
-  /** A version of the accent that carries text against the ground. */
+  /**
+   * A version of the accent that carries text against the ground.
+   *
+   * **The CSS custom property this feeds is `--lp-accent-text`, and the difference in names is
+   * deliberate — do not "tidy" it** (`SPEC.md` §3.2). The property was renamed because `-ink`
+   * was carrying two meanings: `--lp-fill-ink` is text *on* the fill, while this one is the
+   * accent adjusted to work *as* text on the ground.
+   *
+   * **The role name cannot follow it.** §3.4's advanced tier reads `advanced.colors[role]`
+   * straight off `project.json`, so this is a stored schema key: renaming it would either
+   * break every advanced-tier file or spend a §4.2 version bump on a cosmetic gain, and §4.5's
+   * unknown-key round-trip makes that a needless risk.
+   */
   accentInk: string;
   /**
    * Whether the brand had to step back from carrying the button.

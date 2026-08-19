@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { contrastRatio, parseHex, type Rgb } from "./color.js";
 import { derivePalette, type Palette } from "./palette.js";
+import { stylesheet } from "./stylesheet.js";
+import { resolveChrome } from "./chrome.js";
 import type { Mode, Style } from "./project.js";
 
 const styleWith = (brand: string, mode: Mode, extra: Partial<Style> = {}): Style => ({
@@ -244,5 +246,37 @@ describe("the derivation is total and deterministic", () => {
     const before = JSON.stringify(style);
     derivePalette(style);
     expect(JSON.stringify(style)).toBe(before);
+  });
+});
+
+describe("the accentInk / --lp-accent-text asymmetry (SPEC.md §3.2)", () => {
+  it("emits the property under its new name and keeps the role under its old one", () => {
+    // The two names differ on purpose. `-ink` was carrying two meanings — `--lp-fill-ink` is
+    // text *on* the fill, this is the accent adjusted to work *as* text on the ground — so the
+    // property was renamed and the role was not.
+    const css = stylesheet(derivePalette(styleWith("#c2185b", "light")), resolveChrome(null));
+    expect(css).toContain("--lp-accent-text:");
+    expect(css).not.toContain("--lp-accent-ink");
+  });
+
+  it("keeps the role because it is a stored schema key, not a stylesheet detail", () => {
+    // Proved through the behaviour that makes it one: §3.4 reads `advanced.colors[role]`
+    // straight off `project.json`, so a file naming `accentInk` still overrides. Renaming the
+    // role would break every such file, or cost a §4.2 version bump for a cosmetic gain.
+    const overridden = derivePalette(
+      styleWith("#c2185b", "light", {
+        advanced: { enabled: true, colors: { accentInk: "#123456" } },
+      }),
+    );
+    expect(overridden.accentInk).toBe("#123456");
+    expect(stylesheet(overridden, resolveChrome(null))).toContain("--lp-accent-text:#123456");
+  });
+
+  it("changes no colour, because nothing was failing", () => {
+    // `#c2185b` on `#fdf7f8` is 5.55:1. The adjustment is a no-op whenever the accent already
+    // clears 4.5:1, which is most of the time — a naming trap got a naming fix, not a
+    // re-derivation.
+    const p = derivePalette(styleWith("#c2185b", "light", { accent: "#2e7d32" }));
+    expect(p.accentInk).toBe("#2e7d32");
   });
 });

@@ -65,7 +65,7 @@ function tokens(palette: Palette, chrome: Chrome): string {
     `--lp-fill:${palette.buttonFill}`,
     `--lp-fill-ink:${palette.buttonInk}`,
     `--lp-accent:${palette.accent}`,
-    `--lp-accent-ink:${palette.accentInk}`,
+    `--lp-accent-text:${palette.accentInk}`,
     `--lp-gutter:1.25rem`,
     `--lp-radius:${radius(chrome.corners)}`,
     ...typeTokens(chrome.type),
@@ -91,8 +91,8 @@ body{margin:0;padding:2.5rem var(--lp-gutter) 3.5rem;background:var(--lp-ground)
 .lp-page{width:${COLUMN};margin-inline:auto;display:flex;flex-direction:column;gap:1.75rem}
 .lp-icon{flex:none}
 .lp-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
-a{color:var(--lp-accent-ink)}
-a:focus-visible{outline:2px solid var(--lp-accent-ink);outline-offset:3px}
+a{color:var(--lp-accent-text)}
+a:focus-visible{outline:2px solid var(--lp-accent-text);outline-offset:3px}
 .lp-header{display:flex;flex-direction:column;align-items:center;gap:0.75rem;text-align:center}
 .lp-logo{display:block;width:auto;max-width:100%;height:auto;max-height:9rem}
 .lp-name{margin:0;font-family:var(--lp-font-head);font-size:1.625rem;font-weight:var(--lp-head-weight);line-height:1.2;letter-spacing:var(--lp-head-track)}
@@ -111,7 +111,7 @@ a:focus-visible{outline:2px solid var(--lp-accent-ink);outline-offset:3px}
 .lp-address{display:flex;align-items:flex-start;gap:0.625rem;margin:0;color:var(--lp-ink)}
 .lp-address .lp-icon{margin-top:0.25rem;color:var(--lp-ink-muted)}
 .lp-social{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:0.25rem}
-.lp-social-link{display:flex;align-items:center;justify-content:center;width:2.75rem;height:2.75rem;border-radius:var(--lp-radius);color:var(--lp-accent-ink);font-size:1.375rem;text-decoration:none}
+.lp-social-link{display:flex;align-items:center;justify-content:center;width:2.75rem;height:2.75rem;border-radius:var(--lp-radius);color:var(--lp-accent-text);font-size:1.375rem;text-decoration:none}
 .lp-social-link--named{width:auto;gap:0.375rem;padding:0 0.625rem;font-size:1rem}
 .lp-social-name{font-size:0.875rem}`.trim();
 
