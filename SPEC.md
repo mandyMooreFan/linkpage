@@ -928,16 +928,24 @@ while deciding they were happy. **Any future proposal to edit on the page must a
 Renderer-heavy Vitest: per-section snapshots plus **three invariant guards**, and one Playwright E2E
 proving the downloaded file opens standalone and matches the preview.
 
-| #   | Invariant                                                                            |
-| --- | ------------------------------------------------------------------------------------ |
-| 1   | The export contains no `<script>` tag, no inline event handler, no `javascript:` URL |
-| 2   | The export references no external or relative **subresource**                        |
-| 3   | The renderer's `package.json` declares no dependencies and no devDependencies        |
+| #   | Invariant                                                                                 |
+| --- | ----------------------------------------------------------------------------------------- |
+| 1   | The export contains no `<script>` tag, no inline event handler, no `javascript:` URL      |
+| 2   | The export references no external or relative **subresource**                             |
+| 3   | The renderer declares no dependencies, and develops against nothing but its own toolchain |
 
 **Invariant 2's reading matters:** _navigation_ to another site is the entire point of a link page, so
 `<a href="https://…">` is fine. What is forbidden is a **subresource** — anything the browser must
 fetch to render the page. Those must be inlined, because the file has to work opened from a desktop
 with no network.
+
+**Invariant 3's second half is an allowlist, not a count, and the difference is the whole of it.**
+`devDependencies` cannot be asserted empty: a package that typechecks and tests itself needs a compiler,
+a runner and Node's types, and the renderer has always declared exactly those three. So the guard names
+what the renderer may develop against and fails on anything else. **What it is guarding is not "few
+dependencies", it is `stylesheet.ts` staying ours** (§5.1) — and a CSS toolchain would arrive as a
+`devDependency`, which is precisely the shape checking `dependencies` alone could never see. **Adding a
+name to that list is a spec change, not a build fix.**
 
 **A consequence of that reading, worth stating because it looks like a hole and is not.** A link button
 whose URL was typed as `facebook.com/mybakery` exports as `<a href="facebook.com/mybakery">` — a relative
