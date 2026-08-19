@@ -768,15 +768,39 @@ describe("LocalBusiness microdata", () => {
     expect(html).toContain('<span itemprop="email">ask inside</span>');
   });
 
+  /**
+   * What a microdata consumer reads out of `itemprop="address"`: its text, with markup gone and
+   * whitespace collapsed the way any consumer normalises it.
+   *
+   * Asserted this way rather than against the markup string on purpose. §6.9 wraps each line in
+   * a `<span class="lp-line">` so the underline can sit on the street line alone, and **the
+   * whole point is that the spans add no text** — so the test has to be about the text. A
+   * markup assertion would have to be edited every time the presentation moves, which is
+   * exactly how a guarantee quietly stops being checked.
+   */
+  const addressText = (html: string): string =>
+    (/<span itemprop="address">([\s\S]*?)<\/span>\s*<\/(?:a|p)>/.exec(html)?.[1] ?? "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
   it("publishes the address as text and the directions link as hasMap", () => {
     const html = page(full);
     expect(html).toContain('itemprop="hasMap" href="https://maps.example/?q=12+Baker+Street"');
-    expect(html).toContain('<span itemprop="address">12 Baker Street<br>\nLondon<br>\nNW1 6XE');
+    expect(addressText(html)).toBe("12 Baker Street London NW1 6XE");
   });
 
   it("keeps the address property when there is no directions URL", () => {
     const project = { ...base, address: { lines: ["12 Baker Street"] } };
-    expect(page(project as Project)).toContain('<span itemprop="address">12 Baker Street</span>');
+    expect(addressText(page(project as Project))).toBe("12 Baker Street");
+  });
+
+  it("adds no text when §6.9 wraps the lines for the underline", () => {
+    // The assertion the build ticket owes: the spans are presentational and the structured
+    // data is untouched by them. This is the one place a purely visual change reaches §6.4.
+    const html = page(full);
+    expect(html).toContain('<span class="lp-line">12 Baker Street</span>');
+    expect(addressText(html)).toBe("12 Baker Street London NW1 6XE");
   });
 
   it("marks social profiles sameAs and link buttons nothing", () => {

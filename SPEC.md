@@ -338,6 +338,14 @@ information rather than untidiness** — a labelled entry is one we have no mark
 what the owner is looking at. LinkedIn makes this routine rather than hypothetical, since it is a
 platform a consultant or tradesperson plausibly publishes.
 
+**A glyph earns its place in one of two ways, and both are named.** Almost every generic glyph earns it
+by serving a preset suggestion in §7.3 — asserted in both directions, so an unserved suggestion and an
+unused glyph each fail the build. **Two do a different job and are listed as exceptions rather than
+counted:** the generic `link` glyph is §4.4's fallback for a platform we have no mark for, and the
+`clock` glyph **names the hours panel on the exported page** (§6.9) — work no suggestion could justify,
+because it is the job a heading would do, and §2.5 will not spend a ninth string on one. A third
+exception is a change to this section.
+
 **Growth rule.** A new platform earns a mark by being one a small business plausibly publishes, and
 costs nothing else: adding one is additive, never a version bump (§4.8), and removing one degrades to
 the fallback rather than dropping the link. A new _generic_ glyph earns its place only by serving a
@@ -1109,9 +1117,10 @@ binary. The file is bigger than the image it contains; the page is not slower.
 failure for this user — refusing would strand an owner from their own page.
 
 **The number that actually governs is not in the table above, and belongs beside it.** CI's chrome
-tripwire is **26 KB**, and the largest fixture's chrome already measures **24.04 KB** — about 15 KB of
-that being vendored SVG. So the real headroom is **1.42 KB** after §6.9's changes, not the ~25 KB the
-30 KB line implies. A spec whose numbers are both looser than the test's is a spec that invites the next
+tripwire is **26 KB**. The largest fixture's chrome measured **24.04 KB** before §6.9 and measures
+**24.75 KB** after it, so the real headroom is **1.25 KB**, not the ~25 KB the 30 KB line implies. About
+15 KB of that total is vendored SVG: **the icon set, not the stylesheet, is what fills this budget**,
+which is why §2.4's membership rule and this number are the same conversation. A spec whose numbers are both looser than the test's is a spec that invites the next
 contributor to spend headroom that is not there, which is exactly what happened once. **The next
 presentation idea is the one that breaks the build**, and it should learn that here rather than in CI.
 
@@ -1241,8 +1250,13 @@ page declares `<html dir>` from the same tag.
 ### 6.9 Presentation
 
 Three further decisions about how the page presents itself, priced against §6.5's real headroom. §6.2
-holds the fourth — centring a short page — because that one is about the column. Together they spend
-**555 B** and leave 1.42 KB.
+holds the fourth — centring a short page — because that one is about the column.
+
+**Together they spend 726 B and leave 1.25 KB.** That is **171 B more than the 555 B the decision was
+costed at**, and the difference is worth recording rather than smoothing over: the estimate was taken on
+a prototype, and a glyph carries `glyphSvg`'s full `<svg>` wrapper — the viewBox, the paint attributes,
+`aria-hidden` and `focusable` — before any path data. **A glyph is never as cheap as its drawing.**
+Anyone costing the next one should price the wrapper first.
 
 **The address underlines its street line only.** The whole block stays the directions link; the underline
 moves to the first line, at `text-underline-offset:0.18em` and `text-decoration-thickness:1px`. Today all

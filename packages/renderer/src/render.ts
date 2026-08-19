@@ -309,6 +309,12 @@ function hoursSection(value: unknown, words: Vocabulary): string {
 
   const parts: string[] = [];
   if (hours.rows.length > 0) {
+    // §6.9's clock names the panel. **For a sighted reader only**: `glyphSvg` marks every glyph
+    // `aria-hidden`, so this changes nothing for assistive technology and the panel stays
+    // unnamed to it. Naming it properly needs a ninth string — a visually hidden word is still
+    // a word the renderer writes and would still need translating across every vocabulary —
+    // and §2.5 wins. The gap is real and is left open rather than described as closed.
+    parts.push(`<span class="lp-hours-mark">${glyphSvg(ICONS.clock)}</span>`);
     const rows = hours.rows.map((row) => hoursRow(row, hours.closed));
     parts.push(`<dl class="lp-hours">\n${rows.join("\n")}\n</dl>`);
   }
@@ -506,7 +512,15 @@ function addressSection(value: unknown): string {
   if (lines.length === 0) return "";
 
   const icon = glyphSvg(ICONS.location);
-  const text = lines.map((line) => escapeHtml(line)).join("<br>\n");
+  // §6.9: each line gets a span so the underline can sit on the street line alone. Three
+  // underlines read as three links, and the one under a postcode collides with its descenders.
+  //
+  // **The spans add no text**, which is the load-bearing part: this element carries
+  // `itemprop="address"`, so §6.4's microdata still reads the lines joined by whitespace
+  // exactly as before. A test asserts that rather than trusting it.
+  const text = lines
+    .map((line) => `<span class="lp-line">${escapeHtml(line)}</span>`)
+    .join("<br>\n");
   const body = `${icon}<span itemprop="address">${text}</span>`;
   const href = linkHref(address.directionsUrl);
 
