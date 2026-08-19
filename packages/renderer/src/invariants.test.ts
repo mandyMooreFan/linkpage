@@ -192,13 +192,45 @@ describe("invariant 2: the export references nothing outside itself", () => {
 // Invariant 3
 // ---------------------------------------------------------------------------
 
+/**
+ * The renderer's own toolchain, and the whole of what it is allowed to develop against.
+ *
+ * `devDependencies` cannot simply be asserted empty, because a package that typechecks and
+ * tests itself needs a compiler, a runner and Node's types — it always has. So the guard is
+ * an allowlist rather than a count, and this list is the thing a reviewer reads.
+ *
+ * **What it is actually guarding is not "few dependencies", it is `stylesheet.ts` staying
+ * ours** (SPEC.md §5.1). The export's CSS is derived per project from the owner's brand
+ * colour, and §6.7 promises the same project renders byte-identically forever — neither
+ * survives a third party generating the stylesheet. A CSS toolchain arriving here would be
+ * a `devDependency`, which is exactly the shape `dependencies` alone never saw.
+ *
+ * **Adding to this list is a spec change**, not a build fix. Nothing belongs here that the
+ * renderer does not need in order to check itself.
+ */
+const RENDERER_TOOLCHAIN = ["@types/node", "typescript", "vitest"];
+
+/** Whatever the renderer develops against that is not its own toolchain. Empty is the pass. */
+const offToolchain = (devDependencies: Record<string, string> | undefined): string[] =>
+  Object.keys(devDependencies ?? {})
+    .filter((name) => !RENDERER_TOOLCHAIN.includes(name))
+    .sort();
+
 describe("invariant 3: the renderer declares no dependencies", () => {
-  it("has an empty dependencies block in package.json", () => {
+  const manifest = () => {
     const manifestPath = fileURLToPath(new URL("../package.json", import.meta.url));
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+    return JSON.parse(readFileSync(manifestPath, "utf8")) as {
       dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
     };
-    expect(Object.keys(manifest.dependencies ?? {})).toEqual([]);
+  };
+
+  it("has an empty dependencies block in package.json", () => {
+    expect(Object.keys(manifest().dependencies ?? {})).toEqual([]);
+  });
+
+  it("develops against nothing beyond its own toolchain", () => {
+    expect(offToolchain(manifest().devDependencies)).toEqual([]);
   });
 });
 
@@ -265,6 +297,36 @@ describe("the guards themselves", () => {
 
     it("catches a script tag even when the text around it is escaped", () => {
       expect(() => expectNoScript(`<h1>&lt;b&gt;</h1><script>x</script>`)).toThrow();
+    });
+  });
+
+  describe("invariant 3 reads devDependencies, not just dependencies", () => {
+    it("catches a CSS toolchain arriving as a devDependency", () => {
+      // The hole this issue closes. Before it, the renderer could take Tailwind — or any
+      // other generator of `stylesheet.ts` — and CI stayed green, because the guard only
+      // ever looked at `dependencies`.
+      expect(offToolchain({ "@tailwindcss/vite": "^4.3.3" })).toEqual(["@tailwindcss/vite"]);
+    });
+
+    it("permits the toolchain the renderer actually needs", () => {
+      // Asserting emptiness here would fail on day one: a package that typechecks and tests
+      // itself has always needed these three. An allowlist is the only honest shape.
+      expect(
+        offToolchain({ "@types/node": "^26.2.0", typescript: "^6.0.3", vitest: "^4.1.10" }),
+      ).toEqual([]);
+    });
+
+    it("treats an absent block as clean rather than as a failure", () => {
+      // pnpm deletes empty blocks when it rewrites the manifest, which is what invariant 3
+      // was partly written to survive in the first place.
+      expect(offToolchain(undefined)).toEqual([]);
+    });
+
+    it("names everything that does not belong, not merely the first", () => {
+      expect(offToolchain({ sass: "^1", vitest: "^4", postcss: "^8" })).toEqual([
+        "postcss",
+        "sass",
+      ]);
     });
   });
 
