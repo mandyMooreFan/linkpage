@@ -5,9 +5,18 @@ seen the project can implement it without asking a question. Where a decision lo
 reasoning is given — not as history, but because the reasoning is usually the thing that stops an
 implementer from "improving" it into something that breaks a guarantee elsewhere.
 
-**Status:** design complete, implementation not started. Every decision here is settled. The
-[deferred](#10-deferred-past-v1) and [to verify](#11-to-verify-during-implementation) sections at the
-end are the only places where anything is open, and both are explicit about it.
+**Status:** v1 is specified and largely built. `v0.9.0-beta` is released as a pre-release of it, and
+the `v1.0.0` tag is deliberately unspent for what this document now describes. Every decision here is
+settled. The [deferred](#10-deferred-past-v1) and [to verify](#11-to-verify-during-implementation)
+sections at the end are the only places where anything is open, and both are explicit about it.
+
+**The title still says v1 on purpose.** This document was amended after the beta by a second wayfinder
+effort (§12), and whether to retitle it was asked rather than assumed: what the beta released is a
+pre-release _of v1_, so the version being described has not changed and neither has its name. **The
+tool's version and `project.json`'s `version` (§4.2) are different numbers with different rules and
+must never be moved together.** There is no changelog section, deliberately — the amendments are
+indexed in §12, and each decision's reasoning travels with the decision itself, in place, for the same
+reason this document gives its reasons at all.
 
 ---
 
@@ -74,7 +83,8 @@ with its own design tree — a later effort, not a v1 section.
 
 **Header.** Business name (required), optional tagline, optional logo.
 
-**Links.** A link is a **label, a URL, and optionally an icon** — nothing else.
+**Links.** A link is a **label, a URL, and optionally an icon** — nothing else. What the URL has to look
+like, and what happens when it does not, is _Derived targets_ below.
 
 - A "featured" flag was rejected as _redundant_, not as bloat: the owner already controls list order,
   so **position is the emphasis mechanism**. A second competing way to signal importance invites a
@@ -88,13 +98,38 @@ open 11–2 and 5–9, salons that close for lunch. Everything structure _should
 free-text `note`: bank holidays, "by appointment", seasonal changes. **Structure where it is
 reliable, prose where it is not.**
 
-Times are stored as 24-hour `"HH:MM"`. `clock` and `weekStart` are display preferences. Collapsing
-"Mon–Fri 9–5" is a render-time nicety and is never stored.
+Times are stored as 24-hour `"HH:MM"`. `clock` and `weekStart` are display preferences, **seeded once
+from the browser at first run and then stored**, exactly as `lang` is (§4.1). _Seeded_ rather than
+_asserted_ is why §7.3's no-defaulted-facts rule permits it: neither is a claim about the business.
 
-The seven weekday abbreviations and the word for a closed day are **the only words on the page that
-are not the owner's**, and they are written in the page's own language — see §2.5.
+**Runs are never collapsed.** "Mon–Fri 9–5" does not appear on the exported page, and that is a decided
+refusal rather than a deferral. A shop open weekdays gets five rows; a corner shop open every day gets
+seven identical ones. **The reason is not that collapsing is hard — it is that nobody has ever
+complained about these rows.** Hours _entry_ was measured, found wanting, and fixed (§7.10); the page's
+hours block produced no finding at all. Collapsing buys about 110 px on a phone and costs a permanent
+synthesis step in the one component that must never state an opening time the business does not keep.
+**This is the mirror of §7.10: entry moved on measurement, display stays put on the absence of it.**
+Reopened by a real complaint from someone reading an exported page, and not by a new capability — the
+data to do it has been available all along.
 
-**Contact.** Phone and email, rendered as `tel:` and `mailto:` links.
+> **The four hazards are all answerable, and the dispatching rule is recorded here so that the refusal
+> is not overturned by someone rediscovering that it is possible.** Compute runs in _display_ order and
+> the `weekStart` wrap disappears. Require every day in a run to be _present_ and an unspecified day can
+> never sit inside one. Require an **identical formatted interval list** and both the multi-interval
+> mismatch and the closed-day-inside-a-run disappear at once, because an empty list never equals a
+> non-empty one. Minimum run length 3. **Correctness was never the obstacle**, which is exactly why the
+> reason above has to be the one on record.
+
+**The builder's review row does not collapse either**, although `Mon–Fri` would cost nothing there — the
+builder has no localisation layer, no §6.5 budget and no determinism guarantee (§3.1). The page preview
+sits beside the list, so `Mon–Fri` in the row against five rows in the preview reads as the page being
+broken.
+
+The seven weekday abbreviations and the word for a closed day are **the whole of the translatable text
+the page writes**, and they are written in the page's own language — see §2.5.
+
+**Contact.** Phone and email, rendered as `tel:` and `mailto:` links — see _Derived targets_ below for
+what reaches the link and what happens when nothing can.
 
 **Address.** **Free-text lines plus an optional directions URL** — not structured street/city/region/
 postcode. Structured fields are what a developer reaches for and they are a localisation trap: a UK
@@ -103,9 +138,93 @@ the way they would write it on an envelope. Nothing in this project reads the ad
 structure buys nothing and costs comprehensibility.
 
 The `directionsUrl` matters because an embedded map is forbidden by the no-external-subresources
-invariant (§5.3) — a link out is the only remaining answer to "where are you".
+invariant (§5.3) — a link out is the only remaining answer to "where are you". It is one of the three
+URL fields governed by _Derived targets_ below.
 
 **Social.** A platform identifier and a URL. The platform selects a brand icon.
+
+#### Derived targets
+
+**Five fields are the owner's text plus a machine target derived from it**: the contact phone (`tel:`),
+the contact email (`mailto:`), a link button's URL, `address.directionsUrl`, and a social URL. **The
+text is the owner's and is never rewritten; the target is ours and is mended silently.** The renderer
+already worked this way for one of them — `0161 496 0000` renders inside `<a href="tel:01614960000">`
+with the typed spacing left on the page — so what follows closes an inconsistency rather than adding a
+capability.
+
+**Nothing derived is ever stored.** The stored string stays exactly what the owner typed; mending is a
+render-time act, in the same place §3.2 recomputes colours rather than storing them; and §4.4's
+_preserve anything the owner typed_ holds unchanged. **§4 gains no field for any of this**, which is
+worth stating as a position rather than leaving as an absence: _"normalise the phone number"_ reads like
+a schema change and is not one. A later builder that gets cleverer re-derives from the owner's original
+rather than from our guess.
+
+**Where no target can be derived there is no link, and the text stands** as ordinary text. What the
+owner is told about that, and where, is §7.9.
+
+**The phone rule is four clauses, and no country is ever learned, inferred or asked for.**
+
+1. Allowed characters are digits, space, `(`, `)`, `-`, `.`, and `+` **leading only**.
+2. Any other character → no target.
+3. A parenthesised `(0)` directly after a leading `+CC` is dropped. That is reading the owner's own
+   notation rather than guessing at a trunk prefix — they supplied the country themselves.
+4. Fewer than 4 or more than 15 digits → no target.
+
+> **Why no country.** `lang` does carry a region, and §4.1 establishes that a wrong region is _harmless_
+> today — so making the phone depend on it would make a wrong region **harmful**. A Manchester baker on a
+> US-configured laptop is tagged `en-US`, never chose it, cannot see it, and would be read as `+1`.
+> Asking outright spends a screen (§7.2) on §2.3's structured-address trap in another costume. A
+> phone-metadata library is ruled out by the same decision rather than by its size: its useful entry
+> points need a default region, so without one it says nothing at all about `020 7123 4567` — and it
+> would be this project's first non-React runtime dependency.
+>
+> **Four of the six notations businesses actually print were broken without these clauses**, which is why
+> a rule this small earns its place: `+44 (0)161 496 0000` produced a dead target (the trunk `0` kept
+> inside a `+44` number), `020 7123 4567 ext 12` and two numbers typed in one box dialled _wrong_
+> numbers, and `0800 CHICKEN` became `tel:0800` — a dialable wrong number rather than a visibly dead one.
+> The caution against guessing at trunk prefixes produced exactly the outcome it was avoiding.
+>
+> **The limit, stated rather than buried: nothing merely mistyped is caught.** `07700 90012`, a digit
+> short, still links. Catching that needs the country we have just declined. Extensions, vanity numbers
+> and second numbers survive on the page untouched; they simply do not dial.
+
+**The URL rule is one rule for all three URL fields**, written once here rather than left to three call
+sites. A value that already carries a scheme is untouched. For a value with **no** scheme: take
+everything before the first `/`, `?` or `#`; prepend `https://` **only if** that part is non-empty,
+contains a dot, and contains no `@` and no whitespace. Otherwise there is no target.
+
+> **The gate is the whole rule**, and testing the reflex is what put it there. A naive prepend does not
+> produce dead links, it produces confident links to the _wrong host_: `/menu` becomes `https://menu/`,
+> inventing a hostname out of a real relative path, and `@mybakery` becomes `https://mybakery/`. Today
+> `/menu` at least 404s on the owner's own site; a naive mend sends the visitor somewhere else entirely.
+>
+> **`https://` unconditionally, because we cannot tell.** A builder-side probe is opaque under CORS, and
+> `https://` is what a browser itself tries on a bare domain. The escape is that the mend fires **only**
+> where there is no scheme, so an http-only owner types `http://` and is left alone.
+>
+> **Two implementation choices that are decisions rather than details.** It is a **string prepend, not
+> `new URL`** — `new URL` normalises, adding a trailing slash and percent-encoding, which rewrites the
+> owner's target and is the class §6.7 is wariest of. And it lives **beside `safeUrl`, not inside it**:
+> that name is exported and promises _safe_, not _mended_.
+>
+> **No host-specific exceptions.** Matching known social hosts in order to turn a handle into a URL was
+> rejected because it fires hardest on correctly-pasted addresses — `wa.me` is right for WhatsApp and
+> `youtu.be` for YouTube.
+>
+> **A handle never becomes a URL**, and the platforms are the argument rather than the maintenance cost:
+> _handle_ is not one concept. **Mastodon is federated**, so `@user@instance.social` has no derivable
+> host; **WhatsApp's URL takes a phone number**; **Bluesky handles are themselves domains**; and **X's
+> host changed** from `twitter.com`. A template table would go stale silently, and stale means a 404.
+>
+> **The limit, stated rather than buried:** `mybakery.couk` mends into a confident link to a domain that
+> does not exist, and nothing available to us can tell.
+
+**The email floor** is one `@`, non-empty either side, no whitespace, no control characters, and at
+least one dot after the `@`. **Recorded as a floor**, so that the next reader does not tighten it toward
+RFC 5322. It is looser in charset than an ASCII-only test, because such a test **rejects real
+addresses** — `josé@café.fr` is one — and identical in structure. **The whitespace clause is
+load-bearing**: a `mailto:` target does not pass through `safeUrl`, which makes it the one URL in the
+document with no scheme check behind it.
 
 ### 2.4 Icons
 
@@ -208,7 +327,7 @@ costs nothing else: adding one is additive, never a version bump (§4.8), and re
 the fallback rather than dropping the link. A new _generic_ glyph earns its place only by serving a
 preset suggestion, so the set grows when §7.3 does and not otherwise.
 
-### 2.5 The eight words the page writes
+### 2.5 The words the page writes
 
 The page declares `<html lang>` from the owner's `lang` (§4.1) because WCAG 2.2 SC 3.1.1 asks for it
 and because the content is the owner's own words. **The renderer then writes eight words of its own:
@@ -221,6 +340,29 @@ phonetics, and the declaration is what we asked assistive technology to trust.
 address free text, the contact rows are identified by a glyph rather than by the word "Phone", and
 the address _is_ the directions link. Nothing else on the exported page is our prose, and a change
 that adds a ninth string is a change to this section.
+
+**One correction, because this section claimed more than was true.** On a 12-hour page the renderer also
+writes `AM` and `PM`. They are built as literals in the time formatter and are carried by no vocabulary,
+so a Welsh page has always read `9:00 AM`. **They stay English, on CLDR's own evidence rather than on
+convenience.** ICU prints `AM` for Welsh, French, German, Hebrew and Polish — English `AM` on a Welsh
+page is what the reference data itself produces. And the languages that _do_ translate the meridiem
+**move** it: `ja` and `zh` render `午前9:00` with the period in front, and `ar` and `he` read right to
+left. So translating it is not two more rows in a table; it is a per-language _pattern_ plus a direction,
+against a formatter whose shape is fixed. Forcing 24-hour on languages that do not use a meridiem was
+rejected as worse than an English word — it silently overrides an owner who deliberately chose _9:00am_
+on _How it looks_.
+
+So the accurate claim is this: **eight strings are the translatable surface, and the meridiem is a
+deliberate English constant outside it.** The eight are what the growth rule below governs.
+
+**The growth rule has now been tested in both directions, and both are worth recording.** The meridiem is
+the rule _failing_ — a string reached the page without this section noticing. A day-range pattern for
+collapsed hours rows is the rule _holding_: it was proposed, and §2.3 refused to collapse for reasons
+that had nothing to do with the string. Note that the string was never the obstacle there either.
+**CLDR ships weekday-range patterns per locale** — `月～金` unspaced, `월 ~ 금` spaced, `ma–pe`,
+`จ. - ศ.` — so a day range would have been the _first_ kind of string below, pinned and checkable against
+a version number, not the second. §2.3's refusal rests on the absence of a complaint, and this section
+gains nothing either way.
 
 **`Intl.DateTimeFormat` is ruled out.** Its output tracks the ICU data compiled into the host, so the
 same `project.json` renders differently across Node versions — which costs §6.7's byte-identical
@@ -290,22 +432,63 @@ with logical properties from the start. A rule reaching for `left`, `right`, `ma
 
 ### 3.1 The six controls
 
-| Control             | Values                                                               |
-| ------------------- | -------------------------------------------------------------------- |
-| **Main colour**     | required — picked from a constrained field, or typed as an exact hex |
-| **Second colour**   | optional, encouraged                                                 |
-| **Shape**           | `centred` \| `colourBlock` \| `floatingCard` \| `ruledLeft`          |
-| **Type pairing**    | `classic` \| `modern` \| `friendly`                                  |
-| **Corner softness** | slider, 0 (sharp) … 1 (rounded)                                      |
-| **Light / dark**    | `light` \| `dark`                                                    |
+| Control             | Values                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| **Main colour**     | required — picked from a field of **twelve named colours**, or typed as an exact hex |
+| **Second colour**   | optional, encouraged                                                                 |
+| **Shape**           | `centred` \| `colourBlock` \| `floatingCard` \| `ruledLeft`                          |
+| **Type pairing**    | `classic` \| `modern` \| `friendly`                                                  |
+| **Corner softness** | slider, 0 (sharp) … 1 (rounded)                                                      |
+| **Light / dark**    | `light` \| `dark`                                                                    |
 
 Those six are unconditional: every page has them, and they are what _How it looks_ opens with.
+
+#### The twelve are named, and a typed hex is quoted back
+
+|                       |                         |                      |                      |
+| --------------------- | ----------------------- | -------------------- | -------------------- |
+| `#b0122f` **Crimson** | `#c2185b` **Raspberry** | `#7b1fa2` **Grape**  | `#4527a0` **Violet** |
+| `#1565c0` **Cobalt**  | `#00695c` **Teal**      | `#2e7d32` **Forest** | `#556b2f` **Olive**  |
+| `#a05a00` **Amber**   | `#bf360c` **Rust**      | `#5d4037` **Cocoa**  | `#37474f` **Slate**  |
+
+**Naming our own palette is a curated claim we can check; naming the owner's colour is asserting
+something about their brand.** That is §7.3's rule — a wrong fact the owner never notices we asserted —
+at its sharpest, on the most personal decision on the page: telling a bakery that their `#5d4037` is
+"muted orange" when they call it brown is exactly that. So **we name what we chose and quote back what
+they chose**, which lands on doctrine already written. §3.3 honours a typed hex exactly, and the review
+row reports the owner's answer rather than the derivation's version of it (§7.4).
+
+**Computing the names was tried before it was rejected, and the trial is the argument.** The OKLCH
+conversion already exists and its hue is perceptually uniform, so the machinery was there and the colour
+space was the right one. An untuned hue-bucket pass over these twelve calls `#b0122f` _orange_ and
+`#5d4037` _deep muted orange_, and collides two swatches on one name. Tuning cannot fix the shape of it:
+`#b0122f` and `#bf360c` sit **15° apart** and want different families, and **brown, pink and navy are not
+hue bands at all** — they exist only at particular lightness and chroma, so they need rules rather than
+buckets.
+
+**The names never reach `project.json`**, which stores the hex, so changing one is not a schema change
+and not a version bump. **The table is provisional in exactly the sense §2.5's closed-day words are**,
+and for the same reason: there is no database of what a colour is called, each name is hand-authored, and
+someone saying _"that is not raspberry"_ is the highest-quality evidence it can receive. `CONTRIBUTING.md`
+asks for that by name.
+
+**The names are builder vocabulary, not page text.** The builder has no localisation layer — every string
+in it is hardcoded English — and `lang` is a property of the _exported page_. A swatch name is chrome,
+exactly like _Corner softness_. Nothing here costs §2.5 anything.
 
 **Two further controls appear only when a section that uses them does.** `clock` (12h/24h) and
 `weekStart` are display preferences belonging to opening hours (§2.3), and they live at the foot of
 the same step, shown when the page has hours and absent when it does not. They are listed apart from
 the six deliberately — the six are the styling model, these two are settings that had nowhere better
 to live. The distinction is what stops the screen accreting a ninth.
+
+**Both are seeded from the browser at first run and then stored** (§4.1), rather than defaulting to `12h`
+and `mon` for everyone — which is what made every page this tool has ever exported read 12-hour, the
+Welsh ones included.
+
+**`clock` now governs a second surface.** §7.10's time box echoes the stored preference, so an owner who
+changes this control later changes the entry boxes with it. That is the intended relationship rather than
+a side effect: the box is a view of the stored time, not a field of its own.
 
 #### What the four shapes are
 
@@ -354,6 +537,22 @@ which matters for a tool meant to last.
 **Shapes and type pairings carry structure only, never a palette.** A shape decides layout and
 emphasis; it never introduces a colour.
 
+**One name is deliberately asymmetric, and the reason belongs beside it.** The CSS custom property is
+`--lp-accent-text`; the stored palette role it is derived from is `accentInk`. They differ on purpose.
+
+The property was renamed because **`-ink` was carrying two different meanings**: `--lp-fill-ink` is text
+_on_ the fill, while the accent one is the accent adjusted to work _as_ text on the ground. There was
+never a contrast failure to fix — `#c2185b` on `#fdf7f8` is 5.55:1, and across five brands measured the
+adjusted value simply _equals_ the accent in light mode four times out of five, because the adjustment is
+a no-op whenever the accent already clears 4.5:1. A naming trap gets a naming fix, and nothing is
+re-derived.
+
+**The role does not move, because it is a stored schema key.** The advanced tier (§3.4) reads
+`advanced.colors[role]` straight off `project.json`, so renaming it either breaks every advanced-tier
+file or spends a §4.2 version bump on cosmetics, and §4.5's round-trip makes that a needless risk.
+`palette.ts` carries a comment saying so, because the next reader's instinct will be to tidy the
+asymmetry away.
+
 ### 3.3 The readability guarantee
 
 Readability is guaranteed **by a constrained colour field rather than by warnings**. The owner cannot
@@ -361,6 +560,12 @@ easily pick a combination that fails, so they are never told off for picking one
 
 A hand-typed hex is **honoured exactly**. If it cannot carry the page — too light for a button, too
 dark for a ground — it **steps back to a quieter role** rather than being rejected or corrected.
+
+**A typed hex is inside this guarantee; the advanced tier is outside it.** That is why the exact-colour
+field sits beside the swatches rather than moving down to §3.4, and it is a spec fact rather than a
+layout preference: §3.1 defines the main colour as picked _or typed_, while opening §3.4 is precisely the
+acknowledgement that this guarantee has stopped applying. Stepping a typed hex back to a quieter role is
+the guarantee working, not a retreat from it.
 
 ### 3.4 The advanced tier
 
@@ -442,6 +647,41 @@ The tag is shape-checked on the way out, and anything that is not tag-shaped ren
 **`lang` decides three things and is resolved once**, so they cannot disagree: the `lang` attribute,
 the `dir` attribute, and the eight words the renderer writes (§2.5). A file whose `lang` we could not
 use therefore declares English, renders English and reads left to right.
+
+**`hours.clock` and `hours.weekStart` are seeded the same way** — derived from the browser once, at
+first run, and then stored. `clock` comes from the locale's hour cycle; `weekStart` maps a locale whose
+first day is Sunday to `"sun"` and everything else to `"mon"`.
+
+**Storing is the decision, not an implementation detail.** §6.7 bans `Intl` in the _renderer_, and the
+distinction is load-bearing rather than pedantic: `cy-GB` resolves to a 12-hour cycle in one runtime and
+a 24-hour cycle in another, so deriving at render time would make a Welsh page's times depend on which
+runtime drew it. A value computed once in the builder and written into the file is not a render-time
+read.
+
+**§7.3's no-defaulted-facts rule is not in tension with this**, because §2.3 calls both of them display
+preferences rather than facts about the business. §4.3's consequence follows automatically: a field
+defaulted on load appears on the review list as an ordinary row, and both already do.
+
+**A Saturday-first week stays unrepresentable** and lands on `"mon"` — exactly where it lands today.
+Widening the type was rejected as a §4.8 schema change to a v1-stable type for one rounding: never worse
+than today, often better.
+
+**`lang` itself is unchanged**, and now stands on a reason rather than on inertia. Asking the owner
+outright was rejected — it spends a screen (§7.2) on a question whose whole consequence is eight strings
+and a screen-reader voice, and most owners cannot predict what their answer changes. Storing the bare
+language (`en-US` → `en`) was rejected too: it discards the voice hint for every owner whose region was
+right in order to fix the ones where it was wrong.
+
+**A wrong region costs less than it looks, and that is what rules out inferring one.** `en-US` and
+`en-GB` render **byte-identically**, because the vocabulary lookup truncates on a miss — so the only real
+cost of a wrong region is the single thing this attribute is for: a screen reader switching voice.
+Reading the region off the owner's address would therefore spend §2.3's address-as-data line in order to
+change a subtag that alters nothing rendered.
+
+> A loose end recorded rather than fixed: the renderer falls back to `24h` when `clock` is absent, while
+> the builder has always written `12h`. Nothing this tool produces reaches that path, but a hand-authored
+> file renders the opposite of every builder-made page. Left alone deliberately — a renderer's fallback
+> for a _missing_ field is a different question from a builder's default for a _new_ one.
 
 **There is no `preset` field**, deliberately — see §7.3.
 
@@ -651,6 +891,25 @@ invariant 3 exists partly to catch that.
 
 The renderer is **not published to npm in v1**.
 
+**The builder uses Tailwind CSS v4; the renderer never will.** `packages/builder` takes the Tailwind Vite
+plugin as a **devDependency**, and `packages/renderer` keeps its hand-written `stylesheet.ts`.
+
+**This is not a preference about CSS.** The export's stylesheet is derived per project from the owner's
+brand colour (§3.2), so static class extraction is the wrong shape for it — and §6.7's byte-determinism
+guarantee must not come to depend on a third party's output ordering across versions. It is the same
+reasoning that rules out `Intl` in §2.5, one layer up.
+
+**v4 rather than v3, recorded from evidence rather than taste.** The builder's handful of custom
+properties are declared **four times over** across its stylesheets, with the preview holding the same
+values a fifth time under different names; nothing but habit keeps them agreeing. v4's `@theme` is one
+block that both defines the properties and generates the utilities from them, where v3 needs a JS config
+_plus_ a separate `:root` block to keep the properties alive. §7.6's breakpoint likewise stops being a
+number agreed by hand between two files and becomes one token.
+
+**Invariant 3 grows to cover `devDependencies`** (§5.3). As written it checks `dependencies` only, so a
+Tailwind devDependency in the renderer would pass CI green while breaking the rule above. Builder-only is
+currently kept by people; this is what gives it teeth.
+
 ### 5.2 The preview is the export
 
 The builder previews by dropping the renderer's exact output string into a **`srcdoc` iframe**. So
@@ -673,12 +932,18 @@ proving the downloaded file opens standalone and matches the preview.
 | --- | ------------------------------------------------------------------------------------ |
 | 1   | The export contains no `<script>` tag, no inline event handler, no `javascript:` URL |
 | 2   | The export references no external or relative **subresource**                        |
-| 3   | The renderer's `package.json` declares no dependencies                               |
+| 3   | The renderer's `package.json` declares no dependencies and no devDependencies        |
 
 **Invariant 2's reading matters:** _navigation_ to another site is the entire point of a link page, so
 `<a href="https://…">` is fine. What is forbidden is a **subresource** — anything the browser must
 fetch to render the page. Those must be inlined, because the file has to work opened from a desktop
 with no network.
+
+**A consequence of that reading, worth stating because it looks like a hole and is not.** A link button
+whose URL was typed as `facebook.com/mybakery` exports as `<a href="facebook.com/mybakery">` — a relative
+link that 404s on the owner's own published page — and invariant 2 passes it, **correctly**: that is a
+navigation, not a subresource. **The fix belongs in derivation (§2.3), not in the guard.** Tightening
+invariant 2 to catch it would forbid the one thing a link page exists to do.
 
 No coverage target on the builder UI.
 
@@ -757,6 +1022,32 @@ phone, the fixed constant behaves as a floor rather than a target: a 1200 px ras
 column on a 390 px phone is 3.35×. The constant is at its stated 3× only in the one case it was sized
 for, and better everywhere else.
 
+**A short page is centred in the viewport.** `min-height:100svh` and `display:flex` on the body, with
+`margin-block:auto` on the column — 65 bytes, and shape-agnostic by necessity, since two of §3.1's shapes
+already restyle the header and a header treatment was therefore never available to all four.
+
+**`svh`, not `dvh`.** `dvh` tracks the mobile URL bar, so content sitting in the band between the small
+and the large viewport would recentre itself while the reader scrolls. `svh` never changes. Recorded as
+**reasoned rather than measured**: headless Chromium reports `svh`, `dvh` and `lvh` as equal, so this is
+one of the things only a real phone can check (§11).
+
+**It cannot misfire, and that is what chose it over the alternatives.** Its trigger is free space itself —
+`margin-block:auto` resolves to zero when there is none — so a full page is pixel- and byte-identical
+before and after, and a mid-length page benefits without being asked to.
+
+> **The honest limit, recorded next to the change: it relocates the emptiness, it does not reduce it.**
+> The sparsest page this tool produces — a name and two social links — is 88% empty before and 88% empty
+> after. What changes is that the void becomes symmetric above and below rather than a column that stops
+> a third of the way down, which is what a deliberately minimal page looks like. **741 px of viewport
+> cannot be filled without inventing content, and §2.2 closed the section set at six.** Anyone reopening
+> this in search of a fuller page is asking for a seventh section.
+>
+> **A general fact underneath, so that nobody re-derives the alternative: CSS has no height query.** Any
+> "grow when the page is thin" rule must proxy content thinness by markup shape, and markup shape does
+> not track height — a links-only page 409 px tall has exactly the same two children as an almost-empty
+> one, because every button lives inside a single list element. That is a wrong mechanism rather than a
+> mistuned one.
+
 ### 6.3 Type
 
 **Type pairings resolve to system font stacks.** No webfonts — so no bytes and no embedding licence,
@@ -792,6 +1083,13 @@ binary. The file is bigger than the image it contains; the page is not slower.
 
 **Enforced by bounding the inputs, never by refusing to export.** A hard cap is the worst possible
 failure for this user — refusing would strand an owner from their own page.
+
+**The number that actually governs is not in the table above, and belongs beside it.** CI's chrome
+tripwire is **26 KB**, and the largest fixture's chrome already measures **24.04 KB** — about 15 KB of
+that being vendored SVG. So the real headroom is **1.42 KB** after §6.9's changes, not the ~25 KB the
+30 KB line implies. A spec whose numbers are both looser than the test's is a spec that invites the next
+contributor to spend headroom that is not there, which is exactly what happened once. **The next
+presentation idea is the one that breaks the build**, and it should learn that here rather than in CI.
 
 ### 6.6 Images and logos
 
@@ -916,6 +1214,43 @@ SC 3.1.1 is the criterion with a second half: `<html lang>` has to be **true**, 
 renderer's own eight words follow it rather than staying English underneath it (§2.5), and why the
 page declares `<html dir>` from the same tag.
 
+### 6.9 Presentation
+
+Three further decisions about how the page presents itself, priced against §6.5's real headroom. §6.2
+holds the fourth — centring a short page — because that one is about the column. Together they spend
+**555 B** and leave 1.42 KB.
+
+**The address underlines its street line only.** The whole block stays the directions link; the underline
+moves to the first line, at `text-underline-offset:0.18em` and `text-decoration-thickness:1px`. Today all
+three lines are underlined, which reads as three separate links, and the underline beneath a postcode
+collides with its descenders. This is the only option that acts on the finding as written — _separate the
+directions affordance from the address text_ — while staying inside §2.5, which forbids the ninth string
+a "Directions" label would need, and it kills both halves of the complaint at once. **Removing the
+underline entirely was rejected**: the pin glyph would leave colour as the sole indicator, and §6.8 is
+not negotiable.
+
+> It needs three `<span class="lp-line">` inside the existing `<span itemprop="address">`. The spans add
+> no text, so `textContent` is unchanged and §6.4's microdata still reads `12 Baker Street London NW1
+6XE`. **The build ticket asserts that**, because this is the one place a purely visual change touches
+> structured data.
+
+**The hours rows get more room, not less.** The grid's row gap goes `0.375rem` → `0.5rem`, growing a
+seven-row block from 204 px to 216 px. That is the opposite direction from relieving the repetition §2.3
+declined to collapse, and it is deliberate: seven identical rows read as a legible list rather than as
+noise, so the density lever went to legibility instead. §2.3 refused to save ~110 px; this spends 12 more.
+
+**The hours panel gets a clock glyph, and the gap it leaves is stated rather than papered over.** Icons
+are not words, so a glyph can name the panel where a heading could not (§2.5). **It names the panel to a
+sighted reader and changes nothing for a screen reader**: every glyph is `aria-hidden` by standing rule,
+and naming the panel to assistive technology needs a ninth string — a visually hidden word is still a word
+the renderer writes, and would still need translating across every vocabulary. §2.5 wins and **the
+accessibility gap stays open rather than being described as fixed.** The contact panel needs nothing; its
+rows already carry glyphs.
+
+**A derived vignette on the ground was measured and rejected as invisible.** In light mode it interpolates
+`#ffffff → #fdf7f8`; §3.2's ground tint is deliberately almost invisible, and a gradient drawn between
+that tint and its own surface inherits the invisibility.
+
 ---
 
 ## 7. The builder
@@ -977,6 +1312,39 @@ caller.
 
 Required fields missing from an imported file are collected here (§4.6) rather than reported.
 
+**One _question_ per screen, not one field per screen.** _When are you open?_ is one question whose
+answer happens to have seven parts, in the same way the link step is one question with several picks.
+That reading is what lets §7.10 keep the hours on a single screen, and it is written here so the rule is
+not read as forbidding it.
+
+**The flow shows no progress indicator, and the reason matters more than the fact.** There is no honest
+global count to show. On screen one the plan is one item long, so a total does not merely go unknown —
+**it does not exist yet**. After the preset the units are fixed at 7 to 10 depending on which preset. At
+the link step one screen per pick is appended as a contiguous run. The only honest global count is over
+_units_, and it would read `5 of 9` across four consecutive screens while the owner taps through that
+run: honest about topics, wrong about what the owner is counting, and a counter that sits still reads as
+broken. An unnumbered bar says nothing false in words and then has to either jump backwards as four picks
+enlarge the denominator, or be clamped — a lie told visually instead.
+
+**What the owner has instead is the page.** The step order _is_ §2.1's page order, so progress is legible
+as the artifact growing, which is the thing they came for. And the store is **write-through** — answers
+reach storage as they are given, not at the end — so closing the tab at screen four loses nothing, and
+reopening lands on the review list with the rest waiting as unticked rows. **The flow is not a gauntlet
+that has to be finished**, which is most of what a progress indicator is for.
+
+> **The limit, stated rather than buried.** That argument is strongest on a laptop, where §7.6 lets the
+> drawer sit open beside the question, and weakest on the phone §7.6 calls the primary case, where the
+> page is one tap away and not visible while answering. There it is the write-through store carrying the
+> decision rather than the preview. If this is ever revisited, that is the seam it will be revisited at.
+
+**The one count that is true is given.** Each screen in the link run keeps its title and gains one
+sentence — _"The second of four."_ — because there the count can neither stale nor jump: the picks are
+fixed the moment the links screen is answered, skipping one leaves the plan alone, and the run is
+contiguous. It costs no chrome, reusing the two-sentence hint §7.10 uses. **Collapsing the run into one
+screen** was licensed by the one-question reading above and rejected anyway: §7.3 says that tapping a
+button leads to a screen asking for its URL, so it is a spec change rather than a layout choice, and it
+trades four small asks that each carry their own escape for one tall screen.
+
 ### 7.3 Presets
 
 **Step one of the flow is _"What kind of business is this?"_** — not a gallery in front of it. A
@@ -1018,6 +1386,11 @@ subtitle — which is why those subtitles are load-bearing rather than decoratio
   who reach the same page have byte-identical files whether one took a preset and the other ticked
   boxes by hand.
 
+**§7.10's carry-down does not breach the no-defaulted-facts rule above, and it does not by
+construction.** Nothing carries until the owner has typed a first time, so the first day of the week is
+always their own and the screen still opens asserting no fact at all. What carries afterwards is the
+owner's own answer moved, and it says on screen where it came from.
+
 **Link buttons seed as a pick-list, never as pre-created rows.** One step asks _"which of these do you
 have?"_ over the preset's suggestions plus a free _something else_; tap one and the next screen asks
 for its URL. **A button exists only once it has a URL**, so nothing without a destination reaches the
@@ -1040,6 +1413,79 @@ Every answer is a row. The page sits beside it. Also on the list:
   the foot of that step**. Being last there means the owner has met the six controls before they meet
   the exit from them.
 - Any field defaulted during a version upgrade (§4.3) appears here as an ordinary row.
+
+**Arriving from a run says so, once.** _"Your page is ready. Look it over, then download it."_ — at the
+top of the list, on arrival from the flow, and never again. The list was never blank on arrival: it is
+headed with the owner's own business name, Download sits in the bar and the page is beside it. What was
+missing is that the owner has just answered ten questions and has never once been told what happens next,
+with §8's guidance living inside a sheet they have no reason to open. **It is held in memory rather than
+in the file** — no flag in `project.json`, and a reload simply lands on the list without it — because it
+belongs to the _transition_ and not to the list. A closing _step_ was rejected as a screen whose only
+content is an acknowledgement that has to be dismissed.
+
+> Recorded because it is easy to get wrong later: the line also fires for a run that began from a project
+> that already existed, where _your page is ready_ is not quite true. **No second line is added for that
+> case** — the row now showing its content is its own confirmation.
+
+**Three rows say what they control instead of describing it.**
+
+- **The colour row reads `● Raspberry · Centred · Light`**, and `● #5d4037 · Centred · Light` for a typed
+  colour. Three of the six controls rather than all six: the row's job is recognition, the page preview
+  sits beside it, and six parts is an inventory that wraps on the screen §7.6 calls the primary case. The
+  dot carries the colour for anyone who can see it and the name carries it for anyone who cannot, so the
+  dot is decorative and takes no accessible name of its own. **The swatch grid stays a grid** — the name
+  appears once, under it, for the colour chosen (_Your colour: Raspberry_), with every swatch carrying its
+  name as its accessible name, so a screen reader hears twelve names rather than twelve codes. Twelve
+  labelled rows would turn a compact field into a long list, and an owner hunting for their green scans
+  colours rather than words. Announcing without showing was rejected: the owner would meet _Raspberry_ for
+  the first time in the review row, with nothing on the screen where they chose it to say where the word
+  came from.
+- **The page-language row becomes a picker that shows the words it picks** — each language labelled in its
+  own language, showing the abbreviations it produces: _English · Mon Tue Wed · Closed_, _Cymraeg · Llun
+  Maw Mer · Ar gau_. **The control demonstrates its consequence instead of describing it.** Today it asks
+  a bakery owner for a BCP 47 tag, on a product whose standing tiebreaker is that the owner is not a
+  developer. **A quiet "or type a code" escape stays**, and not as a nicety: §4.5 preserves unknown values,
+  so a hand-edited file declaring `sw` — English words, correct tag, a perfectly sensible state — must be
+  displayable without the control silently rewriting it to `en`.
+- **The hours row shows the times**, uncollapsed, for §2.3's reason: the preview sits beside it.
+
+**A row whose value we cannot use is marked** — a quiet note that this one will not work, in §7.9's words.
+Editing the row opens the same question, with the same message.
+
+**The exact-colour field stops teaching notation.** Its example moves out of the hint and into the
+placeholder, so it stops being instruction, and **the hint names who the field is for** — _"From a
+designer or a brand guide."_ An owner handed a code by their designer needs that code to be the least
+ambiguous thing on the screen, and it still is.
+
+**The builder's visual language is _paper_** — a warm off-white ground, one ink, hairline rules, and
+**structure from space rather than from containers**. Nothing is elevated, nothing is carded, and type is
+the only decoration. It was judged on two screens rather than one, because a design vocabulary is only
+judged where it repeats: of three directions drawn, it was the only one that does not look like software,
+which is this product's whole pitch, and the only one that **holds a long summary without truncating** —
+a carded direction clipped the hours row, colliding directly with the row decisions above. §7.1 calls the
+flow and the list the same product at two moments, so they share it, and the migration to it happens in
+one pass rather than screen by screen: a half-migrated tree contradicts §7.1 visibly for as long as it
+runs.
+
+**No dark mode in the builder, and not on cost.** It is one variant and it works. **The builder is a
+viewing booth for the owner's page, and a dark surround changes how a colour reads** — §3.3 guarantees the
+page's readability and §3.1 makes light or dark the owner's own choice, so the tool must not tint the
+decision they are in the middle of making. A toggle would also be a seventh control on a product that
+closed its styling set at six, and one the owner would first have to understand is about the _tool_ rather
+than the _page_.
+
+**Controls are React components, not repeated utility strings and not `@apply`.** The `Field` seam already
+exists — every labelled control routes through it — and §7.9's message slot is written once in a component
+against fourteen times in class lists. `@apply` rebuilds the indirection utilities exist to remove: a
+class whose meaning lives in another file.
+
+**The builder's appearance has no standing regression suite, deliberately.** This is recorded as a
+position because the obvious reading is that one went missing, and it never existed: the screenshot script
+is run by hand and never by CI, and the end-to-end test asserts that a download happens. A
+screenshot-diffing suite was rejected as precisely the flaky instrument this repo already refuses by
+setting `retries: 0` — a dozen images diffed per push, failing on font hinting and antialiasing, is that
+test a dozen times over. **The builder's look is checked by people, on purpose**, with a deliberate
+before-and-after set captured for the review of any change that moves it.
 
 ### 7.5 Link buttons: arrows, and a marked top slot
 
@@ -1069,6 +1515,9 @@ What this deliberately gives up: on a narrow screen you cannot watch the page ch
 Being one tap from the page is close enough, and pretending otherwise is what forces a desktop-only
 builder.
 
+**The one width at which the drawer opens beside the question is a single token** (§5.1), not a number
+agreed by hand between two stylesheets — which is what it was, and what let them drift.
+
 **The preview is phone-shaped only.** The exported page is a single narrow column, so a "see it on a
 laptop" toggle would show the identical page with more whitespace: a control that costs UI and teaches
 nothing.
@@ -1092,6 +1541,26 @@ against is not two confusing downloads — it is that **the owner never download
 all.** localStorage is not durable: cleared caches, a new phone, a browser reinstall. If the project
 file is tucked away, most owners never meet it and _you own your file_ quietly becomes false. The
 Download sheet is the one place they reliably go.
+
+**When something the owner typed cannot be used, the sheet says so — conditionally, and in the first
+section.** It sits under that section's own sentence and above §8's guidance, because it is about the
+page, and because the last moment before publishing is when it is worth mentioning. **When nothing is
+wrong the sheet is byte for byte the calm screen above**, and that is the constraint on implementing it.
+
+**At most two lines, and they cannot become a list.** §7.9 gives the phone its own sentence and puts all
+three URL fields under one, so two distinct warnings is the ceiling and a third is unreachable. Each names
+its own field, because away from its row the sentence has no referent:
+
+> **Order online** won't work — paste the address from your browser.
+> **Your phone number** won't dial — add the number in digits if you want it tappable.
+
+No count, no lead-in sentence and no icon. A line reading _2 problems_ is a diagnosis in our own
+vocabulary, which §7.9 bans.
+
+The objection was weighed rather than waved past: the _changed since you downloaded_ badge this section
+rejects below was turned down for nagging a screen this design keeps calm. **The distinction is that the badge fired for everyone,
+always, about a state that is normal and unfixable**, where this fires rarely, only when something is
+genuinely broken, and is actionable.
 
 Two adjacent buttons on the list was rejected as the worst version of the two-files problem: the whole
 distinction would rest on two short labels read at a glance, with no room for the sentence that
@@ -1141,7 +1610,13 @@ project either: same preservation without consent.
 
 ### 7.9 Where failures appear
 
-**In place, attached to the control that opened the picker. Never a modal, never a navigation.**
+**Two kinds of failure, one posture.** A file that cannot be opened, and a value the owner typed that we
+cannot use. Both appear **in place, never as a modal and never as a navigation** — the first half below
+is the import case, the second the typing case, and they share that rule and nothing else.
+
+#### When a file cannot be opened
+
+**In place, attached to the control that opened the picker.**
 
 The existing project is untouched when an import fails (§4.6), so there is nothing to restore. And
 _try a different file_ is overwhelmingly the next action — they grabbed the wrong download, or picked
@@ -1151,6 +1626,176 @@ re-open the picker_; in place makes it _pick again_.
 - **First screen** — the message appears under the quiet line, the preset question above it untouched.
 - **The list's menu** — the message appears in the menu's own surface, the project intact behind it.
 - **Missing required fields produce no error surface at all** (§4.6).
+
+#### When the owner types something we cannot use
+
+Five fields carry a derived machine target (§2.3), and sometimes no target can be derived. **The tool
+mends what it can, says nothing when it succeeds, and never stops the owner — but what it cannot use
+leaves a mark that outlives the screen.**
+
+**1. It never blocks.** `Continue` keeps its single existing meaning — _you haven't answered yet_ — and
+nothing about the _shape_ of an answer can take it away. §3.3 already committed to report-never-block for
+contrast, which is the one thing that can genuinely make a page unreadable; it would be strange to hold a
+phone number to a stricter standard than legibility. **The deciding asymmetry is that our rules go stale
+and the owner's phone number does not.** A number we wrongly judge unusable would, if it blocked, lock an
+owner out of publishing their own page — a failure with no recovery inside the product. A value we
+wrongly _accept_ costs one broken button, which decisions 5 and 6 then catch.
+
+> **Immediate consequence for the colour screen**, today the only screen that blocks on shape: the half
+> of its condition that watches the hex box goes. As it stands, picking a swatch and then typing junk into
+> the box kills `Continue` even though a perfectly good answer is selected. Under this rule `Continue`
+> depends only on whether an answer exists; junk in the box is ignored, the swatch stands, and the message
+> explains why the typing had no effect.
+
+**2. It speaks on leaving the field, or on `Continue` for a field never left.** Both are needed, because a
+one-question-per-screen flow often has no blur before the button. It is **silent while the owner is first
+typing**, and once it has spoken it re-checks live, so it disappears the moment the value becomes usable.
+Late to speak, quick to stop. The colour box today is the counter-example and an instructive one: it
+re-judges every keystroke, so typing `#` already tells the owner they have failed before they have
+finished trying.
+
+**3. It sits below the control, and the hint stays.** `Field` becomes label → hint → message, with the
+message **joining** the hint in `aria-describedby` rather than replacing it. Below the control, because
+that is where the eye already is; the hint stays, because a hint is frequently _the fix_, and deleting it
+at the moment of complaint is the worst possible timing. One optional line per field, with no layout
+reserved when it is absent. That is the component §7.4's component layer is built around.
+
+**4. A successful mend is silent.** Nobody is told that the spaces in their phone number were stripped, or
+that a scheme was added to a bare domain, and nobody has missed being told. This is what keeps the surface
+rare enough to mean anything: typing a bare domain is normal, so announcing every mend would fire
+constantly on input that was fine — teaching the owner a concept solely so that they can learn to ignore
+it. **The message is reserved for input we genuinely cannot make a target from.**
+
+**5. What cannot be used is marked in two places that outlive the screen** — the review-list row (§7.4)
+and, conditionally, the Download sheet (§7.7). This is the decision that stops _never blocks_ from meaning
+_never notices_.
+
+**6. Consequence first, then the fix.** One sentence pattern, because decision 5 puts the same idea in
+more than one place and three voices would read as three problems. **Banned throughout: _invalid_,
+_format_, _valid_, and any other word that names our diagnosis rather than the owner's situation.**
+
+| Field                         | Sentence                                                                            |
+| ----------------------------- | ----------------------------------------------------------------------------------- |
+| A link button's URL           | _"**This button won't work** — paste the address from your browser."_               |
+| `directionsUrl`, a social URL | _"**This link won't work** — paste the address from your browser."_                 |
+| Phone                         | _"**Tapping this won't dial** — add the number in digits if you want it tappable."_ |
+| A time (§7.10)                | _"**This time won't reach your page** — try 5:30pm."_                               |
+
+**One noun of variation, not a second voice.** Directions and social are not buttons, so calling them one
+would be untrue. **Phone gets its own sentence because nothing is broken** — a vanity number, an extension
+or a second number is deliberate and correct, and _this button won't work_ would be a false claim about
+it. What justifies marking it at all is that **the contact screen's hint already promises** _"they become
+a tap-to-call and a tap-to-email link"_: the message corrects a promise the screen made rather than
+volunteering a diagnosis, and the copy must not read as though the tool has found a mistake.
+
+**No pre-emptive hint on a field merely because it can carry a message.** If every case the message covers
+also gets a hint, decision 4's rarity argument is gone and the message stops meaning anything.
+
+**A time is the one field where nothing outlives the screen**, and that asymmetry is deliberate — §7.10
+gives the reason.
+
+### 7.10 The hours screen
+
+**Seven days stay, made short, and the times carry down wearing where they came from.** This is one
+question with seven parts, not seven questions (§7.2).
+
+- **Each day is one line**: the day, then a segmented control showing all three of §2.3's states at once —
+  **`Open · Closed · Not shown`**. There is no `<select>`. Three states that need no opening is what makes
+  a closed or an unshown day cost a line rather than a block.
+- **`Not shown` names the consequence rather than our vocabulary**, because the consequence is a deletion.
+  An unspecified day gets no row on the exported page at all, so a customer cannot tell it from a closed
+  one. §2.3 leaves the page's silence alone — there it is §7.3 working correctly — but the control has to
+  make clear that this third state **removes the day from the page**, which is a stronger requirement than
+  merely giving the state a readable name.
+- **Opening a day that holds nothing takes the last times the owner typed**, and **says so**: _"Same as
+  Mon — change it below if it isn't."_ The line survives until the owner touches that day's times, and
+  then goes, because touching it makes the answer theirs again. A day that already holds times keeps them:
+  reopening is never a reason to overwrite an answer.
+- **Explicit bulk survives alongside the carry**, as _Copy these times… → to weekdays / to every day_, from
+  a day already filled in. The carry is the implicit path and the copy the deliberate one; they are not
+  redundant, and the third errand below is why.
+- **Entry does not acknowledge hours past midnight**, deliberately. `20:00–02:00` is enterable and renders
+  literally, so a control would only add a name for something that already works — vocabulary the owner
+  must learn in order to dismiss, which is what §7.9's banned words guard against from the other side. An
+  owner who wants to explain it has the free-text note (§2.3).
+
+> **Marked rather than silent was the real §7.3 call.** A carried time is not a default — it is the
+> owner's own answer, moved. But **§7.3's teeth are in _never notices_, not in whose value it was**: tap
+> _Open_ on Thursday on the way to _Closed_, tap away, and a silent carry has published 9–5 on a day the
+> business meant to shut. The line costs 77 px across a full week, and is the cheapest thing on the screen
+> to ignore once it is true.
+>
+> **The measurements are the argument, so they are recorded.** Today's screen is **1516 px tall on an
+> 844 px viewport**, with `Continue` below all of it, and `Mon–Fri 9–5` costs **15 interactions**. Density
+> alone takes 1504 px to 1363 px and stops, **because the height was never the day rows** — five open days
+> cost five time rows, and compressing the day rows cannot touch them. So the carry, not the layout, is
+> what buys anything; and it buys it on the week no _copy_ can help. Mon–Thu 9–5, Fri 9–9, Sat 10–4 goes
+> from about 60 keystrokes to about 25.
+>
+> **Two shapes that lost are worth naming.** A statement list whose unit is a _span of days_ rather than a
+> day was strongest on every number, because there a lunch closure is simply a second sentence; it lost on
+> judgement of the whole and is the one to revisit if this is ever reopened. A shape with one shared
+> open/close pair won the easy week outright and then collapsed on a restaurant open 11–2 _and_ 5–9,
+> because a single shared pair is exactly what a second interval cannot use.
+
+#### The time control is ours, not the browser's
+
+**`<input type="time">` is replaced by a text box that takes a time the way an owner would say it** — `9`,
+`930`, `9:30`, `9.30`, `9am`, `9:30 pm`, `17:00` — and reads the stored time back.
+
+**The argument is speed, not the clock.** The clock mismatch is the prettiest reason and the weakest:
+storage is 24-hour either way (§2.3) and the page is always right, so an owner reading `17:00` back from a
+page that says `5:00 pm` has friction rather than a wrong fact. What decided it is that the native picker
+costs about five presses against one for a typed `9`, on the screen this section has just spent its whole
+budget making cheaper — and that a browser clipping `10:00 AM` to `0:00 AM` at a phone width **cannot be
+fixed while the control is the browser's**. The clock alignment then arrives free, which is the right
+order to hold these reasons in.
+
+> **The cheap way out was checked first and does not exist.** The page's `lang` has no influence on how the
+> native control renders; the browser's own locale governs it entirely. The same document containing
+> `<input type="time" value="14:30">` shows `02:30 PM` under one browser locale and `14:30` under another.
+> Declaring the page's convention and letting the control conform was never available.
+
+**The box rewrites what was typed** — `9am` becomes `9:00 AM`, or `09:00` if the owner has set _How times
+read_ to 24-hour. **This is the one place §2.3's _mend the target, never the text_ does not reach, and the
+difference is worth stating rather than assuming.** Phone, email and the URLs are the owner's text plus a
+derived target, so the text is protected and the target is mended quietly. **A time has no text**: §2.3
+stores only `"HH:MM"` and the page prints it through `clock`, so the stored value _is_ the derived target
+and the box is a view of it. There is nothing of the owner's to preserve, and the rewrite is the cheapest
+confirmation that we understood them. §7.9's _a successful mend is silent_ still holds — a rewritten box is
+not an announcement.
+
+**What the box accepts is short because its vocabulary is the page's**: digits, a separator, and `am`/`pm`.
+**Not `noon`, not `midnight`** — the page will never print either word back (§2.5), so they would be a
+kindness only English speakers can reach, for a convention the page does not have.
+
+**An unreadable time is said and then dropped, and nothing outlives the screen.** §7.9's line on leaving the
+field and again on `Continue`, blocking nothing; then the value is simply not stored. **This is the one
+field where §7.9's mark does not extend past the screen, and that is deliberate.** The other four store the
+owner's text, so the page carries it and only the machine target is missing — the mark can be re-derived
+from the file forever. A refused time never enters the file at all, so carrying a mark would mean storing a
+value that is not page content and never will be: a §4.8 schema change that no other field asks for, and one
+that inverts §4.4's whole posture.
+
+> **The renderer's existing rule is what makes this safe**, and it is load-bearing rather than incidental:
+> an open day whose intervals all fail to parse **drops back to unspecified** rather than surviving as
+> present-and-empty, which §2.3 would print as _Closed_. So an unreadable time can never publish "we're
+> shut" on a day the business is open. **The known cost is that a lost second interval of a split shift is
+> far less visible than a lost day**, and that should not have to be discovered again later.
+
+**The convention is taught once**, as a second sentence in the hint the screen already has: _"Type times how
+you'd say them. Leave a day alone if you'd rather not say."_ Zero new chrome on the screen this section has
+just spent its budget shortening, and the convention taught once rather than fourteen times. Placeholders
+stay as a quiet second example and are not carrying the teaching on their own.
+
+**Costs taken knowingly.** We own a parser from here on. We lose the free accessibility and free
+localisation of the entry convention. And **iOS loses its drum-roll picker** — genuinely good under a thumb,
+the single biggest thing given up here, and still unjudged on a real phone (§11).
+
+> **Sequencing worth knowing:** on a first run the owner enters every time _before_ they have ever seen _How
+> times read_, which lives at the foot of the review list's How-it-looks step and appears only once there
+> are hours to read. So the first echo is always the seeded default (§4.1), and it can change under them
+> later. Accepted — it changes a display, never a fact.
 
 ---
 
@@ -1252,23 +1897,36 @@ one, by someone who wants to run it — not smuggled into a free static tool as 
 
 Ruled out on purpose. The first contributor to ask "why not?" has a written answer here.
 
-| Not doing                                   | Why                                                                                                                                          |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Click analytics, visitor tracking**       | Needs a backend to record events. Whether a paste-your-own-snippet field is acceptable is deliberately left undecided rather than pulled in. |
-| **Contact and lead-capture forms**          | A form POST needs a server. `mailto:` and `tel:` links in the contact section are the substitute.                                            |
-| **Custom domain setup**                     | DNS is owned by whichever host the owner picks, not by an export tool. May survive only as a link in the walkthrough.                        |
-| **Multi-page sites**                        | This is the line between a link page and a website builder. One page, one file, one export.                                                  |
-| **Reordering sections**                     | §2.1. Additive later if ever wanted.                                                                                                         |
-| **Drag-and-drop button reordering**         | §7.5.                                                                                                                                        |
-| **A "featured" link flag**                  | §2.3 — position is the emphasis mechanism.                                                                                                   |
-| **An announcement banner**                  | §2.2 — the update model is wrong for time-sensitive content.                                                                                 |
-| **Icon or image uploads for links**         | §2.4.                                                                                                                                        |
-| **Publishing on the owner's behalf**        | Constraint 6. There is no backend to publish from.                                                                                           |
-| **Tracking whether the file was uploaded**  | §7.7.                                                                                                                                        |
-| **Editing directly on the previewed page**  | §5.2 — it costs the preview-is-the-export guarantee.                                                                                         |
-| **WebP / AVIF export**                      | §6.6.                                                                                                                                        |
-| **Round-trip payload in the exported HTML** | §6.7.                                                                                                                                        |
-| **Publishing the renderer to npm**          | Not in v1.                                                                                                                                   |
+| Not doing                                              | Why                                                                                                                                          |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Click analytics, visitor tracking**                  | Needs a backend to record events. Whether a paste-your-own-snippet field is acceptable is deliberately left undecided rather than pulled in. |
+| **Contact and lead-capture forms**                     | A form POST needs a server. `mailto:` and `tel:` links in the contact section are the substitute.                                            |
+| **Custom domain setup**                                | DNS is owned by whichever host the owner picks, not by an export tool. May survive only as a link in the walkthrough.                        |
+| **Multi-page sites**                                   | This is the line between a link page and a website builder. One page, one file, one export.                                                  |
+| **Reordering sections**                                | §2.1. Additive later if ever wanted.                                                                                                         |
+| **Drag-and-drop button reordering**                    | §7.5.                                                                                                                                        |
+| **A "featured" link flag**                             | §2.3 — position is the emphasis mechanism.                                                                                                   |
+| **An announcement banner**                             | §2.2 — the update model is wrong for time-sensitive content.                                                                                 |
+| **Icon or image uploads for links**                    | §2.4.                                                                                                                                        |
+| **Publishing on the owner's behalf**                   | Constraint 6. There is no backend to publish from.                                                                                           |
+| **Tracking whether the file was uploaded**             | §7.7.                                                                                                                                        |
+| **Editing directly on the previewed page**             | §5.2 — it costs the preview-is-the-export guarantee.                                                                                         |
+| **WebP / AVIF export**                                 | §6.6.                                                                                                                                        |
+| **Round-trip payload in the exported HTML**            | §6.7.                                                                                                                                        |
+| **Publishing the renderer to npm**                     | Not in v1.                                                                                                                                   |
+| **Collapsing "Mon–Fri" on the page**                   | §2.3 — refused on the absence of a complaint, not on difficulty. The dispatching rule is recorded there.                                     |
+| **A progress indicator in the flow**                   | §7.2 — no honest global count exists; the page is the progress display.                                                                      |
+| **Blocking `Continue` on the shape of an answer**      | §7.9 — our rules go stale and the owner's phone number does not.                                                                             |
+| **Learning, inferring or asking the owner's country**  | §2.3 — it would make a wrong `lang` region harmful, where §4.1 keeps it harmless.                                                            |
+| **A phone-number mask, or a phone-metadata library**   | §2.3 — the mask rewrites the owner's text; the library needs the country we declined.                                                        |
+| **Turning a social handle into a URL**                 | §2.3 — _handle_ is not one concept, and a template table goes stale silently.                                                                |
+| **Computing a name for the owner's colour**            | §3.1 — naming their brand is a claim we cannot check.                                                                                        |
+| **Asking the owner for the page's language**           | §4.1 — a screen spent on a consequence the owner cannot predict.                                                                             |
+| **`<input type="time">` in the builder**               | §7.10 — five presses against one, and a clipping bug we cannot reach.                                                                        |
+| **Tailwind, or any CSS toolchain, in the renderer**    | §5.1 — the export's CSS is derived per project, and §6.7 must not depend on a third party's output ordering.                                 |
+| **Dark mode in the builder**                           | §7.4 — a dark surround changes how the owner's colour reads.                                                                                 |
+| **A standing visual-regression suite for the builder** | §7.4 — precisely the flaky instrument `retries: 0` already refuses.                                                                          |
+| **A heading on the exported hours panel**              | §6.9 — it would be a ninth string (§2.5); the glyph names it for sighted readers and the gap is left open.                                   |
 
 ---
 
@@ -1424,7 +2082,27 @@ person stops looking.
    > this is the one guard here that costs something on every upload: a full pixel read-back per
    > draw, which is also item 4's territory.
 
-6. **The final icon and social-platform lists.** ~~The mechanism is decided (§2.4); the contents are
+6. **Whether `svh` behaves as reasoned on a real phone.** §6.2 centres a short page with
+   `min-height:100svh` specifically so that the content does not recentre when a mobile URL bar hides.
+   Headless Chromium reports `svh`, `dvh` and `lvh` as equal, so the choice between them **cannot be
+   demonstrated here at all**. It is one glance at one page on one real phone, and it is the first thing
+   that phone should do.
+
+7. **What a real phone says about the decisions §7.10 already took.** Every measurement behind §7.10 and
+   §7.2 is Chromium at a phone viewport, which is not a phone. Three things need a finger and an iOS
+   Safari rather than a viewport:
+
+   - **The typed time box under a thumb and an iOS keyboard.** §7.10 replaced the native control, so
+     **iOS's drum-roll picker is not a thing we are choosing between — it is a thing we have decided to
+     give up unseen.** That is the largest untested consequence in this document.
+   - **The segmented three-state control at finger accuracy.** Three targets on one line, on the screen
+     §7.10 spent its whole budget shortening.
+   - **The native pickers generally**, which is where a viewport-only walk is weakest.
+
+   Recorded as one item rather than as a checklist against each decision, because it is one sitting with a
+   device, and because none of it changes a decision above — each could change a constant or a control.
+
+8. **The final icon and social-platform lists.** ~~The mechanism is decided (§2.4); the contents are
    transcription.~~ **Settled** — both lists are enumerated in §2.4, along with the membership rule
    that keeps them honest: a glyph earns its place only by serving a preset suggestion in §7.3, and
    that is asserted in both directions, so an unserved suggestion and an unused glyph each fail the
@@ -1435,8 +2113,14 @@ person stops looking.
 ## 12. Provenance
 
 Every decision in this document was made in a wayfinder effort recorded on this repository's issue
-tracker. The [map](../../issues/1) indexes them, and each decision's full reasoning — including the
-options rejected and why — lives on its own closed issue. Where this spec says "was rejected", the
-argument is there.
+tracker, and each decision's full reasoning — including the options rejected and why — lives on its own
+closed issue. Where this spec says "was rejected", the argument is there.
 
-This document is the destination of that effort. Implementation is a separate effort that starts here.
+- **[Map: linkpage v1 spec and scaffolded repo](../../issues/1)** produced this document.
+- **[Map: the version after beta — polish the builder and the page](../../issues/76)** amended it, after
+  `v0.9.0-beta` was released and the built product was walked. Its thirteen decisions are what changed
+  §2.3, §2.5, §3.1, §3.2, §3.3, §4.1, §5.1, §5.3, §6.2, §6.5, §6.9, §7.2, §7.3, §7.4, §7.6, §7.7, §7.9,
+  §7.10, §9 and §11 — including two places where **this document was found to be claiming more than was
+  true**, and says so in place rather than quietly correcting itself.
+
+This document is the destination of both efforts. Implementation is a separate effort that starts here.

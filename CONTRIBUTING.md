@@ -132,9 +132,15 @@ CI runs it as a separate job on one Node version, so the Node 24/26 matrix keeps
 retry to be green, fix it or delete it — a flaky browser test costs more than the guarantee it
 nominally protects, because every future change starts by suspecting itself.
 
-## Translations — the one place we actively want to be corrected
+## Hand-authored words — the places we actively want to be corrected
 
-The exported page writes exactly eight words of its own: the seven weekday abbreviations and
+Two tables in this project are hand-authored, checkable only by a person looking at them, and
+explicitly provisional: the words the exported page writes, and the names we give our own
+colours. Both invite correction on the same terms.
+
+### The words the exported page writes
+
+The exported page writes eight translatable words of its own: the seven weekday abbreviations and
 the word for a closed day. Everything else on it is the owner's text. Those eight live in
 `packages/renderer/src/locale.ts`, keyed by language tag, and they are vendored rather than
 produced by `Intl` — see SPEC.md §2.5 for why, and please read that before proposing `Intl`.
@@ -154,6 +160,28 @@ language. So:
 - **A language that is not in the table renders English**, deliberately. A visible limitation
   beats a guess — the wrong word in the owner's own language is worse than the honest foreign
   one.
+
+`AM` and `PM` are the exception and are deliberately English on every page — SPEC.md §2.5 gives
+the reason, which is CLDR's own data rather than convenience. Please read it before proposing a
+translation for them.
+
+### The names of the twelve colours
+
+The builder's colour field names its twelve swatches — _Crimson, Raspberry, Grape, Violet,
+Cobalt, Teal, Forest, Olive, Amber, Rust, Cocoa, Slate_ — and quotes a hex the owner typed back
+as a hex (SPEC.md §3.1). **These names have the same status as the closed word above.** There is
+no database of what a colour is called, so each one is hand-authored, and the only way to check
+it is for someone to look at the swatch and disagree.
+
+- **If a name is wrong for the colour it sits on, please open a PR.** "That is not raspberry" is
+  sufficient justification, exactly as with the closed word.
+- **A name is never a schema change.** The names never reach `project.json`, which stores the
+  hex, so changing one is not a version bump (SPEC.md §4.2).
+- **Names are builder chrome and are not translated.** The builder has no localisation layer;
+  `lang` belongs to the exported page. A swatch name sits with _Corner softness_, not with the
+  eight words above.
+- **Please do not propose computing them from the hex.** It was built and measured before being
+  rejected, and SPEC.md §3.1 records why: brown, pink and navy are not hue bands.
 
 ## Proposing a change
 
