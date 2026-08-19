@@ -56,7 +56,7 @@ function editing(
 }
 
 const rowIds = (): string[] =>
-  [...document.querySelectorAll(".list__row")].map((row) => row.getAttribute("data-row") ?? "");
+  [...document.querySelectorAll("[data-row]")].map((row) => row.getAttribute("data-row") ?? "");
 
 const openRow = (name: RegExp): void => {
   fireEvent.click(screen.getByRole("button", { name, expanded: false }));
@@ -138,9 +138,11 @@ describe("the link buttons (§7.5)", () => {
     editing();
     openRow(/^Link buttons/);
 
-    const marks = document.querySelectorAll(".buttons__mark");
+    const marks = document.querySelectorAll("[data-mark]");
     expect(marks).toHaveLength(1);
-    expect(document.querySelectorAll(".buttons__row")[0]?.contains(marks[0] ?? null)).toBe(true);
+    expect(document.querySelectorAll("[data-button-row]")[0]?.contains(marks[0] ?? null)).toBe(
+      true,
+    );
     expect(marks[0]?.textContent).toMatch(/most people will tap/i);
   });
 
@@ -152,7 +154,7 @@ describe("the link buttons (§7.5)", () => {
 
     expect(latest()?.links.map((link) => link.label)).toEqual(["Order for pickup", "See the menu"]);
     // The mark follows the top slot, because the mark *is* the top slot (§2.3).
-    expect(document.querySelectorAll(".buttons__row")[0]?.textContent).toContain(
+    expect(document.querySelectorAll("[data-button-row]")[0]?.textContent).toContain(
       "Most people will tap this one",
     );
     expect(document.querySelectorAll("[draggable='true']")).toHaveLength(0);
@@ -206,8 +208,8 @@ describe("how it looks (§3.1, §3.4)", () => {
     expect(screen.getByLabelText(/Corner softness/)).toBeTruthy();
 
     // Last, so the owner meets the six controls before they meet the exit from them (§7.4).
-    const step = document.querySelector(".style-step");
-    expect(step?.lastElementChild?.className).toBe("advanced");
+    const step = document.querySelector("[data-style-step]");
+    expect(step?.lastElementChild?.hasAttribute("data-advanced")).toBe(true);
   });
 
   it("writes a control straight through, because the page is the feedback", () => {
@@ -238,7 +240,7 @@ describe("how it looks (§3.1, §3.4)", () => {
     fireEvent.change(screen.getByLabelText("Body text"), { target: { value: "#ffffff" } });
     fireEvent.change(screen.getByLabelText("Page background"), { target: { value: "#ffffff" } });
 
-    expect(document.querySelector(".advanced__readings")?.textContent).toContain("1.0:1");
+    expect(document.querySelector("[data-readings]")?.textContent).toContain("1.0:1");
     // No refusal, no auto-correction, no export gate.
     expect(screen.getByRole("button", { name: "Download" })).toHaveProperty("disabled", false);
     expect(screen.queryAllByRole("alert")).toEqual([]);
@@ -281,7 +283,7 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
 
     // The OS picker takes the screen while it is up and the menu can be dismissed underneath it,
     // which would leave the confirmation correct and invisible. So the surface opens itself.
-    const panel = document.querySelector(".list__menu-panel") as HTMLElement;
+    const panel = document.querySelector("[data-menu-panel]") as HTMLElement;
     expect(panel.hidden).toBe(false);
     expect(panel.textContent).toContain("Opening this file will replace it.");
     // In place, with the project intact behind it — never a modal (§7.9).

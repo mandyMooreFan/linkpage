@@ -1523,7 +1523,13 @@ is run by hand and never by CI, and the end-to-end test asserts that a download 
 screenshot-diffing suite was rejected as precisely the flaky instrument this repo already refuses by
 setting `retries: 0` — a dozen images diffed per push, failing on font hinting and antialiasing, is that
 test a dozen times over. **The builder's look is checked by people, on purpose**, with a deliberate
-before-and-after set captured for the review of any change that moves it.
+before-and-after set captured for the review of any change that moves it — `scripts/review-shots.mjs`
+produces it, every screen at both of §7.6's sizes, and nothing it writes fails a build.
+
+**The tool's own markup carries `data-*` hooks where a test needs to name a thing it cannot reach by
+role.** Utilities are styling and may change with the design; a hook is a contract and does not. This is
+what stopped the migration from turning the test suite into a second copy of the stylesheet, and it
+follows the convention the refusal notice already used.
 
 ### 7.5 Link buttons: arrows, and a marked top slot
 

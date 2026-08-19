@@ -69,7 +69,7 @@ export function StyleStep({ draft, onChange }: StyleStepProps): JSX.Element {
   const hours = draft.hours;
 
   return (
-    <div className="style-step">
+    <div className="mt-4 flex flex-col gap-6" data-style-step>
       <ColourControl
         label="Your main colour"
         hint="Everything else on the page is worked out from it."
@@ -102,7 +102,7 @@ export function StyleStep({ draft, onChange }: StyleStepProps): JSX.Element {
       <Field label="Corner softness" hint="Sharp on the left, rounded on the right.">
         <input
           type="range"
-          className="style-step__slider"
+          className="tap w-full"
           min={0}
           max={1}
           step={0.05}
@@ -165,16 +165,16 @@ function ColourControl({
   const groupId = useId();
 
   return (
-    <fieldset className="style-step__group">
+    <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
       <legend className="field__label">{label}</legend>
       <p className="field__hint">{hint}</p>
 
-      <ul className="swatches">
+      <ul className="m-0 flex list-none flex-row flex-wrap gap-3 p-0">
         {BRAND_SWATCHES.map((colour) => (
           <li key={colour}>
             <button
               type="button"
-              className="swatches__swatch"
+              className="size-12 rounded-full border border-rule aria-pressed:outline-2 aria-pressed:outline-offset-2 aria-pressed:outline-ink"
               style={{ background: colour }}
               aria-label={colour}
               aria-pressed={value.toLowerCase() === colour}
@@ -192,7 +192,7 @@ function ColourControl({
         <input
           id={groupId}
           type="text"
-          className="input"
+          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           value={typed}
           spellCheck={false}
           autoCapitalize="none"
@@ -237,11 +237,11 @@ function Choice<T extends string>({
   const name = useId();
 
   return (
-    <fieldset className="style-step__group">
+    <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
       <legend className="field__label">{legend}</legend>
-      <div className="style-step__choices">
+      <div className="flex flex-wrap gap-3">
         {options.map(([option, label]) => (
-          <label key={option} className="style-step__choice">
+          <label key={option} className="tap flex items-center gap-1.5">
             <input
               type="radio"
               name={name}

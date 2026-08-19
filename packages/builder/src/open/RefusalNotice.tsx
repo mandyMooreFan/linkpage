@@ -1,6 +1,5 @@
 import type { JSX } from "react";
 import type { Refusal } from "../project/index.js";
-import "./open.css";
 
 /**
  * A refused file, said out loud. `SPEC.md` §7.9, §4.6.
@@ -32,13 +31,13 @@ export interface RefusalNoticeProps {
 
 export function RefusalNotice({ refusal }: RefusalNoticeProps): JSX.Element {
   return (
-    <div className="refusal" role="alert" data-refusal={refusal.reason}>
-      <p className="refusal__message">
+    <div className="font-sans" role="alert" data-refusal={refusal.reason}>
+      <p className="m-0" data-refusal-message>
         {refusal.message}
         {refusal.url !== undefined && (
           <>
             {" — "}
-            <a className="refusal__link" href={refusal.url}>
+            <a className="underline" href={refusal.url}>
               {refusal.url}
             </a>
           </>
@@ -49,9 +48,11 @@ export function RefusalNotice({ refusal }: RefusalNoticeProps): JSX.Element {
        * It exists so that the person who opened the file in a text editor and broke it has
        * somewhere to look, without the message above having to be written for them.
        */}
-      <details className="refusal__detail">
-        <summary className="refusal__summary">Technical detail</summary>
-        <p className="refusal__text">{refusal.detail}</p>
+      <details className="mt-2 text-sm text-ink-quiet">
+        <summary className="cursor-pointer">Technical detail</summary>
+        <p className="mt-1 [overflow-wrap:anywhere]" data-refusal-text>
+          {refusal.detail}
+        </p>
       </details>
     </div>
   );

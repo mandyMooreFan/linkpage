@@ -1,3 +1,4 @@
+import { Button } from "../../ui/Button.js";
 import {
   cloneElement,
   createContext,
@@ -104,13 +105,13 @@ export function Question({
   const shell = useContext(ShellContext);
 
   return (
-    <section className="question">
+    <section className="font-serif">
       {/*
        * A form, so Enter submits — the owner typing a business name should not have to find a
        * button. `noValidate` because the browser's own bubbles are the modal §7.9 rules out.
        */}
       <form
-        className="question__form"
+        className="flex flex-col gap-4"
         noValidate
         onSubmit={(event) => {
           event.preventDefault();
@@ -118,33 +119,35 @@ export function Question({
         }}
       >
         {shell.level === 1 ? (
-          <h1 className="question__title">{title}</h1>
+          <h1 className="text-3xl leading-tight tracking-tight">{title}</h1>
         ) : (
-          <h2 className="question__title">{title}</h2>
+          <h2 className="text-2xl leading-tight tracking-tight">{title}</h2>
         )}
-        {hint !== undefined && <p className="question__hint">{hint}</p>}
+        {hint !== undefined && <p className="-mt-2 font-sans text-base text-ink-quiet">{hint}</p>}
 
-        <div className="question__body">{children}</div>
+        <div className="flex flex-col gap-4 font-sans">{children}</div>
 
         {onSubmit !== undefined && (
-          <button type="submit" className="question__submit" disabled={submitDisabled}>
+          <Button type="submit" weight="primary" className="mt-6" disabled={submitDisabled}>
             {submitLabel ?? shell.submitLabel}
-          </button>
+          </Button>
         )}
 
         {escape !== undefined && (
-          <button type="button" className="question__escape" onClick={escape.onEscape}>
+          <Button weight="quiet" data-escape onClick={escape.onEscape}>
             {escape.label}
-          </button>
+          </Button>
         )}
       </form>
 
-      {footer !== undefined && <div className="question__footer">{footer}</div>}
+      {footer !== undefined && (
+        <div className="mt-8 border-t border-rule pt-4 font-sans">{footer}</div>
+      )}
 
       {onBack !== undefined && (
-        <button type="button" className="question__back" onClick={onBack}>
+        <Button weight="quiet" className="mt-4 text-ink-quiet" onClick={onBack}>
           Back
-        </button>
+        </Button>
       )}
     </section>
   );
@@ -193,15 +196,36 @@ function labelableControl(children: ReactNode): Associable | undefined {
  *
  * A hint sits outside the label and is attached with `aria-describedby` — the attribute that means
  * *supplementary*, which is what a hint is.
+ *
+ * **The message slot is §7.9's, and it is written here once rather than fourteen times.**
+ *
+ * - **Below the control**, because that is where the eye already is.
+ * - **The hint stays.** A hint is frequently *the fix*, and deleting it at the moment of complaint
+ *   is the worst possible timing — so the message **joins** the hint in `aria-describedby` rather
+ *   than replacing it. The attribute takes a list, which is the whole reason this works.
+ * - **No layout is reserved when it is absent**, so a screen with nothing wrong is byte-for-byte
+ *   the calm screen it was designed as.
+ *
+ * Nothing passes `message` yet: the per-field rules that produce one are #109 and #112 to #114.
+ * It lands here because §7.4 settles the component layer in one pass, and writing it later would
+ * mean editing every field again.
  */
 export function Field({
   label,
   hint,
+  message,
   htmlFor,
   children,
 }: {
   readonly label: ReactNode;
   readonly hint?: ReactNode;
+  /**
+   * §7.9's one line, when there is something the tool cannot use.
+   *
+   * Consequence first, then the fix — and *invalid*, *format* and *valid* are banned, because
+   * they name our diagnosis rather than the owner's situation.
+   */
+  readonly message?: ReactNode;
   /**
    * The id of the control this labels, for a field holding more than one.
    *
@@ -213,8 +237,16 @@ export function Field({
 }): JSX.Element {
   const generatedId = useId();
   const hintId = useId();
+  const messageId = useId();
 
   const control = labelableControl(children);
+
+  // Both, in that order, and only the ones that exist. `aria-describedby` takes a list, which is
+  // what lets a hint and a message coexist rather than one replacing the other.
+  const describedBy =
+    [hint === undefined ? undefined : hintId, message === undefined ? undefined : messageId]
+      .filter((id) => id !== undefined)
+      .join(" ") || undefined;
 
   // A caller's own id wins over ours: it may already be referenced by something else.
   const target = htmlFor ?? control?.props.id ?? (control === undefined ? undefined : generatedId);
@@ -222,32 +254,45 @@ export function Field({
   // Nothing to point at — several controls and no `htmlFor`. Wrapping is the only association
   // left, and it is what this component did before; the name is imprecise but present, which
   // beats a label attached to nothing. No caller is in this state.
+  const labelText = <span className="block text-base font-medium">{label}</span>;
+  const hintText =
+    hint === undefined ? null : (
+      <span className="mt-1 block text-sm text-ink-quiet" id={hintId} data-hint>
+        {hint}
+      </span>
+    );
+  // Live, so it is announced when it appears rather than only when the control is next reached.
+  const messageText =
+    message === undefined ? null : (
+      <span className="mt-1 block text-sm text-notice" id={messageId} data-message role="status">
+        {message}
+      </span>
+    );
+
   if (target === undefined) {
     return (
-      <label className="field">
-        <span className="field__label">{label}</span>
-        {hint !== undefined && <span className="field__hint">{hint}</span>}
+      <label className="flex flex-col" data-field>
+        {labelText}
+        {hintText}
         {children}
+        {messageText}
       </label>
     );
   }
 
   return (
-    <div className="field">
-      <label className="field__label" htmlFor={target}>
+    <div className="flex flex-col" data-field>
+      <label className="block text-base font-medium" htmlFor={target}>
         {label}
       </label>
-      {hint !== undefined && (
-        <span className="field__hint" id={hintId}>
-          {hint}
-        </span>
-      )}
+      {hintText}
       {htmlFor !== undefined || control === undefined
         ? children
         : cloneElement(control, {
             id: target,
-            ...(hint === undefined ? {} : { "aria-describedby": hintId }),
+            ...(describedBy === undefined ? {} : { "aria-describedby": describedBy }),
           })}
+      {messageText}
     </div>
   );
 }

@@ -1,5 +1,4 @@
 import type { JSX, Ref } from "react";
-import "./open.css";
 
 /**
  * The OS file picker, with no control of its own. `SPEC.md` §7.8, §7.7.
@@ -30,7 +29,7 @@ export function ProjectPicker({ onPick, ref }: ProjectPickerProps): JSX.Element 
       ref={ref}
       type="file"
       accept=".json,application/json"
-      className="open__picker"
+      className="sr-only"
       aria-label="Open a project file"
       onChange={(event) => {
         const chosen = event.target.files?.[0];

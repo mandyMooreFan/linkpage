@@ -61,22 +61,26 @@ export function LinkButtons({
     commit(rows.map((link, index) => (index === at ? { ...link, ...patch } : link)));
 
   return (
-    <div className="buttons">
+    <div className="mt-4 flex flex-col items-start gap-4">
       <p className="question__hint">
         People read from the top. The first button is the one most of them will tap.
       </p>
 
-      <ol className="buttons__list">
+      <ol className="m-0 flex w-full list-none flex-col gap-4 p-0">
         {rows.map((link, index) => (
           // Positional keys: a button's identity on this screen *is* where it is in the order,
           // which is the same thing the arrows change and the page reads.
-          <li key={index} className="buttons__row">
-            {index === 0 && <p className="buttons__mark">Most people will tap this one</p>}
+          <li key={index} className="flex flex-col gap-2 border-b border-rule py-3" data-button-row>
+            {index === 0 && (
+              <p className="m-0 text-sm font-semibold text-notice" data-mark>
+                Most people will tap this one
+              </p>
+            )}
 
             <Field label="What it says">
               <input
                 type="text"
-                className="input"
+                className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                 value={link.label}
                 onChange={(event) => edit(index, { label: event.target.value })}
               />
@@ -85,7 +89,7 @@ export function LinkButtons({
             <Field label="Where it goes">
               <input
                 type="url"
-                className="input"
+                className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                 inputMode="url"
                 value={link.url}
                 spellCheck={false}
@@ -95,10 +99,10 @@ export function LinkButtons({
               />
             </Field>
 
-            <div className="buttons__controls">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="buttons__arrow"
+                className="tap min-w-11 rounded-sm border border-rule bg-transparent text-lg disabled:text-rule"
                 disabled={index === 0}
                 aria-label={`Move ${link.label} up`}
                 onClick={() => commit(moved(rows, index, index - 1))}
@@ -107,7 +111,7 @@ export function LinkButtons({
               </button>
               <button
                 type="button"
-                className="buttons__arrow"
+                className="tap min-w-11 rounded-sm border border-rule bg-transparent text-lg disabled:text-rule"
                 disabled={index === rows.length - 1}
                 aria-label={`Move ${link.label} down`}
                 onClick={() => commit(moved(rows, index, index + 1))}
@@ -116,7 +120,7 @@ export function LinkButtons({
               </button>
               <button
                 type="button"
-                className="picks__remove"
+                className="bg-transparent font-sans underline underline-offset-4"
                 aria-label={`Remove ${link.label}`}
                 onClick={() => commit(withoutAt(rows, index))}
               >
@@ -132,7 +136,11 @@ export function LinkButtons({
        * (§7.1): the pick-list and then "where does it go?", the same two screens as day one. A
        * blank row here would be the blank field the flow exists so that nobody faces one.
        */}
-      <button type="button" className="button-secondary" onClick={onAddAnother}>
+      <button
+        type="button"
+        className="tap self-start rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base"
+        onClick={onAddAnother}
+      >
         Add another button
       </button>
 

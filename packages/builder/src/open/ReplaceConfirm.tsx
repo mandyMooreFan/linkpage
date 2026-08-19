@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type JSX } from "react";
 import type { FileDownload } from "../download/index.js";
-import "./open.css";
+import { Button } from "../ui/Button.js";
 
 /**
  * The confirmation that turns a warning into a fork. `SPEC.md` §7.8.
@@ -69,8 +69,13 @@ export function ReplaceConfirm({
   }, []);
 
   return (
-    <div className="replace" role="group" aria-label="Opening this file will replace your project">
-      <p className="replace__message">
+    <div
+      className="font-sans"
+      data-replace
+      role="group"
+      aria-label="Opening this file will replace your project"
+    >
+      <p className="m-0">
         {name === undefined ? (
           <>You’re working on a project you haven’t named yet.</>
         ) : (
@@ -81,10 +86,10 @@ export function ReplaceConfirm({
         Opening this file will replace it.
       </p>
 
-      <div className="replace__actions">
-        <button
+      <div className="mt-3 flex flex-col gap-2">
+        <Button
           type="button"
-          className="replace__save"
+          weight="primary"
           ref={escape}
           onClick={() => {
             outgoing.save();
@@ -92,18 +97,22 @@ export function ReplaceConfirm({
           }}
         >
           Download my work first
-        </button>
-        <button type="button" className="replace__open" onClick={onOpen}>
+        </Button>
+        <Button type="button" weight="secondary" onClick={onOpen}>
           Open the file
-        </button>
-        <button type="button" className="replace__cancel" onClick={onCancel}>
+        </Button>
+        <button
+          type="button"
+          className="tap rounded-sm bg-transparent px-4 py-2 font-sans text-ink-quiet"
+          onClick={onCancel}
+        >
           Cancel
         </button>
       </div>
 
       {/* Names the file, because what the owner has to recognise later is a name in a folder. */}
       {saved && (
-        <p className="replace__saved" role="status">
+        <p className="mt-2 text-sm text-ink-quiet" role="status">
           Saved as <code>{outgoing.filename}</code>.
         </p>
       )}

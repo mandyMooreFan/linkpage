@@ -37,7 +37,7 @@ export function NameQuestion({ initial, onAnswer, onBack }: NameQuestionProps): 
       <Field label="Business name">
         <input
           type="text"
-          className="input"
+          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           value={name}
           autoComplete="organization"
           onChange={(event) => setName(event.target.value)}
@@ -74,7 +74,7 @@ export function TaglineQuestion({
       <Field label="Tagline">
         <input
           type="text"
-          className="input"
+          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           value={tagline}
           onChange={(event) => setTagline(event.target.value)}
         />

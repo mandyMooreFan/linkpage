@@ -1,5 +1,4 @@
 import { useEffect, useId, useState, type JSX, type ReactNode } from "react";
-import "../flow/flow.css";
 import { applyIntake, type LogoIntake } from "../logo/index.js";
 import { NameQuestion, TaglineQuestion } from "../flow/questions/HeaderQuestions.js";
 import { HoursQuestion } from "../flow/questions/HoursQuestion.js";
@@ -20,10 +19,10 @@ import {
 import { Preview } from "../preview/Preview.js";
 import type { Draft } from "../project/index.js";
 import { removeTopic, setLang } from "./edits.js";
-import "./list.css";
 import { LinkButtons } from "./LinkButtons.js";
 import { listRows, type Row, type RowId } from "./rows.js";
 import { StyleStep } from "./StyleStep.js";
+import { Button } from "../ui/Button.js";
 
 /**
  * The review list: the screen the owner lives on. `SPEC.md` §7.4, §7.1, §7.5–§7.8.
@@ -126,9 +125,12 @@ export function List({
   };
 
   return (
-    <main className="list">
-      <div className="list__panel">
-        <div className="list__bar">
+    <main
+      className="flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
+      data-screen="list"
+    >
+      <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
+        <div className="flex items-center justify-between gap-2">
           <Menu onImport={onImport} confirm={importConfirm} error={importError} />
           {/*
            * §7.7's sheet is #35's. The button is where §7.4 puts it and says what it does; it
@@ -136,19 +138,21 @@ export function List({
            * control that answers a press with nothing is worse than one that says it is not
            * ready.
            */}
-          <button
+          <Button
             type="button"
-            className="list__download"
+            weight="primary"
             disabled={onDownload === undefined}
             onClick={onDownload}
           >
             Download
-          </button>
+          </Button>
         </div>
 
-        <h1 className="list__title">{draft.header.name}</h1>
+        <h1 className="mt-4 font-serif text-3xl leading-tight tracking-tight">
+          {draft.header.name}
+        </h1>
 
-        <ul className="list__rows">
+        <ul className="m-0 mt-6 list-none divide-y divide-rule border-y border-rule p-0">
           {rows.map((row) => (
             <RowItem
               key={row.id}
@@ -162,18 +166,22 @@ export function List({
         </ul>
 
         {uncovered.length > 0 && (
-          <section className="list__more">
-            <h2 className="list__more-title">Anything else?</h2>
+          <section className="mt-8">
+            <h2 className="mb-3 font-serif text-xl">Anything else?</h2>
             {/*
              * Ticking one of these does not park an empty row: it hands the topic to the flow,
              * which walks the owner through it and puts them back here (§7.1). That is why the
              * labels name the thing rather than the act — the list is an inventory of the page.
              */}
-            <ul className="presets">
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
               {uncovered.map((topic) => (
                 <li key={topic}>
-                  <button type="button" className="presets__option" onClick={() => onAdd(topic)}>
-                    <span className="presets__label">{TOPIC_LABELS[topic]}</span>
+                  <button
+                    type="button"
+                    className="tap flex w-full flex-col gap-0.5 rounded-sm border border-rule bg-transparent px-4 py-3 text-start font-sans aria-pressed:border-ink aria-pressed:shadow-[inset_0_0_0_1px_var(--color-ink)]"
+                    onClick={() => onAdd(topic)}
+                  >
+                    <span className="font-medium">{TOPIC_LABELS[topic]}</span>
                   </button>
                 </li>
               ))}
@@ -182,7 +190,7 @@ export function List({
         )}
       </div>
 
-      <div className="list__preview">
+      <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
         <Preview project={draft} />
       </div>
     </main>
@@ -311,19 +319,19 @@ function RowItem({
   const bodyId = useId();
 
   return (
-    <li className="list__row" data-row={row.id}>
+    <li data-row={row.id}>
       <button
         type="button"
-        className="list__row-toggle"
+        className="tap flex w-full flex-col gap-0.5 bg-transparent py-4 text-start font-sans"
         aria-expanded={open}
         aria-controls={bodyId}
         onClick={onToggle}
       >
-        <span className="list__row-label">{row.label}</span>
-        <span className="list__row-summary">{row.summary}</span>
+        <span className="text-sm font-medium">{row.label}</span>
+        <span className="text-base text-ink-quiet">{row.summary}</span>
       </button>
 
-      <div id={bodyId} className="list__row-body" hidden={!open}>
+      <div id={bodyId} className="border-t border-rule pb-4 font-sans" hidden={!open}>
         {/*
          * A question inside a row is still the same question — an `<h2>` under the list's
          * title, and a button that says Save rather than Continue. Both are the shell's, so no
@@ -361,7 +369,7 @@ function LangRow({
   const fieldId = useId();
 
   return (
-    <div className="list__lang">
+    <div className="mt-4 flex flex-col items-start gap-4">
       <label className="field" htmlFor={fieldId}>
         <span className="field__label">Page language</span>
         <span className="field__hint">
@@ -371,7 +379,7 @@ function LangRow({
         <input
           id={fieldId}
           type="text"
-          className="input"
+          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           value={value}
           spellCheck={false}
           autoCapitalize="none"
@@ -438,21 +446,26 @@ function Menu({
   }, [open]);
 
   return (
-    <div className="list__menu">
-      <button
+    <div className="relative" data-menu>
+      <Button
         type="button"
-        className="button-secondary"
+        weight="secondary"
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen(!open)}
       >
         Menu
-      </button>
-      <div id={menuId} className="list__menu-panel" hidden={!open}>
+      </Button>
+      <div
+        id={menuId}
+        className="absolute top-[calc(100%+0.25rem)] left-0 z-10 min-w-64 rounded-sm border border-rule bg-surface p-2 shadow-lg"
+        data-menu-panel
+        hidden={!open}
+      >
         {/* Unavailable rather than inert until #36 is behind it — as with Download above. */}
         <button
           type="button"
-          className="list__menu-item"
+          className="tap w-full rounded-sm bg-transparent px-3 py-2 text-start font-sans disabled:text-ink-quiet"
           disabled={onImport === undefined}
           onClick={onImport}
         >
@@ -464,8 +477,16 @@ function Menu({
          * refused outright or held for the confirmation. `<div>` and not `<p>`, because both
          * carry flow content: a `<details>` in one and the fork's three controls in the other.
          */}
-        {confirm !== undefined && <div className="notice">{confirm}</div>}
-        {error !== undefined && <div className="notice">{error}</div>}
+        {confirm !== undefined && (
+          <div className="mt-2 border-s-2 border-notice ps-3 font-sans" data-notice>
+            {confirm}
+          </div>
+        )}
+        {error !== undefined && (
+          <div className="mt-2 border-s-2 border-notice ps-3 font-sans" data-notice>
+            {error}
+          </div>
+        )}
       </div>
     </div>
   );

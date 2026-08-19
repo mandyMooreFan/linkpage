@@ -1,3 +1,4 @@
+import tailwind from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
@@ -5,5 +6,5 @@ import { defineConfig } from "vite";
 // if the repo is renamed or moved to a custom domain, or the built assets 404.
 export default defineConfig({
   base: "/linkpage/",
-  plugins: [react()],
+  plugins: [react(), tailwind()],
 });

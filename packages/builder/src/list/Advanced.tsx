@@ -44,10 +44,10 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
   const { readings, brandSteppedBack, palette } = readout(draft.style);
 
   return (
-    <div className="advanced">
+    <div className="mt-4 border-t border-rule pt-4" data-advanced>
       <button
         type="button"
-        className="advanced__disclosure"
+        className="tap self-start bg-transparent py-2 font-sans underline underline-offset-4"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen(!open)}
@@ -55,13 +55,13 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
         Advanced colours
       </button>
 
-      <div id={panelId} hidden={!open} className="advanced__panel">
+      <div id={panelId} hidden={!open} className="flex flex-col gap-4">
         <p className="question__hint">
           The colours above are picked so they always read well together. Set your own here and that
           stops being true — the numbers at the bottom are how you check.
         </p>
 
-        <label className="advanced__switch" htmlFor={switchId}>
+        <label className="tap flex items-center gap-2 font-medium" htmlFor={switchId}>
           <input
             id={switchId}
             type="checkbox"
@@ -71,7 +71,7 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
           <span>Set the colours by hand</span>
         </label>
 
-        <ul className="advanced__roles">
+        <ul className="m-0 flex list-none flex-col gap-3 p-0">
           {ROLE_LABELS.map(([role, label]) => (
             <li key={role} className="field">
               <label className="field__label" htmlFor={`${panelId}-${role}`}>
@@ -80,7 +80,7 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
               <input
                 id={`${panelId}-${role}`}
                 type="text"
-                className="input"
+                className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                 spellCheck={false}
                 autoCapitalize="none"
                 // The derived colour, so an empty box reads as "whatever the derivation says"
@@ -94,12 +94,15 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
           ))}
         </ul>
 
-        <h3 className="advanced__heading">What the numbers say</h3>
-        <ul className="advanced__readings">
+        <h3 className="m-0 font-serif text-base">What the numbers say</h3>
+        <ul className="m-0 flex list-none flex-col gap-1.5 p-0" data-readings>
           {readings.map((reading) => (
-            <li key={reading.label} className="advanced__reading">
+            <li
+              key={reading.label}
+              className="flex justify-between gap-4 border-b border-rule py-1"
+            >
               <span>{reading.label}</span>
-              <span className="advanced__ratio">{formatRatio(reading.ratio)}</span>
+              <span className="tabular-nums whitespace-nowrap">{formatRatio(reading.ratio)}</span>
             </li>
           ))}
         </ul>

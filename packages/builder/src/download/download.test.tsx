@@ -263,7 +263,7 @@ describe("leaving the sheet", () => {
     const onClose = vi.fn();
     open({ onClose });
 
-    const scrim = document.querySelector(".sheet__scrim");
+    const scrim = document.querySelector("[data-scrim]");
     if (!(scrim instanceof HTMLElement)) throw new Error("no scrim");
     fireEvent.click(scrim);
     expect(onClose).toHaveBeenCalledTimes(1);

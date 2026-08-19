@@ -132,7 +132,7 @@ describe("a refused file, said out loud (§7.9, §4.6)", () => {
       const refusal = refusalFor(text);
       mount(<RefusalNotice refusal={refusal} />);
 
-      const said = document.querySelector(".refusal__message")?.textContent ?? "";
+      const said = document.querySelector("[data-refusal-message]")?.textContent ?? "";
       expect(said).toContain(message);
       // Neither names a JSON path, and none of them leaks the disclosure's text upward: the
       // sentence is the owner's, the detail is for whoever hand-edited the file (§4.6).
@@ -149,7 +149,7 @@ describe("a refused file, said out loud (§7.9, §4.6)", () => {
     // Invisible to the owner, one click away for whoever hand-edited the file (§4.6).
     expect((disclosure as HTMLDetailsElement).open).toBe(false);
     expect(disclosure?.textContent).toContain("Technical detail");
-    expect(document.querySelector(".refusal__text")?.textContent).toBeTruthy();
+    expect(document.querySelector("[data-refusal-text]")?.textContent).toBeTruthy();
   });
 
   it("links to the canonical builder on the one refusal the owner can act on", () => {
