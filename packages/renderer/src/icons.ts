@@ -55,6 +55,7 @@ export const ICON_NAMES = [
   "services",
   "portfolio",
   "link",
+  "clock",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -115,7 +116,16 @@ export interface SocialGlyph extends Glyph {
   readonly label: string;
 }
 
-/** Lucide, ISC. See `NOTICES`. */
+/**
+ * Lucide, ISC. See `NOTICES`.
+ *
+ * **Two ways a glyph earns its place, not one** (`SPEC.md` §2.4). Almost all of these serve a
+ * link-button suggestion the presets make in §7.3, and `icons.test.ts` asserts that mapping in
+ * both directions. The other two are named exceptions with a different job: `link` is §4.4's
+ * fallback for a platform we have no mark for, and `clock` **names the hours panel on the
+ * exported page** (§6.9) — the one place a glyph does the work a heading would do, because
+ * §2.5 will not spend a ninth string on one.
+ */
 export const ICONS: Readonly<Record<IconName, Glyph>> = {
   menu: {
     draw: "stroke",
@@ -172,6 +182,10 @@ export const ICONS: Readonly<Record<IconName, Glyph>> = {
   link: {
     draw: "stroke",
     body: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  },
+  clock: {
+    draw: "stroke",
+    body: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
   },
 };
 

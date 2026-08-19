@@ -75,9 +75,15 @@ describe("the set covers what the spec asks of it", () => {
 
   it("vendors no glyph that no suggestion reaches", () => {
     const served = new Set(SUGGESTIONS.map(([, icon]) => icon));
-    // `link` is the exception, and the only one: it exists for the case in §4.4 that the
-    // owner never deliberately creates.
+    // Two exceptions, and they are named rather than counted, because the point of this test
+    // is that membership is justified one glyph at a time (§2.4).
+    //
+    // `link` is §4.4's fallback for a platform we have no mark for — a case the owner never
+    // deliberately creates. `clock` names the hours panel on the exported page (§6.9), which
+    // is the one job a glyph does that no suggestion could: §2.5 forbids the ninth string a
+    // real heading would need, and an icon is not a word.
     served.add(FALLBACK_ICON);
+    served.add("clock");
     expect([...ICON_NAMES].filter((name) => !served.has(name))).toEqual([]);
   });
 
