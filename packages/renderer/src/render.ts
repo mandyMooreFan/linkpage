@@ -277,7 +277,7 @@ function linksSection(value: unknown): string {
 function linkButton(value: unknown): string {
   const link = asRecord(value);
   const label = asText(link?.label);
-  const href = safeUrl(link?.url);
+  const href = linkHref(link?.url);
   if (label === undefined || href === undefined) return "";
 
   // An unrecognised icon name renders no glyph rather than failing: `Link.icon` is a
@@ -348,8 +348,27 @@ const PARENTHESISED_TRUNK = /^(\+[0-9]{1,3})[ .-]*\(0\)/;
 /** §2.3's bounds. E.164 caps a number at 15 digits; below four there is nothing to dial. */
 const FEWEST_DIGITS = 4;
 const MOST_DIGITS = 15;
-/** A conservative address shape. Notably no `:`, so a scheme can never appear inside one. */
-const EMAIL = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$/;
+/**
+ * §2.3's email floor: one `@`, non-empty either side, no whitespace, no control characters, and
+ * at least one dot after the `@`.
+ *
+ * **Recorded as a floor, so that the next reader does not tighten it toward RFC 5322.** The
+ * previous shape was ASCII-only on both sides and therefore **rejected real addresses** —
+ * `josé@café.fr` is one. This is looser in charset and identical in structure.
+ *
+ * **Two clauses are load-bearing rather than tidy, because `mailtoHref` never passes through
+ * `safeUrl`** — this is the one URL in the document with no scheme check behind it. Whitespace
+ * is refused because a `mailto:` target carrying it is not an address. A `:` is refused because
+ * it is the only way a second scheme could reach an `href` from here, which is what the old
+ * regex was buying by being ASCII-only, and is worth keeping on purpose rather than losing as a
+ * side effect of loosening the charset.
+ */
+function isEmailish(raw: string): boolean {
+  if (hasControlChar(raw) || /[\s:]/.test(raw)) return false;
+  const at = raw.indexOf("@");
+  if (at <= 0 || raw.indexOf("@", at + 1) !== -1) return false;
+  return raw.slice(at + 1).includes(".");
+}
 
 /**
  * Phone and email, rendered as `tel:` and `mailto:` links (§2.3).
@@ -437,9 +456,9 @@ export function telHref(value: unknown): string | undefined {
   return `tel:${trimmed.startsWith("+") ? "+" : ""}${digits}`;
 }
 
-function mailtoHref(value: unknown): string | undefined {
+export function mailtoHref(value: unknown): string | undefined {
   const raw = asText(value);
-  return raw !== undefined && EMAIL.test(raw) ? `mailto:${raw}` : undefined;
+  return raw !== undefined && isEmailish(raw) ? `mailto:${raw}` : undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -489,7 +508,7 @@ function addressSection(value: unknown): string {
   const icon = glyphSvg(ICONS.location);
   const text = lines.map((line) => escapeHtml(line)).join("<br>\n");
   const body = `${icon}<span itemprop="address">${text}</span>`;
-  const href = safeUrl(address.directionsUrl);
+  const href = linkHref(address.directionsUrl);
 
   const block =
     href === undefined
@@ -545,7 +564,7 @@ function socialSection(value: unknown): string {
 
 function socialLink(value: unknown): string {
   const entry = asRecord(value);
-  const href = safeUrl(entry?.url);
+  const href = linkHref(entry?.url);
   if (href === undefined) return "";
 
   const platform = entry?.platform;
@@ -640,4 +659,69 @@ export function safeUrl(value: unknown): string | undefined {
   if (/javascript:/i.test(url)) return undefined;
 
   return url;
+}
+
+/** Where the host part of a scheme-less URL stops. */
+const AUTHORITY_END = /[/?#]/;
+
+/**
+ * The target for one of §2.3's three URL fields — a link button, `directionsUrl`, or a social
+ * link — or `undefined` when we cannot derive one.
+ *
+ * **One rule for all three, and it lives beside `safeUrl` rather than inside it.** That name is
+ * exported and promises *safe*, not *mended*; a caller asking whether a URL is safe to put in
+ * an `href` must keep getting an answer to that question and not to this one.
+ *
+ * **A scheme-less value gets `https://` — but only after it has proved it looks like a host,
+ * and the gate is the whole rule.** Testing the reflex is what put it there: a naive prepend
+ * does not produce dead links, it produces confident links to the *wrong host*. `/menu` would
+ * become `https://menu/`, inventing a hostname out of a real relative path, and `@mybakery`
+ * would become `https://mybakery/`. Today `/menu` at least 404s on the owner's own site; a
+ * naive mend sends the visitor somewhere else entirely.
+ *
+ * **`https://` unconditionally, because we cannot tell.** A builder-side probe is opaque under
+ * CORS, and `https://` is what a browser itself tries on a bare domain. The escape is that this
+ * fires *only* where there is no scheme, so an http-only owner types `http://` and is left
+ * alone.
+ *
+ * **A string prepend, not `new URL`.** `new URL` normalises — a trailing slash, percent-encoding
+ * — which rewrites the owner's target, and that is the class §6.7 is wariest of.
+ *
+ * **No host-specific exceptions and no handles.** Matching known social hosts to turn a handle
+ * into a URL fires hardest on correctly-pasted addresses, and *handle* is not one concept:
+ * Mastodon is federated so `@user@instance.social` has no derivable host, WhatsApp's URL takes
+ * a phone number, Bluesky handles are themselves domains, and X's host changed from
+ * `twitter.com`. A template table would go stale silently, and stale means a 404.
+ *
+ * **The limit, stated rather than buried:** `mybakery.couk` mends into a confident link to a
+ * domain that does not exist, and nothing available to us can tell.
+ *
+ * Exported for the same reason as `telHref`: §7.4's row mark and §7.7's line have to ask this
+ * exact question, or the builder and the page will disagree.
+ */
+/*
+ * A note on what `undefined` costs here, because it is not the same as for `telHref`.
+ *
+ * `contactRow` renders text without a link, so a refused phone number still reads on the page.
+ * A link button and a social entry are **omitted entirely** — §7.3's *a button exists only once
+ * it has a URL*, reaching a case it did not previously have, since before this rule "no href"
+ * only ever meant "no URL at all". Both are pure affordance: a labelled thing whose only
+ * content is that it goes somewhere, and one that goes nowhere is a lie on the owner's page.
+ *
+ * The cost is real and §2.3 states it: the owner's button disappears until they fix it. What
+ * makes that the right way round is that the disappearance is never silent *to the owner*
+ * (§7.4, §7.7), whereas a dead button is silent to every visitor who taps it.
+ */
+export function linkHref(value: unknown): string | undefined {
+  const url = safeUrl(value);
+  if (url === undefined) return undefined;
+  if (SCHEME.test(url)) return url;
+
+  const authority = url.split(AUTHORITY_END, 1)[0] ?? "";
+  // Non-empty, a dot in it, no `@`, no whitespace. Anything else is not a host we are willing
+  // to invent, so there is no target and the owner's text stands.
+  if (authority === "" || !authority.includes(".")) return undefined;
+  if (authority.includes("@") || /\s/.test(authority)) return undefined;
+
+  return `https://${url}`;
 }
