@@ -1,4 +1,4 @@
-export { render, escapeHtml, safeUrl, telHref } from "./render.js";
+export { render, escapeHtml, linkHref, mailtoHref, safeUrl, telHref } from "./render.js";
 export { SCHEMA_VERSION } from "./project.js";
 export { derivePalette } from "./palette.js";
 export type { Palette } from "./palette.js";

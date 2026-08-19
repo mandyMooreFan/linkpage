@@ -261,6 +261,103 @@ describe("hours", () => {
   });
 });
 
+describe("the derived link target (§2.3)", () => {
+  const button = (url: string) => page({ ...base, links: [{ label: "Order online", url }] });
+  const hrefIn = (html: string) => /href="([^"]*)"/.exec(html)?.[1];
+
+  it("mends a scheme-less address that looks like a host", () => {
+    // The live defect this closes: stored raw, this exported as a relative link that 404s on
+    // the owner's own published page.
+    expect(hrefIn(button("facebook.com/mybakery"))).toBe("https://facebook.com/mybakery");
+    expect(hrefIn(button("mybakery.com"))).toBe("https://mybakery.com");
+    expect(hrefIn(button("mybakery.com/menu?x=1#top"))).toBe("https://mybakery.com/menu?x=1#top");
+  });
+
+  it("leaves a scheme-bearing address exactly as typed", () => {
+    // The escape for an http-only owner, and the reason `https://` can be unconditional.
+    expect(hrefIn(button("http://mybakery.com"))).toBe("http://mybakery.com");
+    expect(hrefIn(button("https://mybakery.com/"))).toBe("https://mybakery.com/");
+  });
+
+  it("does not normalise what it prepends to", () => {
+    // A string prepend rather than `new URL`, which would add a trailing slash and
+    // percent-encode — rewriting the owner's target, which is the class §6.7 is wariest of.
+    expect(hrefIn(button("mybakery.com/Ada Menu"))).toBe("https://mybakery.com/Ada Menu");
+    // And no trailing slash invented on a bare domain, which `new URL` would add.
+    expect(hrefIn(button("mybakery.com"))).toBe("https://mybakery.com");
+  });
+
+  it("refuses a relative path rather than inventing a host from it", () => {
+    // The whole reason the gate exists. A naive prepend turns this into `https://menu/` — a
+    // confident link to a different site — where today it merely 404s on the owner's own.
+    expect(button("/menu")).not.toContain("lp-link");
+    expect(button("?page=2")).not.toContain("lp-link");
+    expect(button("#top")).not.toContain("lp-link");
+  });
+
+  it("refuses a handle, because a handle is not a URL", () => {
+    expect(button("@mybakery")).not.toContain("lp-link");
+    expect(button("@user@instance.social")).not.toContain("lp-link");
+  });
+
+  it("refuses a bare word and a phrase", () => {
+    expect(button("menu")).not.toContain("lp-link");
+    expect(button("see our menu")).not.toContain("lp-link");
+    expect(button("my bakery.com")).not.toContain("lp-link");
+  });
+
+  it("mends a domain that does not exist, and that limit is stated rather than hidden", () => {
+    // `mybakery.couk` passes every clause the gate can check. Nothing available to us can tell
+    // a real TLD from a typo'd one, and a probe is opaque under CORS.
+    expect(hrefIn(button("mybakery.couk"))).toBe("https://mybakery.couk");
+  });
+
+  it("omits the button rather than rendering one that goes nowhere", () => {
+    // Deliberate, and the cost is stated in SPEC.md §2.3: the owner's button disappears from
+    // their published page until they fix it. The alternative — a thing carrying `.lp-link`
+    // that does not link — puts a lie in front of every visitor, where §7.4 and §7.7 can tell
+    // the owner. The owner can be told; the visitor cannot.
+    const html = button("/menu");
+    expect(html).not.toContain("Order online");
+    expect(html).not.toContain("lp-links");
+  });
+
+  it("still refuses what invariant 1 forbids", () => {
+    // The mend sits beside `safeUrl` and after it, never around it.
+    expect(button("javascript:alert(1)")).not.toContain("lp-link");
+    expect(button("data:text/html,x")).not.toContain("lp-link");
+  });
+});
+
+describe("the email floor (§2.3)", () => {
+  const mail = (email: string) => page({ ...base, contact: { email } });
+
+  it("accepts a non-ASCII address, which the old shape rejected", () => {
+    // `josé@café.fr` is a real address and the previous regex refused it on both sides.
+    expect(mail("josé@café.fr")).toContain('href="mailto:josé@café.fr"');
+  });
+
+  it("holds the structure it always held", () => {
+    expect(mail("hello@mybakery.com")).toContain('href="mailto:hello@mybakery.com"');
+    expect(mail("no-at-sign.com")).not.toContain("mailto:");
+    expect(mail("@mybakery.com")).not.toContain("mailto:");
+    expect(mail("hello@")).not.toContain("mailto:");
+    expect(mail("two@at@signs.com")).not.toContain("mailto:");
+    expect(mail("hello@nodot")).not.toContain("mailto:");
+  });
+
+  it("refuses whitespace and a colon, which is not tidiness", () => {
+    // `mailtoHref` never passes through `safeUrl`, so this is the one URL in the document with
+    // no scheme check behind it. Both clauses are what stands in for one.
+    expect(mail("hello there@mybakery.com")).not.toContain("mailto:");
+    expect(mail("javascript:x@mybakery.com")).not.toContain("mailto:");
+  });
+
+  it("keeps the owner's text on the page when it refuses", () => {
+    expect(mail("hello@nodot")).toContain("hello@nodot");
+  });
+});
+
 describe("contact", () => {
   it("renders the phone as tel: and the email as mailto:", () => {
     expect(page({ ...base, contact: full.contact })).toMatchSnapshot();
@@ -416,11 +513,19 @@ describe("social", () => {
   });
 
   it("falls back to the platform, then to the URL, when there is no host", () => {
-    expect(page({ ...base, social: [{ platform: "carrier pigeon", url: "/ada" }] })).toContain(
-      "carrier pigeon",
-    );
-    expect(page({ ...base, social: [{ url: "/ada" }] as Project["social"] })).toContain(
-      '<span class="lp-social-name">/ada</span>',
+    // `mailto:` carries no host, and is a scheme so §2.3's mend leaves it alone.
+    expect(
+      page({ ...base, social: [{ platform: "carrier pigeon", url: "mailto:ada@example.com" }] }),
+    ).toContain("carrier pigeon");
+    expect(
+      page({ ...base, social: [{ url: "mailto:ada@example.com" }] as Project["social"] }),
+    ).toContain('<span class="lp-social-name">mailto:ada@example.com</span>');
+  });
+
+  it("has no target for a scheme-less value that does not look like a host", () => {
+    // The gate, on the social field. See the `linkHref` block under "links" for the full set.
+    expect(page({ ...base, social: [{ platform: "instagram", url: "@mybakery" }] })).not.toContain(
+      "lp-social",
     );
   });
 

@@ -159,8 +159,24 @@ worth stating as a position rather than leaving as an absence: _"normalise the p
 a schema change and is not one. A later builder that gets cleverer re-derives from the owner's original
 rather than from our guess.
 
-**Where no target can be derived there is no link, and the text stands** as ordinary text. What the
-owner is told about that, and where, is §7.9.
+**Where no target can be derived there is no link — and what happens next differs by field, because
+the fields are not the same kind of thing.**
+
+- **The contact rows keep their text.** A phone number or an address is _information_: it reads
+  correctly on the page and a visitor can act on it by hand, so only the tap-to-call or tap-to-mail is
+  withheld.
+- **A link button and a social entry are omitted from the page entirely**, which is §7.3's existing rule
+  — _a button exists only once it has a URL_ — reaching a case it did not previously have. **These two
+  are pure affordance**: a labelled thing whose only content is that it goes somewhere. Rendering one
+  that goes nowhere puts a lie on the owner's page rather than an inconvenience.
+
+**That second bullet has a real cost and it is stated rather than buried: the owner's button disappears
+from their published page until they fix it.** Before the derivation rule existed, a broken button at
+least still appeared. What makes the trade acceptable is that the disappearance is never silent _to the
+owner_ — §7.4 marks the row and §7.7 says so before they publish — while a dead button is silent to
+every _visitor_ who taps it. **The owner can be told; the visitor cannot.**
+
+What the owner is told, and where, is §7.9.
 
 **The phone rule is four clauses, and no country is ever learned, inferred or asked for.**
 
@@ -1698,6 +1714,14 @@ volunteering a diagnosis, and the copy must not read as though the tool has foun
 
 **No pre-emptive hint on a field merely because it can carry a message.** If every case the message covers
 also gets a hint, decision 4's rarity argument is gone and the message stops meaning anything.
+
+**The message carries more weight on the two affordance fields than on the contact rows, and whoever
+writes the copy should know it.** §2.3 keeps a phone number on the page without its `tel:`, so the
+message there describes a degraded row the visitor can still use. A link button or a social entry with
+no target is **absent from the page altogether**, so the message is the owner's _only_ notice that
+something they built is not being published. It is the same sentence in both places by decision 6, and
+that is still right — three voices would read as three problems — but the second case is the one where
+the mark failing to appear would cost the most.
 
 **A time is the one field where nothing outlives the screen**, and that asymmetry is deliberate — §7.10
 gives the reason.
