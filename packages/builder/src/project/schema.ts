@@ -1,4 +1,5 @@
 import { isIconName, SCHEMA_VERSION } from "@linkpage/renderer";
+import { SEEDED_HOURS_PREFERENCES } from "./environment.js";
 import type {
   Address,
   Advanced,
@@ -431,8 +432,11 @@ const days: Codec<Partial<Record<Weekday, Interval[]>>> = structure<
 });
 
 const hours: Codec<Hours> = structure<Hours>({
-  clock: preference(CLOCKS, "12h"),
-  weekStart: preference(WEEK_STARTS, "mon"),
+  // §4.1: seeded from the browser rather than hardcoded, which is what made every page this
+  // tool has ever exported read 12-hour — the Welsh ones included. A stored value always wins;
+  // this is only what an absent or unreadable one falls back to.
+  clock: preference(CLOCKS, SEEDED_HOURS_PREFERENCES.clock),
+  weekStart: preference(WEEK_STARTS, SEEDED_HOURS_PREFERENCES.weekStart),
   days,
   note: optionalText,
 });

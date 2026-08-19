@@ -2,6 +2,7 @@ import type { Hours, Interval, Weekday } from "@linkpage/renderer";
 import { useState, type JSX } from "react";
 import { WEEKDAYS } from "../topics.js";
 import { Field, Question } from "./Question.js";
+import { SEEDED_HOURS_PREFERENCES } from "../../project/environment.js";
 
 /**
  * Opening hours. `SPEC.md` §2.3, §7.2, §7.3.
@@ -82,8 +83,9 @@ export function HoursQuestion({
       out[day] = form.mode === "closed" ? [] : form.intervals.map(([o, c]) => [o, c]);
     }
     return {
-      clock: initial?.clock ?? "12h",
-      weekStart: initial?.weekStart ?? "mon",
+      // §4.1: the browser's, once, rather than American by default.
+      clock: initial?.clock ?? SEEDED_HOURS_PREFERENCES.clock,
+      weekStart: initial?.weekStart ?? SEEDED_HOURS_PREFERENCES.weekStart,
       days: out,
       note,
     };
