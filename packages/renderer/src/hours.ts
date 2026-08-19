@@ -20,13 +20,24 @@
  * from the same `lang` that `<html lang>` declares — see `locale.ts` for the table, for why
  * `Intl` is ruled out, and for what happens to a language the table does not hold.
  *
- * **Runs are not collapsed.** §2.3 offers "Mon–Fri 9–5" as a render-time nicety and this file
- * deliberately does not do it yet. A collapse has to agree with `weekStart` (a run that is
- * contiguous Monday-first may wrap when the week starts on Sunday), with multi-interval days,
- * and with closed days sitting inside a run — and getting it wrong states an opening time the
- * business does not keep. §7.3's rule that a wrong fact is worse than an absent one applies
- * with more force to a fact we synthesised. `hoursView` is the seam where it would go: it
- * returns rows, so collapsing is a pure list-to-list step added in front of the markup.
+ * **Runs are not collapsed, and that is a decided refusal rather than a deferral** (§2.3).
+ * "Mon–Fri 9–5" does not appear on an exported page. **The reason is not that it is hard — it
+ * is that nobody has ever complained about these rows.** Entry was measured and found wanting
+ * and §7.10 fixed it; the page's hours block produced no finding at all. Collapsing buys about
+ * 110px on a phone and costs a permanent synthesis step in the one component that must never
+ * state an opening time the business does not keep.
+ *
+ * **Correctness was never the obstacle, and the dispatching rule is recorded so that the refusal
+ * is not overturned by rediscovering that it is possible.** Compute runs in *display* order and
+ * the `weekStart` wrap disappears. Require every day in a run to be *present* and an unspecified
+ * day can never sit inside one. Require an **identical formatted interval list** and both the
+ * multi-interval mismatch and the closed-day-inside-a-run disappear at once, because an empty
+ * list never equals a non-empty one. Minimum run length 3. `hoursView` is still the seam: it
+ * returns rows, so a collapse would be a pure list-to-list step in front of the markup.
+ *
+ * Reopened by a real complaint from someone reading an exported page, and not by a capability —
+ * CLDR ships weekday-range patterns per locale, so the range string was never the obstacle
+ * either (§2.5).
  */
 
 import { dayName, type Vocabulary } from "./locale.js";
