@@ -28,6 +28,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Bounded, like every other job here (#119): a job with no bound turns a blip somewhere
+    # else into six hours of nothing.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -51,6 +54,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # Bounded, like every other job here (#119): a job with no bound turns a blip somewhere
+    # else into six hours of nothing.
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

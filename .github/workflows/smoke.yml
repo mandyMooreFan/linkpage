@@ -40,6 +40,9 @@ jobs:
     # A deploy that failed has nothing worth smoking; its own job already went red.
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    # Bounded for the same reason as CI's end-to-end (#119): this job installs a browser too, and
+    # a check that never returns cannot be acted on.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -55,6 +58,7 @@ jobs:
       # Chromium alone, and the headless shell: this asks whether the deploy works, not whether
       # the page is cross-browser.
       - name: Install Chromium
+        timeout-minutes: 5
         run: pnpm --filter @linkpage/builder exec playwright install --with-deps chromium-headless-shell
 
       - name: Smoke
