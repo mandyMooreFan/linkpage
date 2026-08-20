@@ -80,12 +80,13 @@ export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProp
       submitDisabled={answer === "" || halfTyped}
       onBack={onBack}
     >
-      <ul className="swatches">
+      <ul className="m-0 flex list-none flex-row flex-wrap gap-3 p-0">
         {BRAND_SWATCHES.map((colour) => (
           <li key={colour}>
             <button
               type="button"
-              className="swatches__swatch"
+              className="size-12 rounded-full border border-rule aria-pressed:outline-2 aria-pressed:outline-offset-2 aria-pressed:outline-ink"
+              data-swatch
               style={{ background: colour }}
               aria-label={colour}
               aria-pressed={answer.toLowerCase() === colour}
@@ -104,7 +105,7 @@ export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProp
       >
         <input
           type="text"
-          className="input"
+          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           value={typed}
           spellCheck={false}
           autoCapitalize="none"

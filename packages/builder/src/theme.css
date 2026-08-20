@@ -1,0 +1,72 @@
+/**
+ * The builder's whole design system: one `@theme` block, and nothing else.
+ *
+ * **Tailwind v4, builder-only** (`SPEC.md` §5.1). The renderer keeps its hand-written
+ * `stylesheet.ts`, because the export's CSS is derived per project from the owner's brand colour
+ * (§3.2) and §6.7 promises byte-determinism — neither survives a third party generating it.
+ *
+ * **Why `@theme` is the argument for v4 over v3.** Before this, `--ink`, `--ink-quiet`, `--rule`
+ * and `--surface` were declared four times over — on `.flow`, on `.list`, on `.sheet` — with
+ * `preview.css` holding the same values a fifth time under different names. The values agreed;
+ * nothing made them agree tomorrow. `@theme` is one declaration that both defines the custom
+ * properties **and** generates the utilities from them, so `--color-ink` yields `text-ink`,
+ * `bg-ink`, `border-ink` *and* `var(--color-ink)` for anything hand-written. v3 needs a JS config
+ * plus a separate `:root` block to keep the properties alive.
+ *
+ * **Paper** (§7.4): a warm off-white ground, one ink, hairline rules, and structure from space
+ * rather than from containers. Nothing is elevated and nothing is carded; type is the only
+ * decoration. It won on two screens rather than one, as the only direction that does not look
+ * like software and the only one that holds a long summary without truncating.
+ *
+ * **No dark mode, and not on cost** (§7.4). It is one `@custom-variant` and it works. The builder
+ * is a viewing booth for the owner's page, and a dark surround changes how a colour reads — §3.3
+ * guarantees the page's readability and §3.1 makes light or dark the owner's own choice, so the
+ * tool must not tint the decision they are in the middle of making.
+ */
+
+@import "tailwindcss";
+
+@theme {
+  /* The four, once. `surface` is the sheet the preview sits on — the one white in the tool. */
+  --color-ink: #1f1b16;
+  --color-ink-quiet: #6b6257;
+  --color-rule: #e2d9cb;
+  --color-ground: #faf7f2;
+  --color-surface: #ffffff;
+  /* The one place the tool shows a colour of its own: a focus ring and a live message. */
+  --color-notice: #8a2d1b;
+
+  /**
+   * §7.6's single width, which `flow.css` and `preview.css` used to agree on by hand. One token
+   * now generates the `wide:` variant, so the two cannot drift apart — there is only one of it.
+   */
+  --breakpoint-wide: 60rem;
+
+  /* Paper sets its questions in a serif and its controls in the system sans. */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif:
+    "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Times New Roman",
+    serif;
+}
+
+/**
+ * The tap-target floor §7.6 keeps on every control, as a utility rather than as four repeated
+ * classes. 2.75rem is the number the old stylesheets already held.
+ */
+@utility tap {
+  min-height: 2.75rem;
+}
+
+/**
+ * One focus ring for the whole tool, defined once.
+ *
+ * `:focus-visible` rather than `:focus` so a mouse press does not draw it, and an outline rather
+ * than a ring utility so it never moves layout — a focus style that reflows is a focus style
+ * people turn off.
+ */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-notice);
+    outline-offset: 2px;
+  }
+}

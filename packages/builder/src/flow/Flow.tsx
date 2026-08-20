@@ -2,7 +2,6 @@ import { useEffect, useState, type JSX, type ReactNode } from "react";
 import { applyIntake, clearLogo, type LogoIntake } from "../logo/index.js";
 import { Preview } from "../preview/Preview.js";
 import { emptyDraft, type Draft } from "../project/index.js";
-import "./flow.css";
 import { planSteps, type FlowEntry, type Pick, type Step } from "./plan.js";
 import { findPreset, type PresetId } from "./presets.js";
 import { ColourQuestion } from "./questions/ColourQuestion.js";
@@ -281,15 +280,21 @@ export function Flow({
   }
 
   return (
-    <div className="flow">
+    <div
+      className="flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
+      data-screen="flow"
+    >
       {/*
        * Keyed by the step, so each question arrives with its own empty state. Two link-URL
        * screens in a row are the same component and would otherwise hold the previous answer.
        */}
-      <div className="flow__question" key={step.id === "linkUrl" ? step.pick.id : step.id}>
+      <div
+        className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1"
+        key={step.id === "linkUrl" ? step.pick.id : step.id}
+      >
         {question(step)}
       </div>
-      <div className="flow__preview">
+      <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
         <Preview project={working} />
       </div>
     </div>

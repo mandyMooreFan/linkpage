@@ -18,10 +18,9 @@ import { BRAND_SWATCHES, ColourQuestion } from "./ColourQuestion.js";
 
 afterEach(cleanup);
 
-const swatches = (): NodeListOf<HTMLButtonElement> =>
-  document.querySelectorAll(".swatches__swatch");
+const swatches = (): NodeListOf<HTMLButtonElement> => document.querySelectorAll("[data-swatch]");
 const submit = (): HTMLButtonElement =>
-  document.querySelector(".question__submit") as HTMLButtonElement;
+  document.querySelector('button[type="submit"]') as HTMLButtonElement;
 
 describe("the constrained field (§3.3)", () => {
   it.each(BRAND_SWATCHES)("%s is a colour", (colour) => {
@@ -51,7 +50,7 @@ describe("the question", () => {
   it("cannot be declined — it is the one thing the owner must give (§3.1)", () => {
     mount(<ColourQuestion initial={undefined} onAnswer={vi.fn()} />);
 
-    expect(document.querySelector(".question__escape")).toBeNull();
+    expect(document.querySelector("[data-escape]")).toBeNull();
     expect(submit().disabled).toBe(true);
   });
 

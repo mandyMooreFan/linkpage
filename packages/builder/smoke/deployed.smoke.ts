@@ -72,8 +72,8 @@ async function heading(page: Page): Promise<string> {
  * Targeting the label is deliberate: it is the accessible name, so this also fails if that
  * association is ever broken.
  *
- * The two controls are selected by class rather than by name — `question__submit` and
- * `question__escape`, the same hooks `flow.test.tsx` uses. Escapes are worded four different ways
+ * The two controls are selected by their data hooks rather than by name — `[data-escape]` and the
+ * form's own `type="submit"`, the same handles `flow.test.tsx` uses. Escapes are worded four different ways
  * ("We don't need one", "We don't have one", "No buttons for now", "Not on my page"), and a smoke
  * test that matched on those would go red the day someone improved a sentence. Class over copy
  * also rules out clicking a repeatable sub-form's `Add`, which is how a walker loops forever.
@@ -81,14 +81,14 @@ async function heading(page: Page): Promise<string> {
 async function advance(page: Page): Promise<"moved" | "arrived" | "stuck"> {
   if (await page.getByRole("button", { name: /^Download$/ }).count()) return "arrived";
 
-  const swatch = page.locator("button.swatches__swatch").first();
+  const swatch = page.locator("button[data-swatch]").first();
   if (await swatch.count()) await swatch.click();
 
   const name = page.getByLabel(/business name/i).first();
   if (await name.count()) await name.fill(BUSINESS);
 
-  const forward = page.locator("button.question__submit").first();
-  const escape = page.locator("button.question__escape").first();
+  const forward = page.locator('button[type="submit"]').first();
+  const escape = page.locator("button[data-escape]").first();
 
   if ((await forward.count()) && (await forward.isEnabled())) await forward.click();
   else if (await escape.count()) await escape.click();
@@ -100,7 +100,7 @@ async function advance(page: Page): Promise<"moved" | "arrived" | "stuck"> {
 
 /** Whether this step offers a way past. §7.2: everything except the two required inputs does. */
 async function hasEscape(page: Page): Promise<boolean> {
-  return (await page.locator("button.question__escape").count()) > 0;
+  return (await page.locator("button[data-escape]").count()) > 0;
 }
 
 test("the deployed builder boots, walks a first run, and exports a self-contained page", async ({

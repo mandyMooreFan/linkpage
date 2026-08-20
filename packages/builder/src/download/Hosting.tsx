@@ -40,14 +40,14 @@ import type { JSX } from "react";
  */
 export function Hosting(): JSX.Element {
   return (
-    <div className="hosting">
-      <p className="hosting__idea">
+    <div className="mt-5">
+      <p className="mt-2">
         Your page is one file. To put it online, it needs to sit somewhere that will hand it to
         anyone who asks for it — that is all hosting is. There is nothing to install and nothing
         running anywhere.
       </p>
 
-      <ul className="hosting__routes">
+      <ul className="m-0 mt-4 flex list-none flex-col gap-3 p-0 text-ink-quiet [&_strong]:text-ink">
         <li>
           <strong>Ask whoever looks after your website.</strong> If someone built your website or
           set up your email, this file is all they need. It is an ordinary web page and it will take
@@ -62,7 +62,7 @@ export function Hosting(): JSX.Element {
         </li>
       </ul>
 
-      <p className="hosting__check">
+      <p className="mt-2">
         <strong>
           You will know it worked when you have a web address, and opening it on someone
           else&rsquo;s phone shows your page.
@@ -70,7 +70,7 @@ export function Hosting(): JSX.Element {
         Someone else&rsquo;s, because your own phone may be showing you the copy already on it.
       </p>
 
-      <ul className="hosting__cautions">
+      <ul className="m-0 mt-4 flex list-none flex-col gap-2 p-0 text-ink-quiet">
         <li>
           <strong>Free does not always mean allowed.</strong> Some well-known free hosts will run
           this page perfectly and forbid it in their terms — one is for personal use only, another

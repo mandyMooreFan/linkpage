@@ -53,11 +53,11 @@ export function PresetQuestion({
       footer={
         onOpenFile === undefined ? undefined : (
           <>
-            <p className="quiet-line">
+            <p className="m-0 font-sans text-ink-quiet">
               Already have a project file?{" "}
               <button
                 type="button"
-                className="quiet-line__action"
+                className="bg-transparent p-0 font-sans underline underline-offset-4"
                 onClick={() => picker.current?.click()}
               >
                 Open it.
@@ -73,7 +73,7 @@ export function PresetQuestion({
               ref={picker}
               type="file"
               accept=".json,application/json"
-              className="quiet-line__input"
+              className="sr-only"
               aria-label="Open a project file"
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -86,24 +86,26 @@ export function PresetQuestion({
              * disclosure, and a `<details>` is flow content that cannot live inside a paragraph.
              */}
             {fileError !== undefined && fileError !== null && (
-              <div className="quiet-line__error">{fileError}</div>
+              <div className="mt-2 border-s-2 border-notice ps-3 font-sans" data-open-error>
+                {fileError}
+              </div>
             )}
           </>
         )
       }
     >
-      <ul className="presets">
+      <ul className="m-0 flex list-none flex-col gap-2 p-0">
         {PRESETS.map((preset) => (
           <li key={preset.id}>
             <button
               type="button"
-              className="presets__option"
+              className="tap flex w-full flex-col gap-0.5 rounded-sm border border-rule bg-transparent px-4 py-3 text-start font-sans aria-pressed:border-ink aria-pressed:shadow-[inset_0_0_0_1px_var(--color-ink)]"
               aria-pressed={chosen === preset.id}
               onClick={() => onChoose(preset.id)}
             >
-              <span className="presets__label">{preset.label}</span>
+              <span className="font-medium">{preset.label}</span>
               {preset.examples !== "" && (
-                <span className="presets__examples">{preset.examples}</span>
+                <span className="text-sm text-ink-quiet">{preset.examples}</span>
               )}
             </button>
           </li>

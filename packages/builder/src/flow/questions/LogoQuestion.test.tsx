@@ -55,7 +55,7 @@ describe("the logo step", () => {
   it("carries the escape, like every optional step (§7.2)", () => {
     const { onSkip } = view(null, { ok: true, logo: LOGO, encoding: "image/png", notice: null });
 
-    fireEvent.click(document.querySelector(".question__escape") as Element);
+    fireEvent.click(document.querySelector("[data-escape]") as Element);
     expect(onSkip).toHaveBeenCalled();
   });
 
@@ -67,7 +67,7 @@ describe("the logo step", () => {
 
     pick();
     await waitFor(() => expect(onPick).toHaveBeenCalledWith(result));
-    expect(document.querySelector(".notice")).toBeNull();
+    expect(document.querySelector("[data-notice]")).toBeNull();
   });
 
   it("speaks only when the result is visibly worse (§6.6)", async () => {
@@ -80,7 +80,7 @@ describe("the logo step", () => {
 
     pick();
     await waitFor(() =>
-      expect(document.querySelector(".notice")?.textContent).toBe(SOFT_RESULT_MESSAGE),
+      expect(document.querySelector("[data-notice]")?.textContent).toBe(SOFT_RESULT_MESSAGE),
     );
     expect(onPick).toHaveBeenCalled();
   });
@@ -95,7 +95,7 @@ describe("the logo step", () => {
 
     pick();
     await waitFor(() =>
-      expect(document.querySelector(".notice")?.textContent).toBe(LOGO_MESSAGES.undecodable),
+      expect(document.querySelector("[data-notice]")?.textContent).toBe(LOGO_MESSAGES.undecodable),
     );
     // The existing logo is still what the screen is holding: nothing on the failing branch of
     // the union can replace it, so "a failed input never damages what is already there" is a
@@ -106,6 +106,8 @@ describe("the logo step", () => {
 
   it("will not continue past a screen with nothing on it", () => {
     view(null, { ok: true, logo: LOGO, encoding: "image/png", notice: null });
-    expect((document.querySelector(".question__submit") as HTMLButtonElement).disabled).toBe(true);
+    expect((document.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(
+      true,
+    );
   });
 });

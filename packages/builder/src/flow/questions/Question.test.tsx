@@ -20,17 +20,24 @@ import { Field } from "./Question.js";
 
 afterEach(cleanup);
 
-const describedText = (control: HTMLElement): string => {
-  const id = control.getAttribute("aria-describedby");
-  if (id === null) return "";
-  return document.getElementById(id)?.textContent ?? "";
-};
+/**
+ * Everything `aria-describedby` points at, in order.
+ *
+ * A list rather than one id, because §7.9's message **joins** the hint rather than replacing it —
+ * which is the whole reason a hint can survive the moment it is most useful.
+ */
+const describedText = (control: HTMLElement): string =>
+  (control.getAttribute("aria-describedby") ?? "")
+    .split(" ")
+    .filter((id) => id !== "")
+    .map((id) => document.getElementById(id)?.textContent ?? "")
+    .join(" ");
 
 describe("a hinted field", () => {
   const openHinted = (): void => {
     mount(
       <Field label="Or type your exact colour" hint="Like #c2185b.">
-        <input type="text" className="input" defaultValue="" />
+        <input type="text" defaultValue="" />
       </Field>,
     );
   };
@@ -44,7 +51,7 @@ describe("a hinted field", () => {
   it("does not let the hint into the name", () => {
     openHinted();
     const control = screen.getByRole("textbox");
-    const label = document.querySelector<HTMLLabelElement>("label.field__label");
+    const label = document.querySelector<HTMLLabelElement>("[data-field] label");
     expect(label?.htmlFor).toBe(control.id);
     expect(label?.textContent).toBe("Or type your exact colour");
     expect(label?.textContent).not.toContain("#c2185b");
@@ -54,7 +61,7 @@ describe("a hinted field", () => {
     openHinted();
     // #91 used `aria-labelledby`, which names correctly and silently costs this: clicking the
     // words stopped focusing the control, because only a real label association does that.
-    const label = document.querySelector<HTMLLabelElement>("label.field__label");
+    const label = document.querySelector<HTMLLabelElement>("[data-field] label");
     expect(label?.tagName).toBe("LABEL");
     expect(label?.htmlFor).not.toBe("");
     expect(document.getElementById(label?.htmlFor ?? "")).toBe(screen.getByRole("textbox"));
@@ -69,15 +76,18 @@ describe("a hinted field", () => {
 
   it("keeps the hint visible, between the label and the control", () => {
     openHinted();
-    const field = document.querySelector(".field");
-    const order = [...(field?.children ?? [])].map((el) => el.className || el.tagName);
-    // Sighted users lose nothing: the visual order is what it always was.
-    expect(order).toEqual(["field__label", "field__hint", "input"]);
+    const field = document.querySelector("[data-field]");
+    // Asserted by shape rather than by class name: what matters is label, then hint, then the
+    // control, and a class list is a styling detail that would make this test edit itself every
+    // time the presentation moves.
+    const order = [...(field?.children ?? [])].map((el) => el.tagName);
+    expect(order).toEqual(["LABEL", "SPAN", "INPUT"]);
+    expect(field?.querySelector("[data-hint]")?.textContent).toBe("Like #c2185b.");
   });
 
   it("keeps the hint out of the label's subtree, which is what caused it", () => {
     openHinted();
-    const label = document.querySelector(".field__label");
+    const label = document.querySelector("[data-field] label");
     expect(label?.textContent).toBe("Or type your exact colour");
     expect(document.querySelector("label .field__hint")).toBeNull();
   });
@@ -87,14 +97,14 @@ describe("an unhinted field", () => {
   it("still points a real label at its control", () => {
     mount(
       <Field label="Business name">
-        <input type="text" className="input" defaultValue="" />
+        <input type="text" defaultValue="" />
       </Field>,
     );
 
     const control = screen.getByRole("textbox", { name: "Business name" });
     // Named by a real label, and described by nothing, because there is no hint.
     expect(control.getAttribute("aria-describedby")).toBeNull();
-    const label = document.querySelector<HTMLLabelElement>("label.field__label");
+    const label = document.querySelector<HTMLLabelElement>("[data-field] label");
     expect(label?.htmlFor).toBe(control.id);
   });
 
@@ -104,7 +114,7 @@ describe("an unhinted field", () => {
     mount(
       <Field label="Something else">
         <span className="row">
-          <input type="text" className="input" defaultValue="" />
+          <input type="text" defaultValue="" />
           <button type="button">Add</button>
         </span>
       </Field>,
@@ -121,7 +131,7 @@ describe("an unhinted field", () => {
     mount(
       <Field label="Something else" htmlFor="typed">
         <span className="row">
-          <input id="typed" type="text" className="input" defaultValue="" />
+          <input id="typed" type="text" defaultValue="" />
           <button type="button">Add</button>
         </span>
       </Field>,
@@ -130,13 +140,13 @@ describe("an unhinted field", () => {
     // The whole of #98: the Add button no longer joins the input's name.
     expect(screen.getByRole("textbox", { name: "Something else" })).toBeDefined();
     expect(screen.getByRole("button", { name: "Add" })).toBeDefined();
-    expect(document.querySelector<HTMLLabelElement>("label.field__label")?.htmlFor).toBe("typed");
+    expect(document.querySelector<HTMLLabelElement>("[data-field] label")?.htmlFor).toBe("typed");
   });
 
   it("leaves a caller's own id alone", () => {
     mount(
       <Field label="Where">
-        <input id="mine" type="text" className="input" defaultValue="" />
+        <input id="mine" type="text" defaultValue="" />
       </Field>,
     );
 
@@ -149,7 +159,7 @@ describe("the hinted field does not damage what it is handed", () => {
   it("associates a select as readily as an input", () => {
     mount(
       <Field label="Monday" hint="Leave a day alone if you'd rather not say.">
-        <select className="input" defaultValue="unset">
+        <select defaultValue="unset">
           <option value="unset">Don’t say</option>
         </select>
       </Field>,
@@ -165,13 +175,68 @@ describe("the hinted field does not damage what it is handed", () => {
     mount(
       <Field label="Two things" hint="A hint.">
         <>
-          <input type="text" className="input" defaultValue="" />
-          <input type="text" className="input" defaultValue="" />
+          <input type="text" defaultValue="" />
+          <input type="text" defaultValue="" />
         </>
       </Field>,
     );
 
-    expect(document.querySelector(".field__hint")?.textContent).toBe("A hint.");
+    expect(document.querySelector("[data-hint]")?.textContent).toBe("A hint.");
     expect(document.querySelectorAll("input")).toHaveLength(2);
+  });
+});
+
+/**
+ * §7.9's message slot, which this component now owns.
+ *
+ * Nothing passes `message` in the product yet — the per-field rules that produce one are #109 and
+ * #112 to #114. It is tested here because the slot is the contract those tickets build against,
+ * and an untested slot is one they would each have to rediscover the shape of.
+ */
+describe("a field with something the tool cannot use (§7.9)", () => {
+  const openWithMessage = (): void => {
+    mount(
+      <Field
+        label="Where does it go?"
+        hint="Copy it from your browser."
+        message="This button won't work — paste the address from your browser."
+      >
+        <input type="text" defaultValue="" />
+      </Field>,
+    );
+  };
+
+  it("sits below the control, where the eye already is", () => {
+    openWithMessage();
+    const order = [...(document.querySelector("[data-field]")?.children ?? [])].map(
+      (el) => el.tagName,
+    );
+    expect(order).toEqual(["LABEL", "SPAN", "INPUT", "SPAN"]);
+  });
+
+  it("joins the hint rather than replacing it", () => {
+    // The hint is frequently *the fix*, so deleting it at the moment of complaint is the worst
+    // possible timing. `aria-describedby` takes a list, which is what makes this possible.
+    openWithMessage();
+    expect(describedText(screen.getByRole("textbox"))).toBe(
+      "Copy it from your browser. This button won't work — paste the address from your browser.",
+    );
+  });
+
+  it("names the control with the label alone, still", () => {
+    openWithMessage();
+    expect(screen.getByRole("textbox", { name: "Where does it go?" })).toBeDefined();
+  });
+
+  it("reserves no layout when there is nothing wrong", () => {
+    // §7.7's constraint reaching the field: a screen with nothing wrong is the calm screen it was
+    // designed as, with no empty slot held open against a message that never comes.
+    mount(
+      <Field label="Where does it go?" hint="Copy it from your browser.">
+        <input type="text" defaultValue="" />
+      </Field>,
+    );
+    expect(document.querySelector("[data-message]")).toBeNull();
+    expect(describedText(screen.getByRole("textbox"))).toBe("Copy it from your browser.");
   });
 });

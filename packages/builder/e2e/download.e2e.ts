@@ -137,7 +137,7 @@ test("the downloaded index.html is the preview's srcdoc, and it opens offline", 
   const toggle = page.getByRole("button", { name: /the page$/ });
   if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
 
-  const frame = page.locator("iframe.preview__frame");
+  const frame = page.locator("iframe[data-preview-frame]");
   await expect(frame).toBeAttached();
   const srcdoc = await frame.getAttribute("srcdoc");
   expect(srcdoc, "the preview frame carries a srcdoc").not.toBeNull();

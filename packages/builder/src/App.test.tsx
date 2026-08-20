@@ -43,10 +43,10 @@ beforeEach(() => {
 });
 
 const title = (): string => screen.getByRole("heading", { level: 1 }).textContent ?? "";
-const submit = (): Element => document.querySelector(".question__submit") as Element;
-const escapeButton = (): Element | null => document.querySelector(".question__escape");
+const submit = (): Element => document.querySelector('button[type="submit"]') as Element;
+const escapeButton = (): Element | null => document.querySelector("[data-escape]");
 /** Stated positively, so "the walk ended" cannot be confused with "the walk got stuck". */
-const onList = (): boolean => document.querySelector(".list") !== null;
+const onList = (): boolean => document.querySelector('[data-screen="list"]') !== null;
 
 const PRESET_QUESTION = "What kind of business is this?";
 const NAME = "What's it called?";
@@ -86,7 +86,7 @@ function walk(preset: RegExp = /Food & drink/, name = "Ada's Bakery"): string[] 
       continue;
     }
     if (heading === COLOUR) {
-      fireEvent.click(document.querySelectorAll(".swatches__swatch")[0] as Element);
+      fireEvent.click(document.querySelectorAll("[data-swatch]")[0] as Element);
       fireEvent.click(submit());
       continue;
     }
@@ -224,7 +224,7 @@ describe("which screen the owner gets", () => {
       JSON.stringify({ version: 1, lang: "en-GB", header: { name: "Ada's Bakery" } }),
     );
     mount(<App storage={storage} />);
-    expect(document.querySelector(".quiet-line__error")).toBeNull();
+    expect(document.querySelector("[data-open-error]")).toBeNull();
 
     // **One question, then the list** — "as if they had ticked a new section", not the first
     // run again. This owner has a project, so the sibling of the run above resumes narrowly and
@@ -426,7 +426,7 @@ describe("opening a project you already have (§7.8, §7.9)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open a project file…" }));
   }
 
-  const confirmation = (): string => document.querySelector(".replace")?.textContent ?? "";
+  const confirmation = (): string => document.querySelector("[data-replace]")?.textContent ?? "";
 
   describe("the quiet line, with nothing to lose", () => {
     it("opens the file immediately, with no confirmation (§7.8)", async () => {
@@ -457,7 +457,7 @@ describe("opening a project you already have (§7.8, §7.9)", () => {
 
       await pick("{ this is not a file");
 
-      const message = document.querySelector(".quiet-line__error")?.textContent ?? "";
+      const message = document.querySelector("[data-open-error]")?.textContent ?? "";
       expect(message).toContain("This file appears to be damaged.");
       // Never a modal, never a navigation: the next action is pick again, and in place makes
       // that one press rather than dismiss → re-find the control → re-open the picker.
@@ -471,13 +471,13 @@ describe("opening a project you already have (§7.8, §7.9)", () => {
       mount(<App storage={storage} />);
 
       await pick("[1, 2, 3]");
-      expect(document.querySelector(".quiet-line__error")?.textContent).toContain(
+      expect(document.querySelector("[data-open-error]")?.textContent).toContain(
         "This doesn't look like a linkpage file.",
       );
 
       await pick(projectJson(ADAS));
       expect(title()).toBe("Ada's Bakery");
-      expect(document.querySelector(".quiet-line__error")).toBeNull();
+      expect(document.querySelector("[data-open-error]")).toBeNull();
     });
 
     it("says nothing at all about a file that is only missing things (§4.6)", async () => {
@@ -488,8 +488,8 @@ describe("opening a project you already have (§7.8, §7.9)", () => {
       await pick(projectJson({ version: 1, lang: "en", header: { name: "Ada's Bakery" } }));
 
       expect(title()).toBe("What's your colour?");
-      expect(document.querySelector(".quiet-line__error")).toBeNull();
-      expect(document.querySelector(".refusal")).toBeNull();
+      expect(document.querySelector("[data-open-error]")).toBeNull();
+      expect(document.querySelector("[data-refusal]")).toBeNull();
     });
   });
 
@@ -574,23 +574,23 @@ describe("opening a project you already have (§7.8, §7.9)", () => {
       openTheMenu();
       await pick("{ this is not a file");
 
-      const panel = document.querySelector(".list__menu-panel");
+      const panel = document.querySelector("[data-menu-panel]");
       expect(panel?.textContent).toContain("This file appears to be damaged.");
       expect((panel as HTMLElement).hidden).toBe(false);
       expect(screen.queryByRole("dialog")).toBeNull();
       // The project is intact behind it — the list, its rows and the preview are all still there.
       expect(title()).toBe("Ada's Bakery");
-      expect(document.querySelectorAll(".list__row").length).toBeGreaterThan(0);
+      expect(document.querySelectorAll("[data-row]").length).toBeGreaterThan(0);
     });
 
     it("puts the technical half behind a disclosure, closed (§4.6)", async () => {
       openTheMenu();
       await pick('{"version": 99}');
 
-      expect(document.querySelector(".refusal__message")?.textContent).toContain(
+      expect(document.querySelector("[data-refusal-message]")?.textContent).toContain(
         "This page was made with a newer version of linkpage",
       );
-      const disclosure = document.querySelector(".refusal__detail") as HTMLDetailsElement;
+      const disclosure = document.querySelector("details") as HTMLDetailsElement;
       expect(disclosure.open).toBe(false);
       expect(disclosure.textContent).toContain("Technical detail");
     });
@@ -598,13 +598,13 @@ describe("opening a project you already have (§7.8, §7.9)", () => {
     it("recovers by picking again, straight from the refusal (§7.9)", async () => {
       openTheMenu();
       await pick("{ this is not a file");
-      expect(document.querySelector(".refusal")).not.toBeNull();
+      expect(document.querySelector("[data-refusal]")).not.toBeNull();
 
       await pick(projectJson(BOS));
 
       // The message is gone and the confirmation has taken its place: pick again, and the fork
       // is where it always was.
-      expect(document.querySelector(".refusal")).toBeNull();
+      expect(document.querySelector("[data-refusal]")).toBeNull();
       expect(confirmation()).toContain("Opening this file will replace it.");
     });
   });

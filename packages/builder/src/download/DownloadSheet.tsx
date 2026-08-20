@@ -1,9 +1,9 @@
 import { useEffect, useId, useRef, type JSX } from "react";
 import { EXPORT_FILENAME, pageHtml } from "../page.js";
 import type { Draft } from "../project/index.js";
-import "./download.css";
 import { Hosting } from "./Hosting.js";
 import { HTML_TYPE, saveTextFile, type FileDownload } from "./save.js";
+import { Button } from "../ui/Button.js";
 
 /**
  * Download: one sheet, two sections. `SPEC.md` §7.7, §8, §6.1.
@@ -188,34 +188,37 @@ export function DownloadSheet({
   }, []);
 
   return (
-    <div className="sheet">
+    <div className="fixed inset-0 z-30 flex items-end justify-center font-sans wide:items-center wide:p-8">
       {/* Tapping beside the sheet leaves it. The Close button is the keyboard's route out. */}
-      <div className="sheet__scrim" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40" data-scrim onClick={onClose} />
 
       <div
-        className="sheet__panel"
+        className="relative max-h-[92dvh] w-full max-w-[34rem] overflow-y-auto rounded-t-2xl bg-ground p-5 text-ink wide:max-h-[88dvh] wide:rounded-2xl wide:p-8"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
         ref={panel}
       >
-        <div className="sheet__bar">
-          <h2 className="sheet__title" id={titleId}>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="font-serif text-2xl leading-tight" id={titleId}>
             Download
           </h2>
-          <button type="button" className="button-secondary" onClick={onClose}>
+          <Button type="button" weight="secondary" onClick={onClose}>
             Close
-          </button>
+          </Button>
         </div>
 
         {/*
          * Section one. First, because it is what the button was pressed for — and because the
          * order of these two sections is the order they happen in.
          */}
-        <section className="sheet__section" data-section="page">
-          <h3 className="sheet__heading">Put your page online</h3>
-          <p className="sheet__lede">
+        <section
+          className="mt-8 border-t border-rule pt-8 first-of-type:mt-6 first-of-type:border-0 first-of-type:pt-0"
+          data-section="page"
+        >
+          <h3 className="font-serif text-xl">Put your page online</h3>
+          <p className="mt-2 [&_code]:[overflow-wrap:anywhere]">
             This is your web page — <code>{EXPORT_FILENAME}</code>. Put it online and anyone can
             visit it.
           </p>
@@ -229,14 +232,17 @@ export function DownloadSheet({
         </section>
 
         {/* Section two. Not in a menu — see the note on this component. */}
-        <section className="sheet__section" data-section="project">
-          <h3 className="sheet__heading">Keep a copy of your work</h3>
-          <p className="sheet__lede">
+        <section
+          className="mt-8 border-t border-rule pt-8 first-of-type:mt-6 first-of-type:border-0 first-of-type:pt-0"
+          data-section="project"
+        >
+          <h3 className="font-serif text-xl">Keep a copy of your work</h3>
+          <p className="mt-2 [&_code]:[overflow-wrap:anywhere]">
             This is your saved work —{" "}
             <code>{projectDownload?.filename ?? PROJECT_FILENAME_FALLBACK}</code>. It’s how you make
             changes later.
           </p>
-          <p className="sheet__consequence">
+          <p className="mt-2">
             Keep it somewhere safe:{" "}
             <strong>if you lose it, you’d have to build your page again from scratch.</strong>
           </p>
@@ -262,13 +268,14 @@ function SaveButton({
   readonly fallbackName?: string;
 }): JSX.Element {
   return (
-    <button
+    <Button
       type="button"
-      className="sheet__save"
+      weight="primary"
+      className="mt-4 [overflow-wrap:anywhere]"
       disabled={file === undefined}
       onClick={file?.save}
     >
       Download {file?.filename ?? fallbackName}
-    </button>
+    </Button>
   );
 }

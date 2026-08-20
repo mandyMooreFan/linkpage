@@ -111,14 +111,14 @@ export function HoursQuestion({
       escape={{ label: "We don't have set hours", onEscape: onSkip }}
       onBack={onBack}
     >
-      <ul className="days">
+      <ul className="m-0 flex list-none flex-col gap-2 p-0">
         {WEEKDAYS.map((day) => {
           const form = days[day];
           return (
-            <li key={day} className="days__day">
+            <li key={day} className="flex flex-col gap-2 border-b border-rule py-2">
               <Field label={DAY_NAMES[day]}>
                 <select
-                  className="input"
+                  className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                   value={form.mode}
                   onChange={(event) =>
                     update(day, { ...form, mode: event.target.value as DayMode })
@@ -131,14 +131,14 @@ export function HoursQuestion({
               </Field>
 
               {form.mode === "open" && (
-                <div className="days__times">
+                <div className="flex flex-col gap-2">
                   {form.intervals.map(([open, close], index) => (
                     // Positional keys: the rows have no identity of their own, and the list is
                     // only ever appended to or emptied.
-                    <div className="row" key={index}>
+                    <div className="flex items-center gap-2" key={index}>
                       <input
                         type="time"
-                        className="input"
+                        className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                         aria-label={`${DAY_NAMES[day]} opens`}
                         value={open}
                         onChange={(event) =>
@@ -152,7 +152,7 @@ export function HoursQuestion({
                       />
                       <input
                         type="time"
-                        className="input"
+                        className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                         aria-label={`${DAY_NAMES[day]} closes`}
                         value={close}
                         onChange={(event) =>
@@ -168,7 +168,7 @@ export function HoursQuestion({
                   ))}
                   <button
                     type="button"
-                    className="button-secondary"
+                    className="tap self-start rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base"
                     onClick={() =>
                       update(day, { ...form, intervals: [...form.intervals, ["", ""]] })
                     }
@@ -185,7 +185,7 @@ export function HoursQuestion({
       <Field label="Anything else about your hours?" hint="Bank holidays, seasonal changes.">
         <input
           type="text"
-          className="input"
+          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           value={note}
           onChange={(event) => setNote(event.target.value)}
         />

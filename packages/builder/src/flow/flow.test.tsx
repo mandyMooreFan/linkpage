@@ -62,8 +62,8 @@ function harness({ entry = { kind: "empty" }, draft = null, ...rest }: HarnessPr
 
 const title = (): string => screen.getByRole("heading", { level: 1 }).textContent ?? "";
 const onList = (): boolean => screen.queryByText(LIST) !== null;
-const escapeButton = (): HTMLButtonElement | null => document.querySelector(".question__escape");
-const submit = (): HTMLButtonElement | null => document.querySelector(".question__submit");
+const escapeButton = (): HTMLButtonElement | null => document.querySelector("[data-escape]");
+const submit = (): HTMLButtonElement | null => document.querySelector('button[type="submit"]');
 
 const NAME = "What's it called?";
 const COLOUR = "What's your colour?";
@@ -107,7 +107,7 @@ function decline(preset: PresetId, name = "Ada's Bakery", colour = 0): string[] 
       // The two required questions, and the only two without an escape (§3.1, §4.6).
       expect(escapeButton()).toBeNull();
       if (heading === NAME) type(/Business name/, name);
-      else fireEvent.click(document.querySelectorAll(".swatches__swatch")[colour] as Element);
+      else fireEvent.click(document.querySelectorAll("[data-swatch]")[colour] as Element);
       fireEvent.click(submit() as Element);
       continue;
     }
@@ -189,7 +189,7 @@ describe("a preset leaves no trace in project.json (§7.3)", () => {
         type(/Business name/, "Ada's Bakery");
         fireEvent.click(submit() as Element);
       } else if (heading === COLOUR) {
-        fireEvent.click(document.querySelectorAll(".swatches__swatch")[1] as Element);
+        fireEvent.click(document.querySelectorAll("[data-swatch]")[1] as Element);
         fireEvent.click(submit() as Element);
       } else if (heading === "How do people reach you?") {
         type(/Phone/, "+44 20 7946 0100");
@@ -261,7 +261,7 @@ describe("link buttons seed as a pick-list, never as pre-created rows (§7.3)", 
     fireEvent.click(submit() as Element);
     fireEvent.click(escapeButton() as Element); // tagline
     fireEvent.click(escapeButton() as Element); // logo
-    fireEvent.click(document.querySelectorAll(".swatches__swatch")[0] as Element);
+    fireEvent.click(document.querySelectorAll("[data-swatch]")[0] as Element);
     fireEvent.click(submit() as Element);
     return flow;
   }
@@ -368,10 +368,10 @@ describe("the flow re-enters for anything new (§7.1)", () => {
     const flow = harness({ entry: { kind: "resume" }, draft: noBrand });
 
     expect(title()).toBe(COLOUR);
-    expect(document.querySelector(".notice")).toBeNull();
-    expect(document.querySelector(".quiet-line__error")).toBeNull();
+    expect(document.querySelector("[data-notice]")).toBeNull();
+    expect(document.querySelector("[data-open-error]")).toBeNull();
 
-    fireEvent.click(document.querySelectorAll(".swatches__swatch")[0] as Element);
+    fireEvent.click(document.querySelectorAll("[data-swatch]")[0] as Element);
     fireEvent.click(submit() as Element);
 
     expect(onList()).toBe(true);
@@ -435,7 +435,7 @@ describe("already have a project file? open it (§7.8, §7.9)", () => {
 
     // §7.9: in place, attached to the control that opened the picker. Never a modal, never a
     // navigation — _try a different file_ is overwhelmingly the next action.
-    const error = document.querySelector(".quiet-line__error");
+    const error = document.querySelector("[data-open-error]");
     expect(error?.textContent).toBe("This file appears to be damaged.");
     expect(title()).toBe(PRESET_QUESTION);
     expect(screen.getAllByRole("button", { name: /Food & drink/ })).toHaveLength(1);

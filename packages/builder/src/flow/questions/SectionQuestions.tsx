@@ -52,7 +52,7 @@ export function ContactQuestion({
       <Field label="Phone">
         <input
           type="tel"
-          className="input"
+          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           value={phone}
           autoComplete="tel"
           onChange={(event) => setPhone(event.target.value)}
@@ -61,7 +61,7 @@ export function ContactQuestion({
       <Field label="Email">
         <input
           type="email"
-          className="input"
+          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           value={email}
           spellCheck={false}
           autoCapitalize="none"
@@ -108,7 +108,7 @@ export function AddressQuestion({
     >
       <Field label="Address">
         <textarea
-          className="input"
+          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           rows={4}
           value={lines}
           onChange={(event) => setLines(event.target.value)}
@@ -122,7 +122,7 @@ export function AddressQuestion({
       <Field label="A link to directions" hint="Optional. From your maps app's share button.">
         <input
           type="url"
-          className="input"
+          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           inputMode="url"
           value={directionsUrl}
           spellCheck={false}
@@ -184,14 +184,14 @@ export function SocialQuestion({
         ))}
       </datalist>
 
-      <ul className="socials">
+      <ul className="m-0 flex list-none flex-col gap-2 p-0">
         {rows.map((row, index) => (
           // Positional keys: a row is identified by where it is, and rows are only appended.
-          <li key={index} className="socials__row">
+          <li key={index} className="flex flex-col gap-2 border-b border-rule py-2">
             <Field label="Where">
               <input
                 type="text"
-                className="input"
+                className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                 list={listId}
                 value={row.platform}
                 spellCheck={false}
@@ -202,7 +202,7 @@ export function SocialQuestion({
             <Field label="Your page there">
               <input
                 type="url"
-                className="input"
+                className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                 inputMode="url"
                 value={row.url}
                 spellCheck={false}
@@ -217,7 +217,7 @@ export function SocialQuestion({
 
       <button
         type="button"
-        className="button-secondary"
+        className="tap self-start rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base"
         onClick={() => setRows([...rows, { platform: "", url: "" }])}
       >
         Add another

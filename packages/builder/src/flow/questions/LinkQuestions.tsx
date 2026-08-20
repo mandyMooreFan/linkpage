@@ -79,13 +79,13 @@ export function LinksQuestion({
       onBack={onBack}
     >
       {suggestions.length > 0 && (
-        <ul className="picks">
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {suggestions.map((entry) => {
             const id = suggested(entry.label);
             const on = chosen.includes(id);
             return (
               <li key={id}>
-                <label className="picks__option">
+                <label className="tap flex items-center gap-3">
                   <input
                     type="checkbox"
                     checked={on}
@@ -102,13 +102,13 @@ export function LinksQuestion({
       )}
 
       {extras.length > 0 && (
-        <ul className="picks">
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {extras.map((pick) => (
             <li key={pick.id}>
-              <span className="picks__own">{pick.label}</span>
+              <span className="me-2">{pick.label}</span>
               <button
                 type="button"
-                className="picks__remove"
+                className="bg-transparent font-sans underline underline-offset-4"
                 onClick={() => setExtras(extras.filter((each) => each.id !== pick.id))}
               >
                 Remove
@@ -124,11 +124,11 @@ export function LinksQuestion({
        * everything inside it, and the Add button is inside it.
        */}
       <Field label="Something else" htmlFor={typedId}>
-        <span className="row">
+        <span className="flex items-center gap-2">
           <input
             id={typedId}
             type="text"
-            className="input"
+            className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
             value={typed}
             placeholder="What would the button say?"
             onChange={(event) => setTyped(event.target.value)}
@@ -142,7 +142,7 @@ export function LinksQuestion({
           />
           <button
             type="button"
-            className="button-secondary"
+            className="tap self-start rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base"
             disabled={typed.trim() === ""}
             onClick={addExtra}
           >
@@ -189,7 +189,7 @@ export function LinkUrlQuestion({
       <Field label="Web address">
         <input
           type="url"
-          className="input"
+          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           inputMode="url"
           value={url}
           spellCheck={false}

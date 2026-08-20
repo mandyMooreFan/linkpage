@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useId, useState, useSyncExternalStore, type JSX } from "react";
 import { pageHtml } from "../page.js";
 import type { Draft } from "../project/index.js";
-import "./preview.css";
 
 /**
  * The preview: the exported page itself, in a drawer the owner steps in and out of (§5.2, §7.6).
@@ -61,11 +60,14 @@ export function Preview({ project }: PreviewProps): JSX.Element {
   }, [open]);
 
   return (
-    <div className="preview" data-open={open}>
-      <div className="preview__bar">
+    <div
+      className="group flex flex-col gap-3 font-sans text-ink data-[open=true]:fixed data-[open=true]:inset-0 data-[open=true]:z-20 data-[open=true]:h-dvh data-[open=true]:gap-0 data-[open=true]:bg-surface wide:data-[open=true]:static wide:data-[open=true]:h-auto wide:data-[open=true]:gap-3 wide:data-[open=true]:bg-transparent"
+      data-open={open}
+    >
+      <div className="flex justify-end group-data-[open=true]:border-b group-data-[open=true]:border-rule group-data-[open=true]:px-3 group-data-[open=true]:py-2 wide:group-data-[open=true]:border-0 wide:group-data-[open=true]:p-0">
         <button
           type="button"
-          className="preview__toggle"
+          className="tap rounded-sm border border-rule bg-transparent px-4 py-2 font-sans"
           aria-expanded={open}
           aria-controls={drawerId}
           onClick={() => setChoice(!open)}
@@ -73,7 +75,11 @@ export function Preview({ project }: PreviewProps): JSX.Element {
           {open ? "Hide the page" : "See the page"}
         </button>
       </div>
-      <div className="preview__drawer" id={drawerId} hidden={!open}>
+      <div
+        className="min-h-0 flex-1 justify-center [&:not([hidden])]:flex wide:h-[min(80dvh,46rem)] wide:flex-none"
+        id={drawerId}
+        hidden={!open}
+      >
         {/*
          * Mounted only while open, so stepping out and back in always returns to the top of a
          * fresh page. The frame is sandboxed with nothing granted — the export ships zero
@@ -83,8 +89,9 @@ export function Preview({ project }: PreviewProps): JSX.Element {
          */}
         {open && (
           <iframe
-            className="preview__frame"
+            className="block h-full w-[min(100%,27.5rem)] border border-rule bg-surface"
             title="Your page"
+            data-preview-frame
             sandbox=""
             srcDoc={pageHtml(project)}
           />

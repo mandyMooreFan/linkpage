@@ -61,7 +61,7 @@ export function LogoQuestion({
     >
       <button
         type="button"
-        className="button-secondary"
+        className="tap self-start rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base"
         disabled={busy}
         onClick={() => picker.current?.click()}
       >
@@ -71,7 +71,7 @@ export function LogoQuestion({
         ref={picker}
         type="file"
         accept={LOGO_ACCEPT}
-        className="quiet-line__input"
+        className="sr-only"
         aria-label="Choose a logo file"
         onChange={(event) => {
           const file = event.target.files?.[0];
@@ -88,7 +88,11 @@ export function LogoQuestion({
           });
         }}
       />
-      {message !== null && <p className="notice">{message}</p>}
+      {message !== null && (
+        <p className="mt-2 border-s-2 border-notice ps-3 font-sans" data-notice>
+          {message}
+        </p>
+      )}
       {logo !== null && message === null && (
         <p className="question__hint">Have a look at your page to see it.</p>
       )}
