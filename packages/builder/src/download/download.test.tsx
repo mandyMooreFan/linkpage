@@ -6,6 +6,7 @@ import { POPULATED } from "../fixtures.js";
 import { pageHtml } from "../page.js";
 import { DownloadSheet, PROJECT_FILENAME_FALLBACK } from "./DownloadSheet.js";
 import { installDownloads, type FakeDownloads } from "./downloads.testing.js";
+import type { Draft } from "../project/index.js";
 import type { FileDownload } from "./save.js";
 
 /**
@@ -391,5 +392,99 @@ describe("it is a modal, and the keyboard is held to it (#90)", () => {
     // Focusing a detached node silently sends focus to `<body>` — the very thing this restore
     // exists to prevent — so it must not be attempted.
     expect(() => view.unmount()).not.toThrow();
+  });
+});
+
+/**
+ * §7.7's conditional line: the last moment before publishing mentions what will not work.
+ *
+ * The whole design of it is negative — where it sits, how many there can be, and above all that
+ * **when nothing is wrong the sheet is byte for byte the calm screen §7.7 designed.**
+ */
+describe("when something the owner typed cannot be used (§7.7, §7.9)", () => {
+  const withDraft = (draft: Draft): void => {
+    mount(<DownloadSheet draft={draft} onClose={() => {}} />);
+  };
+
+  const warnings = (): string[] =>
+    [...document.querySelectorAll("[data-warnings] p")].map((node) => node.textContent ?? "");
+
+  it("says nothing at all when nothing is wrong", () => {
+    open();
+    expect(document.querySelector("[data-warnings]")).toBeNull();
+  });
+
+  it("leaves the calm sheet byte for byte unchanged", () => {
+    // The constraint §7.7 puts on having this here at all, held as a comparison rather than as an
+    // inspection: a sheet with nothing wrong must be indistinguishable from the sheet before this
+    // feature existed.
+    open();
+    const calm = (document.querySelector('[data-section="page"]') as HTMLElement).innerHTML;
+    cleanup();
+
+    withDraft({ ...POPULATED, links: [{ label: "Order online", url: "/menu" }] } as Draft);
+    const section = document.querySelector('[data-section="page"]') as HTMLElement;
+    expect(section.innerHTML).toContain("Order online won't work");
+
+    // Lift the added block out and the rest is character for character what it was.
+    section.querySelector("[data-warnings]")?.remove();
+    expect(section.innerHTML).toBe(calm);
+  });
+
+  it("sits in the first section, under its sentence and above the guidance", () => {
+    withDraft({ ...POPULATED, links: [{ label: "Order online", url: "/menu" }] } as Draft);
+    const page = document.querySelector('[data-section="page"]') as HTMLElement;
+    const html = page.innerHTML;
+    expect(html.indexOf("This is your web page")).toBeLessThan(html.indexOf("data-warnings"));
+    // §8's guidance follows it: you need the file, and the warning, before any of it applies.
+    expect(html.indexOf("data-warnings")).toBeLessThan(html.indexOf("data-hosting"));
+  });
+
+  it("names its own field, because away from its row the sentence has no referent", () => {
+    withDraft({ ...POPULATED, links: [{ label: "Order online", url: "/menu" }] } as Draft);
+    expect(warnings()).toEqual(["Order online won't work — paste the address from your browser."]);
+  });
+
+  it("gives the phone its own line", () => {
+    withDraft({ ...POPULATED, contact: { phone: "0800 CHICKEN" } } as Draft);
+    expect(warnings()).toEqual([
+      "Your phone number won't dial — add the number in digits if you want it tappable.",
+    ]);
+  });
+
+  it("stops at two, which is the ceiling and not a cap", () => {
+    // §7.9 gives the phone its own sentence and puts all three URL fields under one, so a third
+    // distinct warning is not reachable — this is arithmetic rather than truncation.
+    withDraft({
+      ...POPULATED,
+      links: [{ label: "Order online", url: "/menu" }],
+      social: [{ platform: "instagram", url: "@ada" }],
+      address: { lines: ["12 Bridge Street"], directionsUrl: "@here" },
+      contact: { phone: "0800 CHICKEN", email: "hello@nodot" },
+    } as Draft);
+    expect(warnings()).toHaveLength(2);
+  });
+
+  it("never counts, never leads in, and never names our diagnosis", () => {
+    withDraft({
+      ...POPULATED,
+      links: [{ label: "Order online", url: "/menu" }],
+      contact: { phone: "0800 CHICKEN" },
+    } as Draft);
+    const text = document.querySelector("[data-warnings]")?.textContent?.toLowerCase() ?? "";
+    for (const banned of ["invalid", "format", "valid", "2 problem", "problems", "error"]) {
+      expect(text).not.toContain(banned);
+    }
+  });
+
+  it("falls back through the URL fields rather than staying silent", () => {
+    withDraft({
+      ...POPULATED,
+      links: [],
+      address: { lines: ["12 Bridge Street"], directionsUrl: "@here" },
+    } as Draft);
+    expect(warnings()).toEqual([
+      "Your directions link won't work — paste the address from your browser.",
+    ]);
   });
 });

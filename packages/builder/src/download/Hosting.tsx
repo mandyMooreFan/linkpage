@@ -40,7 +40,7 @@ import type { JSX } from "react";
  */
 export function Hosting(): JSX.Element {
   return (
-    <div className="mt-5">
+    <div className="mt-5" data-hosting>
       <p className="mt-2">
         Your page is one file. To put it online, it needs to sit somewhere that will hand it to
         anyone who asks for it — that is all hosting is. There is nothing to install and nothing
