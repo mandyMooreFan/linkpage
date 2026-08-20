@@ -11,8 +11,9 @@ Build a business link page in your browser. Export **one self-contained HTML fil
 - **Works offline**, opens straight from a folder, and cannot break later.
 - **Built for businesses**, not just creators: hours, address, phone and social alongside the links.
 
-> **Status:** v1 is built and tested — 1,200+ tests and a browser end-to-end that downloads the
-> file and opens it with the network off. **Not deployed yet**, so there is no public URL to try.
+> **Status:** v1 is built, tested and live. **[Try it](https://mandymoorefan.github.io/linkpage/)** —
+> every push to `main` publishes. 1,200+ tests behind it, plus a browser end-to-end that downloads
+> the file and opens it with the network off.
 
 ## Run it
 
