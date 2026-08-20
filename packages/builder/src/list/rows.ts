@@ -1,4 +1,5 @@
 import { socialLabel, type Hours } from "@linkpage/renderer";
+import { colourName } from "../flow/index.js";
 import { uncoveredTopics } from "../flow/plan.js";
 import { TOPIC_LABELS, TOPICS, WEEKDAYS, type Topic } from "../flow/topics.js";
 import type { Draft } from "../project/index.js";
@@ -50,6 +51,14 @@ export interface Row {
    * always filled in.
    */
   readonly summary: string;
+  /**
+   * A colour to show beside the summary, when the row is about one (§7.4).
+   *
+   * Markup rather than a character in `summary`, because the dot **carries the colour for anyone
+   * who can see it while the name carries it for anyone who cannot** — so it is decorative and
+   * takes no accessible name of its own. A `●` in the string would be read aloud as a word.
+   */
+  readonly swatch?: string;
 }
 
 /** The list, in the order it is read: the page's own order (§2.1), then the two settings rows. */
@@ -77,7 +86,7 @@ export function listRows(draft: Draft): ListRows {
       label: TOPIC_LABELS[topic],
       summary: topicSummary(draft, topic),
     })),
-    { id: "style", label: STYLE_LABEL, summary: styleSummary(draft) },
+    { id: "style", label: STYLE_LABEL, summary: styleSummary(draft), swatch: draft.style.brand },
     { id: "lang", label: LANG_LABEL, summary: draft.lang ?? "" },
   ];
 
@@ -145,5 +154,10 @@ export function topicSummary(draft: Draft, topic: Topic): string {
  */
 export function styleSummary(draft: Draft): string {
   const style = draft.style;
-  return join([style.brand, SHAPE_LABELS[style.shape], MODE_LABELS[style.mode]]);
+  // Three of the six controls, not all six (§7.4). The row's job is recognition, the page preview
+  // sits beside it, and six parts is an inventory that wraps on the screen §7.6 calls primary.
+  //
+  // **Our name for one of ours, their code for one of theirs** (§3.1) — a typed hex is quoted back
+  // rather than being told what it is called.
+  return join([colourName(style.brand ?? ""), SHAPE_LABELS[style.shape], MODE_LABELS[style.mode]]);
 }

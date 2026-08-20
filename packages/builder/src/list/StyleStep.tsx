@@ -161,34 +161,39 @@ function ColourControl({
   /** Present on the optional colour only: absent is a state, empty is not. */
   readonly onClear?: () => void;
 }): JSX.Element {
-  const [typed, setTyped] = useState(value !== "" && !BRAND_SWATCHES.includes(value) ? value : "");
+  const [typed, setTyped] = useState(
+    value !== "" && !BRAND_SWATCHES.some((swatch) => swatch.hex === value) ? value : "",
+  );
   const groupId = useId();
 
   return (
     <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-      <legend className="field__label">{label}</legend>
-      <p className="field__hint">{hint}</p>
+      <legend className="block text-base font-medium">{label}</legend>
+      <p className="mt-1 block text-sm text-ink-quiet">{hint}</p>
 
       <ul className="m-0 flex list-none flex-row flex-wrap gap-3 p-0">
-        {BRAND_SWATCHES.map((colour) => (
-          <li key={colour}>
+        {BRAND_SWATCHES.map((swatch) => (
+          <li key={swatch.hex}>
             <button
               type="button"
               className="size-12 rounded-full border border-rule aria-pressed:outline-2 aria-pressed:outline-offset-2 aria-pressed:outline-ink"
-              style={{ background: colour }}
-              aria-label={colour}
-              aria-pressed={value.toLowerCase() === colour}
+              data-swatch
+              style={{ background: swatch.hex }}
+              aria-label={swatch.name}
+              aria-pressed={value.toLowerCase() === swatch.hex}
               onClick={() => {
                 setTyped("");
-                onPick(colour);
+                onPick(swatch.hex);
               }}
             />
           </li>
         ))}
       </ul>
 
-      <label className="field" htmlFor={groupId}>
-        <span className="field__hint">Or type an exact colour, like #c2185b.</span>
+      <label className="flex flex-col" htmlFor={groupId}>
+        <span className="mt-1 block text-sm text-ink-quiet">
+          Or type an exact colour, like #c2185b.
+        </span>
         <input
           id={groupId}
           type="text"
@@ -238,7 +243,7 @@ function Choice<T extends string>({
 
   return (
     <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-      <legend className="field__label">{legend}</legend>
+      <legend className="block text-base font-medium">{legend}</legend>
       <div className="flex flex-wrap gap-3">
         {options.map(([option, label]) => (
           <label key={option} className="tap flex items-center gap-1.5">

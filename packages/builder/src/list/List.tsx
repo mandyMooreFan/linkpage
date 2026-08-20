@@ -328,7 +328,17 @@ function RowItem({
         onClick={onToggle}
       >
         <span className="text-sm font-medium">{row.label}</span>
-        <span className="text-base text-ink-quiet">{row.summary}</span>
+        <span className="flex items-center gap-2 text-base text-ink-quiet">
+          {row.swatch !== undefined && row.swatch !== "" && (
+            // Decorative: the name beside it is the accessible content (§7.4).
+            <span
+              aria-hidden="true"
+              className="size-3 shrink-0 rounded-full border border-rule"
+              style={{ background: row.swatch }}
+            />
+          )}
+          {row.summary}
+        </span>
       </button>
 
       <div id={bodyId} className="border-t border-rule pb-4 font-sans" hidden={!open}>

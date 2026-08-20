@@ -61,4 +61,4 @@ export {
 } from "./topics.js";
 export type { Section, SectionAnswer, Topic } from "./topics.js";
 
-export { BRAND_SWATCHES } from "./questions/ColourQuestion.js";
+export { BRAND_SWATCHES, colourName, type Swatch } from "./questions/ColourQuestion.js";
