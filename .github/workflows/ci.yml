@@ -14,6 +14,10 @@ jobs:
   check:
     name: Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    # This line takes about a minute. Ten is not a budget, it is the point past which something
+    # has gone wrong outside this repository and the answer is a red check rather than a wait —
+    # see the note on the end-to-end job below.
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -66,6 +70,25 @@ jobs:
   e2e:
     name: End-to-end
     runs-on: ubuntu-latest
+    #
+    # **Bounded, because it once was not** (issue #119). Three runs in one 40-minute window sat on
+    # `Install Chromium` for 12, 19 and 37 minutes and had to be cancelled by hand; runs before
+    # that window and every run since have finished the whole job in 30 to 70 seconds. Nothing in
+    # the repository explains it — a *cold* cache passed on `main` in 72s inside the same window
+    # that a *warm* one hung on a branch — so the cause was almost certainly outside it, and
+    # transient.
+    #
+    # **What was wrong here is that nothing said so.** With no bound, a blip somewhere else
+    # becomes a job that runs to GitHub's six-hour default, and a check that never returns is
+    # worse than one that goes red: `playwright.config.ts` sets `retries: 0` precisely so that a
+    # red check can be trusted, and a check that hangs cannot be trusted or acted on at all.
+    #
+    # A retry around the install was considered and not taken. `retries: 0` is an argument about
+    # *browser tests*, whose flakiness hides product bugs, so it does not settle this on its own —
+    # but a retry fitted to a cause nobody has established is a workaround nobody will later be
+    # able to remove. A bound makes the next occurrence visible and cheap, which is what would
+    # have been wanted the first time.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -98,16 +121,29 @@ jobs:
         run: |
           echo "version=$(node -p "require('./packages/builder/node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
+      # `restore-keys`, so that a Playwright bump gets a near-miss rather than nothing. The pnpm
+      # cache above has had them all along; this one did not, which meant every version bump paid
+      # for a completely cold download. A stale hit costs a little disk and saves most of it.
       - uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          restore-keys: playwright-${{ runner.os }}-
 
       # Chromium's headless shell alone — no Firefox, no WebKit, and not the full headed
       # Chromium either. `--with-deps` runs every time even on a cache hit: the browser binaries
       # are cached but the runner's apt packages are not, and a browser that fails to launch
       # reads as flakiness rather than as the missing library it is.
+      #
+      # Bounded separately from the job so that the log names *this* step rather than leaving the
+      # reader to work out which of six was the slow one.
+      #
+      # Five minutes is about six times the worst measured cold run: during the same window as
+      # #119's hangs, a run on `main` with an empty cache downloaded the browser, ran apt and
+      # finished this step in **51 seconds**. So the bound cannot fire on a legitimately slow
+      # download — which is the only way a bound like this could make things worse.
       - name: Install Chromium
+        timeout-minutes: 5
         run: pnpm --filter @linkpage/builder exec playwright install --with-deps --only-shell chromium
 
       # Builds the builder and serves `dist` itself — see the `webServer` block in the config.
