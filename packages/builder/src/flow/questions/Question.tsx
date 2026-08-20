@@ -123,7 +123,11 @@ export function Question({
         ) : (
           <h2 className="text-2xl leading-tight tracking-tight">{title}</h2>
         )}
-        {hint !== undefined && <p className="-mt-2 font-sans text-base text-ink-quiet">{hint}</p>}
+        {hint !== undefined && (
+          <p className="-mt-2 font-sans text-base text-ink-quiet" data-question-hint>
+            {hint}
+          </p>
+        )}
 
         <div className="flex flex-col gap-4 font-sans">{children}</div>
 

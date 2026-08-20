@@ -282,6 +282,59 @@ describe("link buttons seed as a pick-list, never as pre-created rows (§7.3)", 
     expect(screen.getByLabelText(/Something else/)).toBeTruthy();
   });
 
+  /**
+   * §7.2's one honest count. The picks are fixed the moment the links screen is answered, the run
+   * is contiguous, and skipping one leaves the plan alone — so unlike a global counter this can
+   * neither stale nor jump, which is the whole reason it is the count that gets shown.
+   */
+  describe("the run says where you are in it (§7.2)", () => {
+    const hintOf = (): string => document.querySelector("[data-question-hint]")?.textContent ?? "";
+
+    const pickThese = (labels: string[]): void => {
+      toTheLinkStep();
+      for (const label of labels) {
+        fireEvent.click(screen.getByRole("checkbox", { name: label }));
+      }
+      fireEvent.click(submit() as Element);
+    };
+
+    it("counts through the run in words", () => {
+      pickThese(["See the menu", "Order for pickup", "Book a table"]);
+
+      expect(hintOf()).toContain("The first of three.");
+      fireEvent.click(escapeButton() as Element);
+      expect(hintOf()).toContain("The second of three.");
+      fireEvent.click(escapeButton() as Element);
+      expect(hintOf()).toContain("The third of three.");
+    });
+
+    it("keeps the screen's own sentence, because the count is an addition", () => {
+      pickThese(["See the menu", "Order for pickup"]);
+      expect(hintOf()).toBe(
+        "Paste the web address. It's usually easiest to copy it from your browser. The first of two.",
+      );
+    });
+
+    it("says nothing at all when the run is one screen long", () => {
+      // "The first of one" answers a question nobody asked. There is no position to orient
+      // within, so silence is the honest answer rather than a degenerate sentence.
+      pickThese(["See the menu"]);
+      expect(hintOf()).toBe(
+        "Paste the web address. It's usually easiest to copy it from your browser.",
+      );
+    });
+
+    it("does not change under the owner when one is skipped", () => {
+      // The planner's own guarantee, asserted from the outside: a skipped pick writes no button
+      // and leaves the plan alone, so the denominator cannot move mid-run.
+      pickThese(["See the menu", "Order for pickup", "Book a table"]);
+      fireEvent.click(escapeButton() as Element);
+      expect(hintOf()).toContain("of three.");
+      fireEvent.click(escapeButton() as Element);
+      expect(hintOf()).toContain("The third of three.");
+    });
+  });
+
   it("creates no button when every destination is skipped", () => {
     const flow = toTheLinkStep();
 

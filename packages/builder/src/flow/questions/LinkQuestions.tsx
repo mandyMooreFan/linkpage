@@ -156,9 +156,62 @@ export function LinksQuestion({
 
 export interface LinkUrlQuestionProps {
   readonly pick: Pick;
+  /** Where this screen sits in the run, and how long the run is (§7.2). */
+  readonly position: number;
+  readonly total: number;
   readonly onAnswer: (url: string) => void;
   readonly onSkip: () => void;
   readonly onBack?: () => void;
+}
+
+/**
+ * Where the owner is in the link run, in words (`SPEC.md` §7.2).
+ *
+ * English only, and deliberately so: the builder has no localisation layer, and `lang` belongs to
+ * the exported page rather than to the tool. Beyond twelve it falls back to digits — a run that
+ * long is not a sentence anybody is reading, and inventing ordinals nobody says is worse than a
+ * numeral.
+ */
+const ORDINALS = [
+  "first",
+  "second",
+  "third",
+  "fourth",
+  "fifth",
+  "sixth",
+  "seventh",
+  "eighth",
+  "ninth",
+  "tenth",
+  "eleventh",
+  "twelfth",
+];
+const CARDINALS = [
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+];
+
+const word = (table: string[], value: number): string => table[value - 1] ?? String(value);
+
+/**
+ * *"The second of four."* — or nothing at all, when the run is one screen long.
+ *
+ * **A run of one has no position to orient within**, and *"The first of one"* is a sentence that
+ * answers a question nobody asked. Silence is the honest answer there, and it costs nothing:
+ * §7.2's argument is about a count that is *true*, not about always showing one.
+ */
+function runPosition(position: number, total: number): string | undefined {
+  return total < 2 ? undefined : `The ${word(ORDINALS, position)} of ${word(CARDINALS, total)}.`;
 }
 
 /**
@@ -171,16 +224,26 @@ export interface LinkUrlQuestionProps {
  */
 export function LinkUrlQuestion({
   pick,
+  position,
+  total,
   onAnswer,
   onSkip,
   onBack,
 }: LinkUrlQuestionProps): JSX.Element {
   const [url, setUrl] = useState("");
 
+  // Two sentences in the hint the screen already has, which is the trick §7.10 uses on the hours
+  // screen: no new chrome for a count, on a flow that §7.2 decided carries no progress display.
+  const where = runPosition(position, total);
+
   return (
     <Question
       title={`Where does “${pick.label}” go?`}
-      hint="Paste the web address. It's usually easiest to copy it from your browser."
+      hint={
+        where === undefined
+          ? "Paste the web address. It's usually easiest to copy it from your browser."
+          : `Paste the web address. It's usually easiest to copy it from your browser. ${where}`
+      }
       onSubmit={() => onAnswer(url)}
       submitDisabled={url.trim() === ""}
       escape={{ label: "Leave this one out", onEscape: onSkip }}

@@ -217,6 +217,8 @@ export function Flow({
         return (
           <LinkUrlQuestion
             pick={step.pick}
+            position={step.position}
+            total={step.total}
             onAnswer={(url) =>
               commit(
                 addLink(working, {
