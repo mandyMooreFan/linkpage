@@ -134,9 +134,9 @@ nominally protects, because every future change starts by suspecting itself.
 
 ## Hand-authored words — the places we actively want to be corrected
 
-Two tables in this project are hand-authored, checkable only by a person looking at them, and
-explicitly provisional: the words the exported page writes, and the names we give our own
-colours. Both invite correction on the same terms.
+Three tables in this project are hand-authored, checkable only by a person looking at them, and
+explicitly provisional: the words the exported page writes, the names of the languages the builder
+offers, and the names we give our own colours. All three invite correction on the same terms.
 
 ### The words the exported page writes
 
@@ -164,6 +164,22 @@ language. So:
 `AM` and `PM` are the exception and are deliberately English on every page — SPEC.md §2.5 gives
 the reason, which is CLDR's own data rather than convenience. Please read it before proposing a
 translation for them.
+
+### The names of the languages
+
+The builder's page-language picker shows each language **in that language** — _Cymraeg_, _Ελληνικά_,
+_日本語_ — beside the day abbreviations and closed word that choosing it puts on the page. Those
+names live in `packages/builder/src/list/languages.ts`.
+
+**They have the same status as the closed word above, and a wrong one costs more.** The closed word
+is read on a finished page; an endonym is read by the owner _in order to choose_, so getting it
+wrong can send someone to the wrong language.
+
+- **If a language is not called that in its own language, please open a PR.** "I speak it and
+  nobody writes it that way" is sufficient justification.
+- **Names are builder chrome and are never translated**, and never reach `project.json`.
+- A test holds this table against the renderer's vocabularies in both directions, so adding a
+  language means adding both.
 
 ### The names of the twelve colours
 

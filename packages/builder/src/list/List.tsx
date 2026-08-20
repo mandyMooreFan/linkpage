@@ -1,3 +1,4 @@
+import { direction, vocabulary } from "@linkpage/renderer";
 import { useEffect, useId, useState, type JSX, type ReactNode } from "react";
 import { applyIntake, type LogoIntake } from "../logo/index.js";
 import { NameQuestion, TaglineQuestion } from "../flow/questions/HeaderQuestions.js";
@@ -19,6 +20,7 @@ import {
 import { Preview } from "../preview/Preview.js";
 import type { Draft } from "../project/index.js";
 import { removeTopic, setLang } from "./edits.js";
+import { LANGUAGE_NAMES } from "./languages.js";
 import { LinkButtons } from "./LinkButtons.js";
 import { listRows, type Row, type RowId } from "./rows.js";
 import { StyleStep } from "./StyleStep.js";
@@ -376,29 +378,76 @@ function LangRow({
   readonly onDone: () => void;
 }): JSX.Element {
   const [value, setValue] = useState(draft.lang ?? "");
+  const [typing, setTyping] = useState(!isListed(value));
   const fieldId = useId();
+  const listId = useId();
 
   return (
-    <div className="mt-4 flex flex-col items-start gap-4">
-      <label className="field" htmlFor={fieldId}>
-        <span className="field__label">Page language</span>
-        <span className="field__hint">
-          A language code, like <code>en</code> or <code>fr-CA</code>. Screen readers and
-          translation tools read it.
+    <div className="mt-4 flex w-full flex-col items-start gap-4">
+      <fieldset className="m-0 flex w-full flex-col gap-2 border-0 p-0">
+        <legend className="block text-base font-medium">Page language</legend>
+        <span className="mt-1 block text-sm text-ink-quiet">
+          It sets the words on your page, and tells screen readers how to read it.
         </span>
-        <input
-          id={fieldId}
-          type="text"
-          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
-          value={value}
-          spellCheck={false}
-          autoCapitalize="none"
-          onChange={(event) => setValue(event.target.value)}
-        />
-      </label>
-      <button
-        type="button"
-        className="question__submit"
+
+        {/*
+         * **The control demonstrates its consequence instead of describing it** (§7.4). Each row
+         * is the language in its own language, then the abbreviations and the closed word that
+         * choosing it puts on the page — which is precisely what the walk said was missing.
+         */}
+        <ul className="m-0 mt-2 max-h-80 list-none overflow-y-auto p-0" id={listId} data-languages>
+          {LANGUAGE_CHOICES.map((choice) => (
+            <li key={choice.tag}>
+              <button
+                type="button"
+                className="tap flex w-full flex-col gap-0.5 border-b border-rule bg-transparent py-2 text-start font-sans aria-pressed:font-medium"
+                lang={choice.tag}
+                aria-pressed={vocabularyKeyOf(value) === choice.tag}
+                onClick={() => {
+                  setTyping(false);
+                  setValue(choice.tag);
+                  onChange(setLang(draft, choice.tag));
+                }}
+              >
+                <span className="text-base">{choice.name}</span>
+                <span className="text-sm text-ink-quiet" dir={choice.dir}>
+                  {choice.sample}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </fieldset>
+
+      {/*
+       * §4.5's escape, and not a nicety: unknown values are preserved, so a hand-edited file
+       * declaring `sw` — English words, correct tag, a perfectly sensible state — must be
+       * displayable without the control silently rewriting it to `en`.
+       */}
+      {typing ? (
+        <label className="flex w-full flex-col" htmlFor={fieldId}>
+          <span className="block text-base font-medium">Or type a code</span>
+          <span className="mt-1 block text-sm text-ink-quiet">
+            A language code, like <code>en</code> or <code>fr-CA</code>.
+          </span>
+          <input
+            id={fieldId}
+            type="text"
+            className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
+            value={value}
+            spellCheck={false}
+            autoCapitalize="none"
+            onChange={(event) => setValue(event.target.value)}
+          />
+        </label>
+      ) : (
+        <Button weight="quiet" onClick={() => setTyping(true)}>
+          Or type a code
+        </Button>
+      )}
+
+      <Button
+        weight="primary"
         disabled={value.trim() === ""}
         onClick={() => {
           onChange(setLang(draft, value));
@@ -406,10 +455,36 @@ function LangRow({
         }}
       >
         Save
-      </button>
+      </Button>
     </div>
   );
 }
+
+/**
+ * The picker's rows: every language the renderer can write, each showing what it produces.
+ *
+ * Built once at module load from the renderer's own table, so a language cannot appear here that
+ * the page cannot write, and the sample is the real vocabulary rather than a transcription of it.
+ */
+const LANGUAGE_CHOICES = Object.entries(LANGUAGE_NAMES)
+  .map(([tag, name]) => {
+    const words = vocabulary(tag);
+    return {
+      tag,
+      name,
+      dir: direction(tag),
+      sample: `${words.days.slice(0, 3).join(" ")} · ${words.closed}`,
+    };
+  })
+  .sort((a, b) => a.name.localeCompare(b.name, "en"));
+
+/** Which vocabulary a tag resolves to, so `en-GB` shows English as the pressed row. */
+function vocabularyKeyOf(tag: string): string | undefined {
+  const words = vocabulary(tag);
+  return LANGUAGE_CHOICES.find((choice) => vocabulary(choice.tag) === words)?.tag;
+}
+
+const isListed = (tag: string): boolean => tag !== "" && vocabularyKeyOf(tag) !== undefined;
 
 /**
  * The list's menu, which is where Import lives (§7.8).
