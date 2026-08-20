@@ -98,6 +98,16 @@ export function App({ storage }: AppProps = {}): JSX.Element {
    */
   const [entry, setEntry] = useState<FlowEntry | null>(() => flowEntry(store.snapshot().draft));
   const [runs, setRuns] = useState(0);
+
+  /**
+   * The owner has just come off a run, so the list says so once (§7.4).
+   *
+   * **Held here rather than in the file**, because it belongs to the *transition* and not to the
+   * list: `project.json` gains no flag (§4.5 stays clean), and a reload simply lands on the list
+   * without it. A closing *step* was rejected as a screen whose only content is an
+   * acknowledgement that has to be dismissed.
+   */
+  const [arrived, setArrived] = useState(false);
   /** §7.9's message, from the last picked file. Cleared by picking again, not by dismissing. */
   const [fileError, setFileError] = useState<Refusal | null>(null);
   /**
@@ -123,6 +133,8 @@ export function App({ storage }: AppProps = {}): JSX.Element {
   function startRun(next: FlowEntry | null): void {
     setEntry(next);
     setRuns((count) => count + 1);
+    // Arriving *from* a run is the only thing that raises it, and starting one puts it away.
+    setArrived(next === null);
   }
 
   /**
@@ -238,6 +250,7 @@ export function App({ storage }: AppProps = {}): JSX.Element {
     <>
       <List
         draft={draft}
+        arrived={arrived}
         onChange={store.update}
         // §7.1's re-entry, and a run boundary: a ticked section is planned when it is ticked.
         onAdd={(topic) => startRun({ kind: "add", topics: [topic] })}

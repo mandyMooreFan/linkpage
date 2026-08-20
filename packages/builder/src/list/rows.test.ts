@@ -100,7 +100,9 @@ describe("every answer is a row (§7.4)", () => {
     expect(summary(POPULATED, "address")).toBe("12 Mill Lane, Hebden Bridge, HX7 8AA");
     expect(summary(POPULATED, "social")).toBe("Instagram");
     expect(summary(POPULATED, "logo")).toBe("1200 × 400");
-    expect(summary(POPULATED, "hours")).toBe("Mon, Sat, Sun · Closed bank holidays");
+    expect(summary(POPULATED, "hours")).toBe(
+      "Mon 7:00 AM – 2:00 PM · Sat Closed · Sun Closed · Closed bank holidays",
+    );
   });
 
   it("keeps an unrecognised platform as the owner wrote it (§4.4)", () => {
@@ -120,5 +122,72 @@ describe("every answer is a row (§7.4)", () => {
     // are what the row says — which is the whole of "loads silently" not meaning "invisibly".
     expect(summary(POPULATED, "style")).toBe("Raspberry · Centred · Light");
     expect(summary(POPULATED, "lang")).toBe("en-GB");
+  });
+});
+
+/**
+ * §7.9 decision 5: what cannot be used leaves a mark that outlives the screen.
+ *
+ * Derived from the very functions the renderer uses, so the builder and the page can never
+ * disagree about whether a target exists — asking anything else would be a second opinion about
+ * the same string.
+ */
+describe("a row whose value the page cannot use (§7.9)", () => {
+  const mark = (draft: Draft, id: string): string | undefined =>
+    listRows(draft).rows.find((row) => row.id === id)?.mark;
+
+  it("says nothing at all when everything works", () => {
+    for (const row of listRows(POPULATED).rows) expect(row.mark).toBeUndefined();
+  });
+
+  it("marks a link button whose address cannot become a target", () => {
+    const draft = { ...POPULATED, links: [{ label: "Order online", url: "/menu" }] } as Draft;
+    expect(mark(draft, "links")).toBe(
+      "This button won't work — paste the address from your browser.",
+    );
+  });
+
+  it("gives phone its own sentence, because nothing is broken", () => {
+    // A vanity number is deliberate and correct; *this button won't work* would be false about
+    // it. What justifies marking it is that the screen promised tap-to-call.
+    const draft = { ...POPULATED, contact: { phone: "0800 CHICKEN" } } as Draft;
+    expect(mark(draft, "contact")).toBe(
+      "Tapping this won't dial — add the number in digits if you want it tappable.",
+    );
+  });
+
+  it("marks an email the floor cannot use", () => {
+    const draft = { ...POPULATED, contact: { email: "hello@nodot" } } as Draft;
+    expect(mark(draft, "contact")).toBe("Tapping this won't open an email — check the address.");
+  });
+
+  it("calls directions and social links rather than buttons, because they are not", () => {
+    // One pattern, one noun of variation (§7.9 decision 6) — not a second voice.
+    const directions = {
+      ...POPULATED,
+      address: { lines: ["12 Bridge Street"], directionsUrl: "@mybakery" },
+    } as Draft;
+    expect(mark(directions, "address")).toBe(
+      "This link won't work — paste the address from your browser.",
+    );
+
+    const social = { ...POPULATED, social: [{ platform: "instagram", url: "@ada" }] } as Draft;
+    expect(mark(social, "social")).toBe(
+      "This link won't work — paste the address from your browser.",
+    );
+  });
+
+  it("never names our diagnosis", () => {
+    const draft = { ...POPULATED, links: [{ label: "Order online", url: "/menu" }] } as Draft;
+    for (const banned of ["invalid", "format", "valid"]) {
+      expect(mark(draft, "links")?.toLowerCase()).not.toContain(banned);
+    }
+  });
+
+  it("says nothing about a field the owner simply left empty", () => {
+    // The mark is for what we cannot use, never for what is absent. §4.6 is explicit that a
+    // missing field is collected by the flow rather than reported.
+    const draft = { ...POPULATED, contact: {} } as Draft;
+    expect(mark(draft, "contact")).toBeUndefined();
   });
 });

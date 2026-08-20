@@ -1,9 +1,17 @@
-import { socialLabel, type Hours } from "@linkpage/renderer";
+import {
+  hoursView,
+  linkHref,
+  mailtoHref,
+  socialLabel,
+  telHref,
+  vocabulary,
+  type Hours,
+} from "@linkpage/renderer";
 import { colourName } from "../flow/index.js";
 import { uncoveredTopics } from "../flow/plan.js";
-import { TOPIC_LABELS, TOPICS, WEEKDAYS, type Topic } from "../flow/topics.js";
+import { TOPIC_LABELS, TOPICS, type Topic } from "../flow/topics.js";
 import type { Draft } from "../project/index.js";
-import { MODE_LABELS, SHAPE_LABELS, SHORT_DAYS } from "./labels.js";
+import { MODE_LABELS, SHAPE_LABELS } from "./labels.js";
 
 /**
  * What the review list is a list *of*. `SPEC.md` §7.4, §7.1, §4.3.
@@ -59,6 +67,14 @@ export interface Row {
    * takes no accessible name of its own. A `●` in the string would be read aloud as a word.
    */
   readonly swatch?: string;
+  /**
+   * §7.9's mark: one quiet line saying this row holds something the page cannot use.
+   *
+   * **This is the decision that stops _never blocks_ from meaning _never notices_** (§7.9
+   * decision 5). It is derived from the very functions the renderer uses, so the builder and the
+   * page can never disagree about whether a target exists.
+   */
+  readonly mark?: string;
 }
 
 /** The list, in the order it is read: the page's own order (§2.1), then the two settings rows. */
@@ -81,11 +97,15 @@ export function listRows(draft: Draft): ListRows {
 
   const rows: Row[] = [
     { id: "businessName", label: BUSINESS_NAME_LABEL, summary: draft.header.name ?? "" },
-    ...covered.map((topic) => ({
-      id: topic,
-      label: TOPIC_LABELS[topic],
-      summary: topicSummary(draft, topic),
-    })),
+    ...covered.map((topic) => {
+      const mark = rowMark(draft, topic);
+      return {
+        id: topic,
+        label: TOPIC_LABELS[topic],
+        summary: topicSummary(draft, topic),
+        ...(mark === undefined ? {} : { mark }),
+      };
+    }),
     { id: "style", label: STYLE_LABEL, summary: styleSummary(draft), swatch: draft.style.brand },
     { id: "lang", label: LANG_LABEL, summary: draft.lang ?? "" },
   ];
@@ -98,12 +118,32 @@ function join(parts: readonly (string | undefined)[]): string {
   return parts.filter((part) => part !== undefined && part.trim() !== "").join(" · ");
 }
 
-function hoursSummary(hours: Hours | undefined): string {
+/**
+ * The hours row, with the times (§7.4).
+ *
+ * **Built from the renderer's own `hoursView`**, so the row and the page beside it cannot
+ * disagree about which days are shown or how a time reads — the same discipline §7.10's box
+ * follows, for the same reason.
+ *
+ * **Uncollapsed, and that is §2.3's decision rather than an oversight.** `Mon–Fri` would cost
+ * nothing here — the builder has no localisation layer, no §6.5 budget and no determinism
+ * guarantee — and was rejected on adjacency: the page preview sits beside this list, so a
+ * collapsed row against five rows in the preview reads as the page being broken.
+ *
+ * Paper is what makes this affordable: §7.4 chose it partly because a carded direction clipped
+ * this very row, and a summary that is allowed to wrap can hold seven days and a note.
+ */
+function hoursSummary(hours: Hours | undefined, lang: string | undefined): string {
   if (hours === undefined) return "";
-  const days = WEEKDAYS.filter((day) => hours.days[day] !== undefined).map(
-    (day) => SHORT_DAYS[day],
+  const view = hoursView(hours, vocabulary(lang));
+  if (view === undefined) return "";
+
+  const days = view.rows.map((row) =>
+    row.intervals.length === 0
+      ? `${row.label} ${view.closed}`
+      : `${row.label} ${row.intervals.join(", ")}`,
   );
-  return join([days.join(", "), hours.note]);
+  return join([...days, view.note]);
 }
 
 /**
@@ -128,7 +168,7 @@ export function topicSummary(draft: Draft, topic: Topic): string {
       return draft.links.map((link) => link.label).join(", ");
 
     case "hours":
-      return hoursSummary(draft.hours);
+      return hoursSummary(draft.hours, draft.lang);
 
     case "contact":
       return join([draft.contact?.phone, draft.contact?.email]);
@@ -152,6 +192,60 @@ export function topicSummary(draft: Draft, topic: Topic): string {
  * derivation's version of it — the row reports the answer, and the page beside it reports what
  * was made of the answer.
  */
+/**
+ * What the owner has typed that the page cannot use, in §7.9's words.
+ *
+ * **One pattern, one noun of variation** — directions and social are not buttons, so calling them
+ * one would be untrue — and *invalid*, *format* and *valid* are banned throughout, because they
+ * name our diagnosis rather than the owner's situation.
+ *
+ * **Phone gets its own sentence because nothing is broken.** A vanity number, an extension or a
+ * second number is deliberate and correct; *this button won't work* would be a false claim about
+ * it. What justifies marking it at all is that the contact screen's hint already promises *they
+ * become a tap-to-call and a tap-to-email link* — so the message corrects a promise the screen
+ * made rather than volunteering a diagnosis.
+ *
+ * **Email's sentence is new here, and §7.9's table did not have one.** It needed one for the same
+ * reason phone did and by the same argument: that hint promises tap-to-email in the same breath,
+ * and §2.3's floor can refuse an address. Written to phone's shape rather than to the buttons',
+ * because an email address that will not open a mail app is not a broken link either.
+ */
+function rowMark(draft: Draft, topic: Topic): string | undefined {
+  switch (topic) {
+    case "links": {
+      const broken = (draft.links ?? []).some((link) => linkHref(link.url) === undefined);
+      return broken ? "This button won't work — paste the address from your browser." : undefined;
+    }
+
+    case "contact": {
+      const phone = draft.contact?.phone;
+      const email = draft.contact?.email;
+      if (phone !== undefined && phone !== "" && telHref(phone) === undefined) {
+        return "Tapping this won't dial — add the number in digits if you want it tappable.";
+      }
+      if (email !== undefined && email !== "" && mailtoHref(email) === undefined) {
+        return "Tapping this won't open an email — check the address.";
+      }
+      return undefined;
+    }
+
+    case "address": {
+      const url = draft.address?.directionsUrl;
+      return url !== undefined && url !== "" && linkHref(url) === undefined
+        ? "This link won't work — paste the address from your browser."
+        : undefined;
+    }
+
+    case "social": {
+      const broken = (draft.social ?? []).some((entry) => linkHref(entry.url) === undefined);
+      return broken ? "This link won't work — paste the address from your browser." : undefined;
+    }
+
+    default:
+      return undefined;
+  }
+}
+
 export function styleSummary(draft: Draft): string {
   const style = draft.style;
   // Three of the six controls, not all six (§7.4). The row's job is recognition, the page preview

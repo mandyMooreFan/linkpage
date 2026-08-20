@@ -1,4 +1,4 @@
-import type { Clock, Mode, Shape, TypePairing, Weekday, WeekStart } from "@linkpage/renderer";
+import type { Clock, Mode, Shape, TypePairing, WeekStart } from "@linkpage/renderer";
 
 /**
  * The words the review list uses for things `project.json` stores as identifiers.
@@ -40,15 +40,4 @@ export const CLOCK_LABELS: Readonly<Record<Clock, string>> = {
 export const WEEK_START_LABELS: Readonly<Record<WeekStart, string>> = {
   mon: "Monday",
   sun: "Sunday",
-};
-
-/** Short day names, for a row summary that has to fit on a phone. */
-export const SHORT_DAYS: Readonly<Record<Weekday, string>> = {
-  mon: "Mon",
-  tue: "Tue",
-  wed: "Wed",
-  thu: "Thu",
-  fri: "Fri",
-  sat: "Sat",
-  sun: "Sun",
 };

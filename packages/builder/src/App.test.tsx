@@ -165,6 +165,51 @@ describe("the first run walks everything the preset selected (§7.2, §7.3)", ()
   });
 });
 
+/**
+ * §7.4's arrival line, and where it is held.
+ *
+ * The list was never blank on arrival — the owner's own name heads it and the page sits beside
+ * it — but they have just answered ten questions and have never been told what happens next,
+ * with §8's guidance living inside a sheet they have no reason to open.
+ */
+describe("arriving from a run says so, once (§7.4)", () => {
+  const arrival = (): string | undefined =>
+    document.querySelector("[data-arrival]")?.textContent ?? undefined;
+
+  it("says nothing before the questions run out", () => {
+    mount(<App storage={storage} />);
+    expect(arrival()).toBeUndefined();
+  });
+
+  it("greets the owner when the flow hands the window back", () => {
+    mount(<App storage={storage} />);
+    walk();
+    expect(onList()).toBe(true);
+    expect(arrival()).toBe("Your page is ready. Look it over, then download it.");
+  });
+
+  it("is held in memory, never in the file", () => {
+    // §4.5 stays clean: no flag reaches `project.json`, so it belongs to the transition rather
+    // than to the list.
+    mount(<App storage={storage} />);
+    walk();
+    const saved = storage.getItem(PROJECT_STORAGE_KEY) ?? "";
+    expect(saved).not.toContain("arriv");
+    expect(saved).not.toContain("ready");
+  });
+
+  it("is gone on the next visit, because a reload is not an arrival", () => {
+    mount(<App storage={storage} />);
+    walk();
+    expect(arrival()).toBeDefined();
+
+    cleanup();
+    mount(<App storage={storage} />);
+    expect(onList()).toBe(true);
+    expect(arrival()).toBeUndefined();
+  });
+});
+
 describe("which screen the owner gets", () => {
   it("opens on the preset question when there is nothing stored (§7.8)", () => {
     mount(<App storage={storage} />);
