@@ -126,7 +126,21 @@ export type Step =
   | { readonly id: "logo" }
   | { readonly id: "brand" }
   | { readonly id: "links" }
-  | { readonly id: "linkUrl"; readonly pick: Pick }
+  | {
+      readonly id: "linkUrl";
+      readonly pick: Pick;
+      /**
+       * Where this screen sits in the run, and how long the run is (`SPEC.md` §7.2).
+       *
+       * **This is the one count in the flow that can neither stale nor jump**, which is why it
+       * is computed here rather than guessed at by the screen: the picks are fixed the moment
+       * the links screen is answered, skipping one leaves the plan alone, and the run is
+       * contiguous. A global counter has none of those properties — §7.2 records why there is
+       * none.
+       */
+      readonly position: number;
+      readonly total: number;
+    }
   | { readonly id: "hours" }
   | { readonly id: "contact" }
   | { readonly id: "address" }
@@ -206,7 +220,9 @@ export function planSteps({ entry, draft, preset, picks }: PlanInput): Step[] {
     steps.push({ id: "links" });
     // One screen per pick, in the order they were picked. Skipping one writes no button and
     // leaves the plan alone, so the count of screens does not change under the owner's feet.
-    for (const pick of picks) steps.push({ id: "linkUrl", pick });
+    picks.forEach((pick, index) =>
+      steps.push({ id: "linkUrl", pick, position: index + 1, total: picks.length }),
+    );
   }
 
   // Page order, and de-duplicated: a caller that asks twice for hours gets one hours step.
