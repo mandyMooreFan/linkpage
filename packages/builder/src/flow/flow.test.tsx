@@ -403,8 +403,14 @@ describe("the flow re-enters for anything new (§7.1)", () => {
         name: "Open",
       }),
     );
-    fireEvent.change(screen.getByLabelText("Monday opens"), { target: { value: "09:00" } });
-    fireEvent.change(screen.getByLabelText("Monday closes"), { target: { value: "17:00" } });
+    // §7.10's box commits on leaving the field — which is what pressing `Continue` does on its
+    // way to the button.
+    const opens = screen.getByLabelText("Monday opens");
+    fireEvent.change(opens, { target: { value: "9am" } });
+    fireEvent.blur(opens);
+    const closes = screen.getByLabelText("Monday closes");
+    fireEvent.change(closes, { target: { value: "5pm" } });
+    fireEvent.blur(closes);
     fireEvent.click(submit() as Element);
 
     expect(onList()).toBe(true);
