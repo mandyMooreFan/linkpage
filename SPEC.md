@@ -1730,6 +1730,11 @@ _format_, _valid_, and any other word that names our diagnosis rather than the o
 | Phone                         | _"**Tapping this won't dial** — add the number in digits if you want it tappable."_ |
 | A time (§7.10)                | _"**This time won't reach your page** — try 5:30pm."_                               |
 
+**Email's sentence is written to phone's shape rather than to the buttons'**, and for phone's reason: an
+address the floor cannot use is not a broken link either, and the same hint promises tap-to-email in the
+same breath as tap-to-call. Recorded because this table was first written with no email row at all —
+§2.3's floor can refuse an address, so the omission was a gap rather than a decision.
+
 **One noun of variation, not a second voice.** Directions and social are not buttons, so calling them one
 would be untrue. **Phone gets its own sentence because nothing is broken** — a vanity number, an extension
 or a second number is deliberate and correct, and _this button won't work_ would be a false claim about

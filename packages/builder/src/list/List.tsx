@@ -69,6 +69,13 @@ import { Button } from "../ui/Button.js";
 
 export interface ListProps {
   readonly draft: Draft;
+  /**
+   * The owner has just come off a run, so the list says so once (§7.4).
+   *
+   * Held by `App` rather than by the file: no flag reaches `project.json`, and a reload lands
+   * here without it.
+   */
+  readonly arrived?: boolean;
   /** Write-through, exactly as in the flow: this is the autosave. */
   readonly onChange: (draft: Draft) => void;
   /** Hand a topic back to the flow (§7.1). Ticking one on is what re-enters it. */
@@ -95,6 +102,7 @@ export interface ListProps {
 
 export function List({
   draft,
+  arrived = false,
   onChange,
   onAdd,
   onDownload,
@@ -149,6 +157,23 @@ export function List({
             Download
           </Button>
         </div>
+
+        {/*
+         * §7.4: once, on arriving from a run. The list was never blank on arrival — it is headed
+         * with the owner's own name, Download sits in the bar, and the page is beside it — but
+         * the owner has just answered ten questions and has never been told what happens next,
+         * with §8's guidance living inside a sheet they have no reason to open.
+         *
+         * Easy to get wrong later, so it is written down: **the line also fires for a run that
+         * began from a project that already existed**, where *your page is ready* is not quite
+         * true. No second line is added for that case — the row now showing its content is its
+         * own confirmation.
+         */}
+        {arrived && (
+          <p className="mt-4 font-sans text-base text-ink-quiet" data-arrival role="status">
+            Your page is ready. Look it over, then download it.
+          </p>
+        )}
 
         <h1 className="mt-4 font-serif text-3xl leading-tight tracking-tight">
           {draft.header.name}
@@ -341,6 +366,15 @@ function RowItem({
           )}
           {row.summary}
         </span>
+        {/*
+         * §7.9 decision 5: what cannot be used leaves a mark that outlives the screen. Editing
+         * the row opens the same question, with the same message.
+         */}
+        {row.mark !== undefined && (
+          <span className="text-sm text-notice" data-mark>
+            {row.mark}
+          </span>
+        )}
       </button>
 
       <div id={bodyId} className="border-t border-rule pb-4 font-sans" hidden={!open}>
