@@ -118,7 +118,7 @@ describe("every answer is a row (§7.4)", () => {
   it("puts a defaulted field on the list like any other (§4.3)", () => {
     // A file that said nothing about shape or mode reads as the defaults, and the defaults
     // are what the row says — which is the whole of "loads silently" not meaning "invisibly".
-    expect(summary(POPULATED, "style")).toBe("#c2185b · Centred · Light");
+    expect(summary(POPULATED, "style")).toBe("Raspberry · Centred · Light");
     expect(summary(POPULATED, "lang")).toBe("en-GB");
   });
 });

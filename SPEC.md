@@ -490,6 +490,11 @@ space was the right one. An untuned hue-bucket pass over these twelve calls `#b0
 hue bands at all** — they exist only at particular lightness and chroma, so they need rules rather than
 buckets.
 
+**Naming is a property of the colour, not of how it arrived.** `project.json` stores a hex and nothing
+about whether it was picked or typed, so a typed `#c2185b` is called _Raspberry_ just as a pressed one is
+— and that is right rather than a rounding error: the name is then still a claim about **our** twelve,
+which is exactly the claim we can check. What is never named is a colour that is not one of ours.
+
 **The names never reach `project.json`**, which stores the hex, so changing one is not a schema change
 and not a version bump. **The table is provisional in exactly the sense §2.5's closed-day words are**,
 and for the same reason: there is no database of what a colour is called, each name is hand-authored, and
@@ -1467,7 +1472,7 @@ content is an acknowledgement that has to be dismissed.
 
 **Three rows say what they control instead of describing it.**
 
-- **The colour row reads `● Raspberry · Centred · Light`**, and `● #5d4037 · Centred · Light` for a typed
+- **The colour row reads `● Raspberry · Centred · Light`**, and `● #7a5c3e · Centred · Light` for a typed
   colour. Three of the six controls rather than all six: the row's job is recognition, the page preview
   sits beside it, and six parts is an inventory that wraps on the screen §7.6 calls the primary case. The
   dot carries the colour for anyone who can see it and the name carries it for anyone who cannot, so the

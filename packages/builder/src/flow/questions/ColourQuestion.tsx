@@ -38,20 +38,45 @@ import { Field, Question } from "./Question.js";
  * whatever it is given and has no opinion about what an owner might pick; a list of nice
  * starting colours is a builder concern, and §7.4's _How it looks_ step is its second caller.
  */
-export const BRAND_SWATCHES: readonly string[] = [
-  "#b0122f",
-  "#c2185b",
-  "#7b1fa2",
-  "#4527a0",
-  "#1565c0",
-  "#00695c",
-  "#2e7d32",
-  "#556b2f",
-  "#a05a00",
-  "#bf360c",
-  "#5d4037",
-  "#37474f",
+export interface Swatch {
+  readonly hex: string;
+  readonly name: string;
+}
+
+export const BRAND_SWATCHES: readonly Swatch[] = [
+  { hex: "#b0122f", name: "Crimson" },
+  { hex: "#c2185b", name: "Raspberry" },
+  { hex: "#7b1fa2", name: "Grape" },
+  { hex: "#4527a0", name: "Violet" },
+  { hex: "#1565c0", name: "Cobalt" },
+  { hex: "#00695c", name: "Teal" },
+  { hex: "#2e7d32", name: "Forest" },
+  { hex: "#556b2f", name: "Olive" },
+  { hex: "#a05a00", name: "Amber" },
+  { hex: "#bf360c", name: "Rust" },
+  { hex: "#5d4037", name: "Cocoa" },
+  { hex: "#37474f", name: "Slate" },
 ];
+
+/**
+ * What to call a colour: **our name for one of ours, and their own code for one of theirs**
+ * (`SPEC.md` §3.1).
+ *
+ * Naming our own palette is a curated claim we can check. Naming the owner's colour is asserting
+ * something about their brand — §7.3's rule about a wrong fact they never notice we asserted, at
+ * its sharpest on the most personal decision on the page. So a typed hex is quoted back as a hex,
+ * and that is a pleasing symmetry rather than a shortfall: §3.3 honours it exactly, and the review
+ * row reports the owner's answer rather than the derivation's version of it.
+ *
+ * **Do not compute these from the hex.** It was built and measured before being rejected: an
+ * untuned pass over these twelve calls `#b0122f` *orange* and collides two of them on one name,
+ * and tuning cannot fix the shape of it — `#b0122f` and `#bf360c` sit 15° apart and want different
+ * families, and brown, pink and navy are not hue bands at all. §3.1 records the numbers.
+ */
+export function colourName(value: string): string {
+  const found = BRAND_SWATCHES.find((swatch) => swatch.hex === value.trim().toLowerCase());
+  return found?.name ?? value.trim();
+}
 
 export interface ColourQuestionProps {
   readonly initial: string | undefined;
@@ -62,14 +87,15 @@ export interface ColourQuestionProps {
 export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProps): JSX.Element {
   const [brand, setBrand] = useState(initial ?? "");
   const [typed, setTyped] = useState(
-    initial !== undefined && !BRAND_SWATCHES.includes(initial) ? initial : "",
+    initial !== undefined && !BRAND_SWATCHES.some((swatch) => swatch.hex === initial)
+      ? initial
+      : "",
   );
 
-  // A typed value only becomes the answer once it is a colour, and while it is half-typed
-  // Continue waits — writing the swatch underneath it would quietly discard what the owner is
-  // in the middle of saying.
   const typedIsColour = typed.trim() !== "" && parseHex(typed.trim()) !== null;
-  const halfTyped = typed.trim() !== "" && !typedIsColour;
+  // Something in the box that is not a colour. It is *said* (§7.9) and it changes nothing else:
+  // the swatch underneath still stands, and `Continue` is not held hostage to it.
+  const unusable = typed.trim() !== "" && !typedIsColour;
   const answer = typedIsColour ? typed.trim() : brand;
 
   return (
@@ -77,21 +103,26 @@ export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProp
       title="What's your colour?"
       hint="Everything else on the page is worked out from it."
       onSubmit={() => onAnswer(answer)}
-      submitDisabled={answer === "" || halfTyped}
+      // §7.9 decision 1: `Continue` keeps its single meaning — *you haven't answered yet* — and
+      // nothing about the *shape* of an answer can take it away. Before this, a swatch plus junk
+      // in the box killed the button even though a perfectly good answer was selected.
+      submitDisabled={answer === ""}
       onBack={onBack}
     >
       <ul className="m-0 flex list-none flex-row flex-wrap gap-3 p-0">
-        {BRAND_SWATCHES.map((colour) => (
-          <li key={colour}>
+        {BRAND_SWATCHES.map((swatch) => (
+          <li key={swatch.hex}>
             <button
               type="button"
               className="size-12 rounded-full border border-rule aria-pressed:outline-2 aria-pressed:outline-offset-2 aria-pressed:outline-ink"
               data-swatch
-              style={{ background: colour }}
-              aria-label={colour}
-              aria-pressed={answer.toLowerCase() === colour}
+              style={{ background: swatch.hex }}
+              // The name, not the code: a screen reader hears twelve names rather than twelve
+              // hexes, which was the walk's actual complaint (§3.1).
+              aria-label={swatch.name}
+              aria-pressed={answer.toLowerCase() === swatch.hex}
               onClick={() => {
-                setBrand(colour);
+                setBrand(swatch.hex);
                 setTyped("");
               }}
             />
@@ -99,14 +130,27 @@ export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProp
         ))}
       </ul>
 
+      {/*
+       * Once, under the grid, for the colour chosen — **the grid stays a grid** (§3.1). Twelve
+       * labelled rows would turn a compact field into a long list on the primary screen, and an
+       * owner hunting for their green scans colours rather than words. Announcing without showing
+       * was rejected too: they would meet *Raspberry* for the first time in the review row, with
+       * nothing where they chose it to say where the word came from.
+       */}
+      {answer !== "" && <p className="text-base">Your colour: {colourName(answer)}</p>}
+
       <Field
         label="Or type your exact colour"
-        hint={halfTyped ? "A colour looks like #c2185b." : "Like #c2185b."}
+        hint="From a designer or a brand guide."
+        message={
+          unusable ? "This won't change your colour — a colour looks like #c2185b." : undefined
+        }
       >
         <input
           type="text"
           className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           value={typed}
+          placeholder="#c2185b"
           spellCheck={false}
           autoCapitalize="none"
           onChange={(event) => setTyped(event.target.value)}
