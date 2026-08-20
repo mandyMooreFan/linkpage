@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render as mount, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { App } from "./App.js";
 import { installDownloads, type FakeDownloads } from "./download/downloads.testing.js";
@@ -195,7 +195,11 @@ describe("which screen the owner gets", () => {
     expect(title()).toBe("When are you open?");
     expect(screen.queryByText("What kind of business is this?")).toBeNull();
 
-    fireEvent.change(screen.getByLabelText("Monday"), { target: { value: "closed" } });
+    fireEvent.click(
+      within(screen.getByRole("radiogroup", { name: "Monday" })).getByRole("radio", {
+        name: "Closed",
+      }),
+    );
     fireEvent.click(submit());
 
     expect(title()).toBe("Ada's Bakery");

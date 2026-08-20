@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render as mount, screen, within } from "@testing-library/react";
 import { useState, type JSX } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { serializeProject, writeDraft, readDraft, type Draft } from "../project/index.js";
@@ -398,7 +398,11 @@ describe("the flow re-enters for anything new (§7.1)", () => {
     // No preset question a month later: it is one-time and unreachable once the list is
     // reached (§7.3). Straight to the thing that was ticked.
     expect(title()).toBe("When are you open?");
-    fireEvent.change(screen.getByLabelText("Monday"), { target: { value: "open" } });
+    fireEvent.click(
+      within(screen.getByRole("radiogroup", { name: "Monday" })).getByRole("radio", {
+        name: "Open",
+      }),
+    );
     fireEvent.change(screen.getByLabelText("Monday opens"), { target: { value: "09:00" } });
     fireEvent.change(screen.getByLabelText("Monday closes"), { target: { value: "17:00" } });
     fireEvent.click(submit() as Element);
