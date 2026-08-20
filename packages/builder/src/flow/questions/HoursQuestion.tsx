@@ -3,6 +3,7 @@ import { useState, type JSX } from "react";
 import { WEEKDAYS } from "../topics.js";
 import { Field, Question } from "./Question.js";
 import { Button } from "../../ui/Button.js";
+import { TimeBox } from "../../ui/TimeBox.js";
 import { SEEDED_HOURS_PREFERENCES } from "../../project/environment.js";
 
 /**
@@ -115,6 +116,10 @@ export function HoursQuestion({
   );
   const [note, setNote] = useState(initial?.note ?? "");
 
+  // §4.1's seeded preference, and §7.10's second surface for it: the boxes read back in the same
+  // convention the page prints, so the two can never disagree.
+  const clock = initial?.clock ?? SEEDED_HOURS_PREFERENCES.clock;
+
   /**
    * The last times the owner typed, and which day they typed them on.
    *
@@ -178,7 +183,7 @@ export function HoursQuestion({
     }
     return {
       // §4.1: the browser's, once, rather than American by default.
-      clock: initial?.clock ?? SEEDED_HOURS_PREFERENCES.clock,
+      clock,
       weekStart: initial?.weekStart ?? SEEDED_HOURS_PREFERENCES.weekStart,
       days: out,
       note,
@@ -199,7 +204,9 @@ export function HoursQuestion({
   return (
     <Question
       title="When are you open?"
-      hint="Leave a day alone if you'd rather not say."
+      // Two sentences in the hint the screen already has (§7.10): the convention is taught once
+      // rather than fourteen times, and costs no chrome on the screen #111 just shortened.
+      hint="Type times how you'd say them. Leave a day alone if you'd rather not say."
       onSubmit={() => onAnswer(answer())}
       submitDisabled={!said}
       escape={{ label: "We don't have set hours", onEscape: onSkip }}
@@ -247,30 +254,28 @@ export function HoursQuestion({
                     // Positional keys: the rows have no identity of their own, and the list is
                     // only ever appended to or emptied.
                     <div className="flex items-center gap-2" key={index}>
-                      <input
-                        type="time"
-                        className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
-                        aria-label={`${DAY_NAMES[day]} opens`}
+                      <TimeBox
+                        label={`${DAY_NAMES[day]} opens`}
                         value={open}
-                        onChange={(event) =>
+                        clock={clock}
+                        onChange={(stored) =>
                           typeTime(
                             day,
                             form.intervals.map((slot, at) =>
-                              at === index ? [event.target.value, slot[1]] : slot,
+                              at === index ? [stored, slot[1]] : slot,
                             ),
                           )
                         }
                       />
-                      <input
-                        type="time"
-                        className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
-                        aria-label={`${DAY_NAMES[day]} closes`}
+                      <TimeBox
+                        label={`${DAY_NAMES[day]} closes`}
                         value={close}
-                        onChange={(event) =>
+                        clock={clock}
+                        onChange={(stored) =>
                           typeTime(
                             day,
                             form.intervals.map((slot, at) =>
-                              at === index ? [slot[0], event.target.value] : slot,
+                              at === index ? [slot[0], stored] : slot,
                             ),
                           )
                         }

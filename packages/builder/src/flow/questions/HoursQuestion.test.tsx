@@ -16,10 +16,23 @@ const setState = (day: string, label: string): void => {
   fireEvent.click(state(day, label));
 };
 
+/**
+ * Typing a time and leaving the field, which is when §7.10's box commits (§7.9 decision 2).
+ *
+ * The blur is the interaction, not a testing detail: pressing `Continue` blurs the box on its way
+ * to the button, so this is the same path the owner takes.
+ */
 const typeTimes = (day: string, open: string, close: string): void => {
-  fireEvent.change(screen.getByLabelText(`${day} opens`), { target: { value: open } });
-  fireEvent.change(screen.getByLabelText(`${day} closes`), { target: { value: close } });
+  const from = screen.getByLabelText(`${day} opens`);
+  fireEvent.change(from, { target: { value: open } });
+  fireEvent.blur(from);
+  const to = screen.getByLabelText(`${day} closes`);
+  fireEvent.change(to, { target: { value: close } });
+  fireEvent.blur(to);
 };
+
+/** What a box reads back — the page's convention, not the stored value (§7.10). */
+const shows = (label: string): string => (screen.getByLabelText(label) as HTMLInputElement).value;
 
 const carriedLine = (): string | undefined =>
   document.querySelector("[data-carried]")?.textContent ?? undefined;
@@ -69,7 +82,7 @@ describe("the times carry down, wearing where they came from (§7.10)", () => {
     open();
     setState("Monday", "Open");
     expect(carriedLine()).toBeUndefined();
-    expect((screen.getByLabelText("Monday opens") as HTMLInputElement).value).toBe("");
+    expect(shows("Monday opens")).toBe("");
   });
 
   it("carries the last times typed into the next day opened, and says so", () => {
@@ -78,7 +91,7 @@ describe("the times carry down, wearing where they came from (§7.10)", () => {
     typeTimes("Monday", "09:00", "17:00");
     setState("Tuesday", "Open");
 
-    expect((screen.getByLabelText("Tuesday opens") as HTMLInputElement).value).toBe("09:00");
+    expect(shows("Tuesday opens")).toBe("9:00 AM");
     expect(carriedLine()).toBe("Same as Mon — change it below if it isn’t.");
   });
 
@@ -90,7 +103,9 @@ describe("the times carry down, wearing where they came from (§7.10)", () => {
     setState("Tuesday", "Open");
     expect(carriedLine()).toBeDefined();
 
-    fireEvent.change(screen.getByLabelText("Tuesday opens"), { target: { value: "10:00" } });
+    const box = screen.getByLabelText("Tuesday opens");
+    fireEvent.change(box, { target: { value: "10:00" } });
+    fireEvent.blur(box);
     expect(carriedLine()).toBeUndefined();
   });
 
@@ -99,7 +114,7 @@ describe("the times carry down, wearing where they came from (§7.10)", () => {
     open({ clock: "12h", weekStart: "mon", days: { tue: [["11:00", "14:00"]] } });
     setState("Tuesday", "Closed");
     setState("Tuesday", "Open");
-    expect((screen.getByLabelText("Tuesday opens") as HTMLInputElement).value).toBe("11:00");
+    expect(shows("Tuesday opens")).toBe("11:00 AM");
     expect(carriedLine()).toBeUndefined();
   });
 
@@ -111,7 +126,7 @@ describe("the times carry down, wearing where they came from (§7.10)", () => {
     typeTimes("Friday", "09:00", "21:00");
     setState("Saturday", "Open");
 
-    expect((screen.getByLabelText("Saturday closes") as HTMLInputElement).value).toBe("21:00");
+    expect(shows("Saturday closes")).toBe("9:00 PM");
     expect(carriedLine()).toBe("Same as Fri — change it below if it isn’t.");
   });
 
@@ -211,9 +226,10 @@ describe("what this screen deliberately does not do", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add another time" }));
     const opens = screen.getAllByLabelText("Monday opens");
     fireEvent.change(opens[1] as Element, { target: { value: "17:00" } });
-    fireEvent.change(screen.getAllByLabelText("Monday closes")[1] as Element, {
-      target: { value: "21:00" },
-    });
+    fireEvent.blur(opens[1] as Element);
+    const closes = screen.getAllByLabelText("Monday closes");
+    fireEvent.change(closes[1] as Element, { target: { value: "21:00" } });
+    fireEvent.blur(closes[1] as Element);
     save();
     expect(onAnswer.mock.calls[0]?.[0].days.mon).toEqual([
       ["11:00", "14:00"],
