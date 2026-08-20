@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type JSX } from "react";
 import { EXPORT_FILENAME, pageHtml } from "../page.js";
 import type { Draft } from "../project/index.js";
+import { sheetWarnings } from "../project/unusable.js";
 import { Hosting } from "./Hosting.js";
 import { HTML_TYPE, saveTextFile, type FileDownload } from "./save.js";
 import { Button } from "../ui/Button.js";
@@ -99,6 +100,10 @@ export function DownloadSheet({
 }: DownloadSheetProps): JSX.Element {
   const panel = useRef<HTMLDivElement>(null);
   const titleId = useId();
+
+  // At most two, and never a list (§7.7). Derived from the same place §7.4's row marks come from,
+  // so the two surfaces cannot disagree about the same string.
+  const warnings = sheetWarnings(draft);
 
   /**
    * The page, built on the press rather than on every render.
@@ -222,6 +227,29 @@ export function DownloadSheet({
             This is your web page — <code>{EXPORT_FILENAME}</code>. Put it online and anyone can
             visit it.
           </p>
+          {/*
+           * §7.7: under this section's own sentence and above §8's guidance, because it is about
+           * the page and because the last moment before publishing is when it is worth
+           * mentioning.
+           *
+           * **When nothing is wrong this renders nothing at all** — not an empty element, not a
+           * reserved space. The sheet is then byte for byte the calm screen §7.7 designed, which
+           * is the constraint on having it here at all.
+           *
+           * The objection was weighed rather than waved past: the *changed since you downloaded*
+           * badge this section rejects below fired **for everyone, always**, about a state that is
+           * normal and unfixable. This fires rarely, only when something is genuinely broken, and
+           * is actionable.
+           */}
+          {warnings.length > 0 && (
+            <div className="mt-3 flex flex-col gap-1" data-warnings>
+              {warnings.map((line) => (
+                <p key={line} className="text-notice">
+                  {line}
+                </p>
+              ))}
+            </div>
+          )}
           {/*
            * Above the guidance, because you need the file before any of it applies. The label
            * names the file rather than the act: `index.html` is anonymous in a downloads folder

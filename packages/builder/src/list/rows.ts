@@ -1,16 +1,9 @@
-import {
-  hoursView,
-  linkHref,
-  mailtoHref,
-  socialLabel,
-  telHref,
-  vocabulary,
-  type Hours,
-} from "@linkpage/renderer";
+import { hoursView, socialLabel, vocabulary, type Hours } from "@linkpage/renderer";
 import { colourName } from "../flow/index.js";
 import { uncoveredTopics } from "../flow/plan.js";
 import { TOPIC_LABELS, TOPICS, type Topic } from "../flow/topics.js";
 import type { Draft } from "../project/index.js";
+import { rowMark } from "../project/unusable.js";
 import { MODE_LABELS, SHAPE_LABELS } from "./labels.js";
 
 /**
@@ -192,60 +185,6 @@ export function topicSummary(draft: Draft, topic: Topic): string {
  * derivation's version of it — the row reports the answer, and the page beside it reports what
  * was made of the answer.
  */
-/**
- * What the owner has typed that the page cannot use, in §7.9's words.
- *
- * **One pattern, one noun of variation** — directions and social are not buttons, so calling them
- * one would be untrue — and *invalid*, *format* and *valid* are banned throughout, because they
- * name our diagnosis rather than the owner's situation.
- *
- * **Phone gets its own sentence because nothing is broken.** A vanity number, an extension or a
- * second number is deliberate and correct; *this button won't work* would be a false claim about
- * it. What justifies marking it at all is that the contact screen's hint already promises *they
- * become a tap-to-call and a tap-to-email link* — so the message corrects a promise the screen
- * made rather than volunteering a diagnosis.
- *
- * **Email's sentence is new here, and §7.9's table did not have one.** It needed one for the same
- * reason phone did and by the same argument: that hint promises tap-to-email in the same breath,
- * and §2.3's floor can refuse an address. Written to phone's shape rather than to the buttons',
- * because an email address that will not open a mail app is not a broken link either.
- */
-function rowMark(draft: Draft, topic: Topic): string | undefined {
-  switch (topic) {
-    case "links": {
-      const broken = (draft.links ?? []).some((link) => linkHref(link.url) === undefined);
-      return broken ? "This button won't work — paste the address from your browser." : undefined;
-    }
-
-    case "contact": {
-      const phone = draft.contact?.phone;
-      const email = draft.contact?.email;
-      if (phone !== undefined && phone !== "" && telHref(phone) === undefined) {
-        return "Tapping this won't dial — add the number in digits if you want it tappable.";
-      }
-      if (email !== undefined && email !== "" && mailtoHref(email) === undefined) {
-        return "Tapping this won't open an email — check the address.";
-      }
-      return undefined;
-    }
-
-    case "address": {
-      const url = draft.address?.directionsUrl;
-      return url !== undefined && url !== "" && linkHref(url) === undefined
-        ? "This link won't work — paste the address from your browser."
-        : undefined;
-    }
-
-    case "social": {
-      const broken = (draft.social ?? []).some((entry) => linkHref(entry.url) === undefined);
-      return broken ? "This link won't work — paste the address from your browser." : undefined;
-    }
-
-    default:
-      return undefined;
-  }
-}
-
 export function styleSummary(draft: Draft): string {
   const style = draft.style;
   // Three of the six controls, not all six (§7.4). The row's job is recognition, the page preview
