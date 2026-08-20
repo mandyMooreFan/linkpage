@@ -5,14 +5,18 @@ seen the project can implement it without asking a question. Where a decision lo
 reasoning is given — not as history, but because the reasoning is usually the thing that stops an
 implementer from "improving" it into something that breaks a guarantee elsewhere.
 
-**Status:** v1 is specified and largely built. `v0.9.0-beta` is released as a pre-release of it, and
-the `v1.0.0` tag is deliberately unspent for what this document now describes. Every decision here is
-settled. The [deferred](#10-deferred-past-v1) and [to verify](#11-to-verify-during-implementation)
-sections at the end are the only places where anything is open, and both are explicit about it.
+**Status:** built and released as `v1.0.0`. Every decision here is settled and every one of them is
+implemented — the build order that did it is indexed in §12 alongside the efforts that decided it. The
+[deferred](#10-deferred-past-v1) and [to verify](#11-to-verify-during-implementation) sections at the
+end are the only places where anything is open, and both are explicit about it.
 
-**The title still says v1 on purpose.** This document was amended after the beta by a second wayfinder
-effort (§12), and whether to retitle it was asked rather than assumed: what the beta released is a
-pre-release _of v1_, so the version being described has not changed and neither has its name. **The
+**§11 is the one to read before trusting this number.** A tag says the work is done, not that every
+assumption under it has been checked, and §11 lists what has not: most of it needs a real phone, which
+is the device §7.6 calls the primary case.
+
+**The title says v1 because the tag does.** This document was amended after the beta by a second
+wayfinder effort (§12), and whether to retitle it was asked rather than assumed: what the beta released
+was a pre-release _of v1_, so the version being described never changed and neither did its name. **The
 tool's version and `project.json`'s `version` (§4.2) are different numbers with different rules and
 must never be moved together.** There is no changelog section, deliberately — the amendments are
 indexed in §12, and each decision's reasoning travels with the decision itself, in place, for the same
@@ -2185,4 +2189,11 @@ closed issue. Where this spec says "was rejected", the argument is there.
   §7.10, §9 and §11 — including two places where **this document was found to be claiming more than was
   true**, and says so in place rather than quietly correcting itself.
 
-This document is the destination of both efforts. Implementation is a separate effort that starts here.
+This document is the destination of both efforts. **Implementation was a third, and it is finished:**
+[After the beta: build order](../../issues/116) turned the amended document into fourteen tickets and
+closed all of them, which is what `v1.0.0` tags.
+
+Worth recording, because it is the argument for building from a document rather than trusting one:
+**six errors in this specification were found by implementing it**, every one caught by a test or a
+screenshot rather than by re-reading. The closing comment on that build order lists them. The recurring
+shape is a document asserting something the code has never done.
