@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render as mount, screen, within } from "@testing-library/react";
 import { useState, type JSX } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { emptyDraft, type Draft } from "../project/index.js";
 import { Flow } from "./Flow.js";
 import { barUnits } from "./ProgressBar.js";
-import { planSteps } from "./plan.js";
+import { planSteps, type FlowEntry } from "./plan.js";
 import { findPreset, PRESETS, type PresetId } from "./presets.js";
 
 /**
@@ -21,14 +22,14 @@ afterEach(cleanup);
 const bar = (): HTMLElement | null => document.querySelector("[data-progress-bar]");
 const barText = (): string => bar()?.textContent ?? "";
 
-function harness(): void {
+function harness(entry: FlowEntry = { kind: "empty" }, draft: Draft | null = null): void {
   function Harness(): JSX.Element {
     const [done, setDone] = useState(false);
     if (done) return <p>the review list</p>;
     return (
       <Flow
-        entry={{ kind: "empty" }}
-        draft={null}
+        entry={entry}
+        draft={draft}
         lang="en-GB"
         onChange={vi.fn()}
         onDone={() => setDone(true)}
@@ -36,6 +37,21 @@ function harness(): void {
     );
   }
   mount(<Harness />);
+}
+
+const topicList = (): HTMLElement | null => document.querySelector("[data-topic-list]");
+
+/** Tap the bar itself, which is the whole control (§7.2). */
+function tapBar(): void {
+  fireEvent.click(document.querySelector("[data-progress-bar] > button") as Element);
+}
+
+/** Open the bar's list and jump to the named topic. */
+function jumpTo(label: string): void {
+  tapBar();
+  fireEvent.click(
+    within(topicList() as HTMLElement).getByRole("button", { name: new RegExp(label) }),
+  );
 }
 
 const title = (): string => screen.getByRole("heading", { level: 1 }).textContent ?? "";
@@ -142,5 +158,62 @@ describe("the bar on screen (§7.2)", () => {
     expect(title()).toBe("What's it called?");
     expect(barText()).toContain("1 of 9 done");
     expect(barText()).toContain("Name");
+  });
+});
+
+describe("the bar is the run's navigation (§7.2, #146)", () => {
+  it("drops open the run's topic list on tap and jumps where tapped", () => {
+    harness();
+    choosePreset("food");
+    expect(topicList()?.hidden).toBe(true);
+
+    tapBar();
+    expect(topicList()?.hidden).toBe(false);
+    fireEvent.click(
+      within(topicList() as HTMLElement).getByRole("button", { name: /Opening hours/ }),
+    );
+
+    expect(title()).toBe("When are you open?");
+    // Territory jumped over is not done — the gap is the honest report.
+    expect(barText()).toContain("0 of 9 done");
+  });
+
+  it("discards a half-answered screen on jump, exactly as Back does", () => {
+    harness();
+    choosePreset("food");
+    fireEvent.change(screen.getByLabelText(/Business name/), { target: { value: "Ada's" } });
+
+    jumpTo("Opening hours");
+    jumpTo("Name");
+    expect((screen.getByLabelText(/Business name/) as HTMLInputElement).value).toBe("");
+  });
+
+  it("counts a topic done only when it is left forwards, whatever the visit order", () => {
+    harness();
+    choosePreset("food");
+    walkTo("One line about what you do?");
+    expect(barText()).toContain("1 of 9 done");
+
+    jumpTo("Opening hours");
+    expect(barText()).toContain("1 of 9 done");
+    fireEvent.click(document.querySelector("[data-escape]") as Element);
+
+    // Escaping hours finishes it; the tagline and everything jumped over stays open.
+    expect(barText()).toContain("2 of 9 done");
+  });
+
+  it("offers Done for now on a re-entry run and nowhere else", () => {
+    harness();
+    choosePreset("food");
+    tapBar();
+    expect(within(topicList() as HTMLElement).queryByText("Done for now")).toBeNull();
+    cleanup();
+
+    harness({ kind: "add", topics: ["hours"] }, emptyDraft("en-GB"));
+    tapBar();
+    fireEvent.click(
+      within(topicList() as HTMLElement).getByRole("button", { name: "Done for now" }),
+    );
+    expect(screen.queryByText("the review list")).not.toBeNull();
   });
 });

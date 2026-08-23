@@ -11,7 +11,7 @@ import { LogoQuestion } from "./questions/LogoQuestion.js";
 import { HoursQuestion } from "./questions/HoursQuestion.js";
 import { PresetQuestion } from "./questions/PresetQuestion.js";
 import { AddressQuestion, ContactQuestion, SocialQuestion } from "./questions/SectionQuestions.js";
-import { ProgressBar } from "./ProgressBar.js";
+import { barUnits, ProgressBar } from "./ProgressBar.js";
 import {
   addLink,
   answerBrand,
@@ -95,12 +95,12 @@ export function Flow({
   const [at, setAt] = useState(0);
 
   /**
-   * The furthest screen this run has reached. The bar's fill reads this rather than `at`, so
-   * `Back` never pulls it down (§7.2: the fill never retreats). Derived during render on
-   * purpose — the max of a monotonic pair needs no effect.
+   * The topics this run has finished with — left forwards, answered or escaped. A set keyed by
+   * the bar's unit labels, which only grows: neither `Back` nor a jump removes from it, which
+   * is §7.2's "the fill never retreats", and a jump adds nothing to it, which is how
+   * jumped-over territory stays visibly not done.
    */
-  const [high, setHigh] = useState(0);
-  if (at > high) setHigh(at);
+  const [doneUnits, setDoneUnits] = useState<ReadonlySet<string>>(new Set());
 
   const steps = planSteps({ entry, draft: opening, preset, picks });
 
@@ -115,9 +115,21 @@ export function Flow({
 
   /** Move to the next screen, or off the end of the flow and onto the list. */
   function goNext(list = steps): void {
+    // Leaving a unit's last screen forwards is what finishes it (§7.2) — computed against the
+    // list actually being walked, so answering the links screen (which grows the plan) keeps
+    // the link run one still-open unit.
+    const unit = barUnits(list).find((each) => at >= each.first && at <= each.last);
+    if (unit !== undefined && at === unit.last && !doneUnits.has(unit.label)) {
+      setDoneUnits(new Set([...doneUnits, unit.label]));
+    }
     const next = at + 1;
     if (next >= list.length) onDone();
     else setAt(next);
+  }
+
+  /** §7.2: a jump is navigation only. It writes nothing and finishes nothing. */
+  function jumpTo(index: number): void {
+    setAt(index);
   }
 
   /**
@@ -300,7 +312,13 @@ export function Flow({
          * Static chrome, outside the keyed subtree below (§7.2, §7.11): the bar never remounts
          * with the content, which is what lets its fill tween instead of blinking.
          */}
-        <ProgressBar steps={steps} at={at} high={high} />
+        <ProgressBar
+          steps={steps}
+          at={at}
+          done={doneUnits}
+          onJump={jumpTo}
+          onLeave={entry.kind === "add" ? onDone : undefined}
+        />
         {/*
          * Keyed by the step, so each question arrives with its own empty state. Two link-URL
          * screens in a row are the same component and would otherwise hold the previous answer.
