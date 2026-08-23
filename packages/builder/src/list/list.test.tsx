@@ -175,6 +175,21 @@ describe("the link buttons (§7.5)", () => {
     );
   });
 
+  it("mends a web address on leaving the box, shown where it was typed (§7.9, #142)", () => {
+    // This editor has no Continue — leaving the box is "done answering" on it. Mid-typing is
+    // untouched: mending under the owner's fingers is the told-off feeling #142 removes.
+    const { latest } = editing();
+    openRow(/^Link buttons/);
+
+    const url = screen.getAllByLabelText("Where it goes")[0] as HTMLInputElement;
+    fireEvent.change(url, { target: { value: "mysite.com/menu" } });
+    expect(url.value).toBe("mysite.com/menu");
+
+    fireEvent.blur(url);
+    expect(url.value).toBe("https://mysite.com/menu");
+    expect(latest()?.links[0]?.url).toBe("https://mysite.com/menu");
+  });
+
   it("keeps a button out of the page until it has a URL (§7.3)", () => {
     const { latest } = editing();
     openRow(/^Link buttons/);

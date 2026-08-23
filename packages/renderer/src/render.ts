@@ -467,6 +467,33 @@ export function mailtoHref(value: unknown): string | undefined {
   return raw !== undefined && isEmailish(raw) ? `mailto:${raw}` : undefined;
 }
 
+/**
+ * §7.9 decision 4 (#142): a mend is shown, not said — these two are what the builder stores
+ * and shows, so the owner meets the correction where they typed rather than on the exported
+ * page.
+ *
+ * They live beside their href siblings for the same reason those are exported at all: the
+ * builder and the page must not disagree about what a value becomes. A value that cannot be
+ * mended comes back as the owner typed it (trimmed), so §7.9's mark still has the raw text to
+ * point at, and nothing is ever invented.
+ *
+ * Phone is deliberately absent: §7.9 names only a web address and an email, and a phone
+ * number's normalisation stays in the href, where showing it would be showing our results
+ * rather than the owner's intent.
+ */
+export function mendUrl(value: string): string {
+  const raw = value.trim();
+  if (raw === "") return raw;
+  return linkHref(raw) ?? raw;
+}
+
+export function mendEmail(value: string): string {
+  // The one mend an email has: spaces stripped. The floor refuses whitespace outright, so
+  // `hello @mysite.com` was a marked row; compacted, it is an address.
+  const compact = value.replace(/\s+/g, "");
+  return isEmailish(compact) ? compact : value.trim();
+}
+
 // ---------------------------------------------------------------------------
 // 5. Address
 // ---------------------------------------------------------------------------

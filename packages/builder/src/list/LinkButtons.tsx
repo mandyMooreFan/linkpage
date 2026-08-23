@@ -1,4 +1,4 @@
-import type { Link } from "@linkpage/renderer";
+import { mendUrl, type Link } from "@linkpage/renderer";
 import { useState, type JSX } from "react";
 import { Field } from "../flow/questions/Question.js";
 import type { Draft } from "../project/index.js";
@@ -96,6 +96,11 @@ export function LinkButtons({
                 autoCapitalize="none"
                 placeholder="https://"
                 onChange={(event) => edit(index, { url: event.target.value })}
+                // §7.9 decision 4 (#142): the mend is shown here on leaving the box — this
+                // editor has no Continue, and leaving the box is what "done answering" is on
+                // it. Mid-typing stays untouched: mending under the owner's fingers is the
+                // told-off feeling #142 exists to remove.
+                onBlur={(event) => edit(index, { url: mendUrl(event.target.value) })}
               />
             </Field>
 

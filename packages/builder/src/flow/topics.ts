@@ -1,11 +1,13 @@
-import type {
-  Address,
-  Contact,
-  Hours,
-  Interval,
-  Link,
-  SocialLink,
-  Weekday,
+import {
+  mendEmail,
+  mendUrl,
+  type Address,
+  type Contact,
+  type Hours,
+  type Interval,
+  type Link,
+  type SocialLink,
+  type Weekday,
 } from "@linkpage/renderer";
 import type { Draft } from "../project/index.js";
 
@@ -129,14 +131,23 @@ function cleanHours(value: Hours): Hours {
   return { clock: value.clock, weekStart: value.weekStart, days, ...(blank(note) ? {} : { note }) };
 }
 
+/*
+ * §7.9 decision 4 (#142): a mend is shown, not said. Web addresses and emails store *mended* —
+ * the scheme a bare domain needs, the spaces an email cannot carry — so the owner meets the
+ * correction wherever the value is next shown (the reopened field, the review row) rather than
+ * on the exported page. What cannot be mended stores as typed, and the §7.9 mark still points
+ * at it. This supersedes §2.3's old "nothing derived is ever stored" for these fields, and the
+ * mend functions live in the renderer so the builder and the page cannot disagree.
+ */
+
 function cleanContact(value: Contact): Contact {
   const phone = value.phone?.trim();
-  const email = value.email?.trim();
+  const email = mendEmail(value.email ?? "");
   return { ...(blank(phone) ? {} : { phone }), ...(blank(email) ? {} : { email }) };
 }
 
 function cleanAddress(value: Address): Address {
-  const url = value.directionsUrl?.trim();
+  const url = mendUrl(value.directionsUrl ?? "");
   return {
     lines: value.lines.map((line) => line.trim()).filter((line) => line !== ""),
     ...(blank(url) ? {} : { directionsUrl: url }),
@@ -146,7 +157,7 @@ function cleanAddress(value: Address): Address {
 /** A social row is its URL; the platform only decides which mark it wears (§2.4, §4.4). */
 function cleanSocial(value: readonly SocialLink[]): SocialLink[] {
   return value
-    .map((entry) => ({ platform: entry.platform.trim(), url: entry.url.trim() }))
+    .map((entry) => ({ platform: entry.platform.trim(), url: mendUrl(entry.url) }))
     .filter((entry) => entry.url !== "" && entry.platform !== "");
 }
 
@@ -248,7 +259,8 @@ export function answerSection(draft: Draft, answer: SectionAnswer): Draft {
  * destination for it. Nothing without one reaches the list, the file, or the page.
  */
 export function addLink(draft: Draft, link: Link): Draft {
-  const url = link.url.trim();
+  // Mended on the way in (§7.9 decision 4): `mysite.com` stores as `https://mysite.com`.
+  const url = mendUrl(link.url);
   if (url === "") return draft;
   const label = link.label.trim();
   return {

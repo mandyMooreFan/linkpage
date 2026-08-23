@@ -10,12 +10,13 @@ import { displayTime, parseTime } from "./time.js";
  * reads `9:00 AM` — or `09:00` if the owner has set *How times read* to 24-hour, and flipping
  * that control later changes these boxes with it.
  *
- * **This is the one place §2.3's _mend the target, never the text_ does not reach**, and the
- * difference is worth stating rather than assuming. Phone, email and the URLs are the owner's
- * text plus a derived target, so the text is protected. **A time has no text**: §2.3 stores only
- * `"HH:MM"` and the page prints it through `clock`, so the stored value *is* the derived target.
- * There is nothing of the owner's to preserve, and the rewrite is the cheapest confirmation that
- * we understood them.
+ * **The rewrite this box does was once unique, and is no longer** — since #142's decision 4,
+ * web addresses and emails are also written back mended (`topics.ts`'s doors). What is still
+ * particular here: **a time has no text.** §2.3 stores only `"HH:MM"` and the page prints it
+ * through `clock`, so the stored value *is* the derived target, there is nothing of the owner's
+ * to preserve, and the rewrite is the cheapest confirmation that we understood them. Phone
+ * remains the one field whose text is fully protected — its normalisation lives in the href
+ * alone.
  *
  * **An unreadable time is judged on `Continue`, not on leaving the field** (§7.9 decision 2 as
  * amended, #142 — the #138 walk's clearest moment was this screen marking answers wrong before

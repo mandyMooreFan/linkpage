@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { escapeHtml, render, safeUrl } from "./render.js";
+import { escapeHtml, mendEmail, mendUrl, render, safeUrl } from "./render.js";
 import { MINIMAL as base, POPULATED as full, POPULATED_DARK as dark } from "./fixtures.js";
 import { SHAPES } from "./chrome.js";
 import type { Project } from "./project.js";
@@ -828,5 +828,32 @@ describe("LocalBusiness microdata", () => {
 describe("determinism", () => {
   it("renders the same bytes twice for the same input", () => {
     expect(render(full)).toBe(render(full));
+  });
+});
+
+describe("the mend the builder stores and shows (§7.9 decision 4, #142)", () => {
+  it("mends a bare domain into the address it will link to", () => {
+    expect(mendUrl("mysite.com")).toBe("https://mysite.com");
+    expect(mendUrl("  mysite.com/menu ")).toBe("https://mysite.com/menu");
+  });
+
+  it("leaves a scheme-bearing address exactly as typed", () => {
+    expect(mendUrl("https://ada.example/x?y=1")).toBe("https://ada.example/x?y=1");
+  });
+
+  it("keeps what it cannot mend as the owner typed it, trimmed", () => {
+    expect(mendUrl(" not a url ")).toBe("not a url");
+    expect(mendUrl("@handle")).toBe("@handle");
+    expect(mendUrl("")).toBe("");
+  });
+
+  it("strips the spaces an email cannot carry, and nothing else", () => {
+    expect(mendEmail("hello @mysite.com")).toBe("hello@mysite.com");
+    expect(mendEmail(" hello@mysite.com ")).toBe("hello@mysite.com");
+    expect(mendEmail("josé@café.fr")).toBe("josé@café.fr");
+  });
+
+  it("keeps an email it cannot mend as typed, trimmed", () => {
+    expect(mendEmail(" not-an-email ")).toBe("not-an-email");
   });
 });
