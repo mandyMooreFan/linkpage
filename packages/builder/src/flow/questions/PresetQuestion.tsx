@@ -67,6 +67,25 @@ export function PresetQuestion({
                 className="bg-transparent p-0 font-sans underline underline-offset-4"
                 onClick={() => picker.current?.click()}
               >
+                {/*
+                 * The upload glyph (#148, walk moment 2): affordance rather than decoration —
+                 * it marks the one control on this screen that opens the file picker. Inline
+                 * and ink-coloured, so it is type-sized paper furniture, not chrome.
+                 */}
+                <svg
+                  className="mr-1 inline-block size-4 align-text-bottom"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
+                  />
+                </svg>
                 Open it.
               </button>
             </p>

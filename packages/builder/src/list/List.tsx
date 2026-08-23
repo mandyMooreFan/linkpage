@@ -139,7 +139,12 @@ export function List({
       className="enter-fade flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
       data-screen="list"
     >
-      <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
+      {/*
+       * `flex-1` (#148): when the rows run short of a phone screen, the drawer's control below
+       * still sits at the bottom edge rather than floating mid-screen. Wide is items-start, so
+       * this changes nothing there.
+       */}
+      <div className="mx-auto w-full max-w-lg flex-1 wide:mx-0 wide:flex-1">
         <div className="flex items-center justify-between gap-2">
           <Menu onImport={onImport} confirm={importConfirm} error={importError} />
           {/*

@@ -329,7 +329,13 @@ export function Flow({
       className="enter-fade flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
       data-screen="flow"
     >
-      <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
+      {/*
+       * Balanced in the viewport (#148, walk moment 3): on a phone the bar is the header, the
+       * question sits centred in the space between, and the drawer's control below becomes the
+       * footer. On wide the column shrinks to its content (the root is items-start), so the
+       * centring is a no-op there and nothing branches.
+       */}
+      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col wide:mx-0 wide:flex-1">
         {/*
          * Static chrome, outside the keyed subtree below (§7.2, §7.11): the bar never remounts
          * with the content, which is what lets its fill tween instead of blinking.
@@ -341,15 +347,18 @@ export function Flow({
           onJump={jumpTo}
           onLeave={entry.kind === "add" ? onDone : undefined}
         />
-        {/*
-         * Keyed by the step, so each question arrives with its own empty state. Two link-URL
-         * screens in a row are the same component and would otherwise hold the previous answer.
-         */}
-        <div
-          className="[view-transition-name:flow-content]"
-          key={step.id === "linkUrl" ? step.pick.id : step.id}
-        >
-          {question(step)}
+        <div className="flex flex-1 flex-col justify-center">
+          {/*
+           * Keyed by the step, so each question arrives with its own empty state. Two link-URL
+           * screens in a row are the same component and would otherwise hold the previous
+           * answer.
+           */}
+          <div
+            className="[view-transition-name:flow-content]"
+            key={step.id === "linkUrl" ? step.pick.id : step.id}
+          >
+            {question(step)}
+          </div>
         </div>
       </div>
       <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
