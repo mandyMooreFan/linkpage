@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { readDraft, type Draft } from "../project/index.js";
-import { flowEntry, planSteps, uncoveredTopics, type FlowEntry, type Pick } from "./plan.js";
+import {
+  flowEntry,
+  openingAt,
+  planSteps,
+  uncoveredTopics,
+  type FlowEntry,
+  type Pick,
+} from "./plan.js";
 import type { PresetId } from "./presets.js";
 
 /**
@@ -131,15 +138,29 @@ describe("the first run", () => {
 });
 
 describe("re-entry (§7.1)", () => {
-  it("walks one ticked section and nothing else", () => {
-    expect(plan({ kind: "add", topics: ["hours"] }, COMPLETE, null)).toEqual(["hours"]);
+  it("spans every unanswered topic, in page order, opening at the one ticked (#146)", () => {
+    // COMPLETE covers name, brand and links; everything else is unanswered territory, and the
+    // run offers all of it rather than walking the one ticked section alone.
+    const steps = planSteps({
+      entry: { kind: "add", topics: ["hours"] },
+      draft: COMPLETE,
+      preset: null,
+      picks: [],
+    });
+    expect(ids(steps)).toEqual(["tagline", "logo", "hours", "contact", "address", "social"]);
+    expect(openingAt(steps, { kind: "add", topics: ["hours"] })).toBe(2);
+  });
+
+  it("opens at the top for every other entry", () => {
+    const first = planSteps({ entry: EMPTY, draft: null, preset: "food", picks: [] });
+    expect(openingAt(first, EMPTY)).toBe(0);
   });
 
   it("is the same step the first run would have used", () => {
     const first = plan(EMPTY, null, "food");
     for (const topic of ["hours", "contact", "address", "social"] as const) {
       expect(first).toContain(topic);
-      expect(plan({ kind: "add", topics: [topic] }, COMPLETE, null)).toEqual([topic]);
+      expect(plan({ kind: "add", topics: [topic] }, COMPLETE, null)).toContain(topic);
     }
   });
 
@@ -159,22 +180,33 @@ describe("re-entry (§7.1)", () => {
   it("keeps the page's own order however the topics arrive", () => {
     expect(plan({ kind: "add", topics: ["social", "hours", "tagline"] }, COMPLETE, null)).toEqual([
       "tagline",
+      "logo",
       "hours",
+      "contact",
+      "address",
       "social",
     ]);
   });
 
   it("asks a topic once however often it is asked for", () => {
-    expect(plan({ kind: "add", topics: ["hours", "hours"] }, COMPLETE, null)).toEqual(["hours"]);
+    const once = plan({ kind: "add", topics: ["hours", "hours"] }, COMPLETE, null);
+    expect(once.filter((id) => id === "hours")).toEqual(["hours"]);
   });
 
   it("collects a required field on the way, without the preset question (§4.6)", () => {
     const noBrand = readDraft({ version: 1, lang: "en", header: { name: "Ada's" } });
-    expect(plan({ kind: "add", topics: ["hours"] }, noBrand, null)).toEqual(["brand", "hours"]);
+    const steps = plan({ kind: "add", topics: ["hours"] }, noBrand, null);
+    expect(steps).toContain("brand");
+    expect(steps).not.toContain("preset");
+    expect(steps).not.toContain("name");
   });
 
-  it("does not re-ask for something the file already has", () => {
-    expect(plan({ kind: "add", topics: [] }, COMPLETE, null)).toEqual([]);
+  it("still never re-asks what the file already has", () => {
+    // COMPLETE covers name, brand and links; none of the three appears however the run spans.
+    const steps = plan({ kind: "add", topics: ["hours"] }, COMPLETE, null);
+    expect(steps).not.toContain("name");
+    expect(steps).not.toContain("brand");
+    expect(steps).not.toContain("links");
   });
 });
 

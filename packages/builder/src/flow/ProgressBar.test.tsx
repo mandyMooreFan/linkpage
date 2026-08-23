@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render as mount, screen, within } from "@testing-library/react";
 import { useState, type JSX } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { emptyDraft, type Draft } from "../project/index.js";
+import { emptyDraft, readDraft, type Draft } from "../project/index.js";
 import { Flow } from "./Flow.js";
 import { barUnits } from "./ProgressBar.js";
 import { planSteps, type FlowEntry } from "./plan.js";
@@ -200,6 +200,20 @@ describe("the bar is the run's navigation (§7.2, #146)", () => {
 
     // Escaping hours finishes it; the tagline and everything jumped over stays open.
     expect(barText()).toContain("2 of 9 done");
+  });
+
+  it("opens a re-entry run at the ticked topic, with the whole territory on offer (#146)", () => {
+    const draft = readDraft({
+      version: 1,
+      lang: "en-GB",
+      style: { brand: "#c2185b" },
+      header: { name: "Ada's" },
+    });
+    harness({ kind: "add", topics: ["contact"] }, draft);
+
+    expect(title()).toBe("How do people reach you?");
+    // Everything unanswered is in the run: tagline, logo, links, hours, contact, address, social.
+    expect(barText()).toContain("0 of 7 done");
   });
 
   it("offers Done for now on a re-entry run and nowhere else", () => {
