@@ -36,6 +36,14 @@
   /* The one place the tool shows a colour of its own: a focus ring and a live message. */
   --color-notice: #8a2d1b;
 
+  /*
+   * §7.4's one deliberate exception to paper (#139): the progress bar's standard vocabulary —
+   * a grey track and a coloured fill. Scoped to §7.2's bar and its topic list; nothing else
+   * may borrow these for decoration.
+   */
+  --color-progress: #4f46e5;
+  --color-progress-track: #e5e7eb;
+
   /**
    * §7.6's single width, which `flow.css` and `preview.css` used to agree on by hand. One token
    * now generates the `wide:` variant, so the two cannot drift apart — there is only one of it.

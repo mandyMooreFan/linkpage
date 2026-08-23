@@ -11,6 +11,7 @@ import { LogoQuestion } from "./questions/LogoQuestion.js";
 import { HoursQuestion } from "./questions/HoursQuestion.js";
 import { PresetQuestion } from "./questions/PresetQuestion.js";
 import { AddressQuestion, ContactQuestion, SocialQuestion } from "./questions/SectionQuestions.js";
+import { ProgressBar } from "./ProgressBar.js";
 import {
   addLink,
   answerBrand,
@@ -92,6 +93,14 @@ export function Flow({
   const [preset, setPreset] = useState<PresetId | null>(null);
   const [picks, setPicks] = useState<readonly Pick[]>([]);
   const [at, setAt] = useState(0);
+
+  /**
+   * The furthest screen this run has reached. The bar's fill reads this rather than `at`, so
+   * `Back` never pulls it down (§7.2: the fill never retreats). Derived during render on
+   * purpose — the max of a monotonic pair needs no effect.
+   */
+  const [high, setHigh] = useState(0);
+  if (at > high) setHigh(at);
 
   const steps = planSteps({ entry, draft: opening, preset, picks });
 
@@ -286,15 +295,17 @@ export function Flow({
       className="flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
       data-screen="flow"
     >
-      {/*
-       * Keyed by the step, so each question arrives with its own empty state. Two link-URL
-       * screens in a row are the same component and would otherwise hold the previous answer.
-       */}
-      <div
-        className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1"
-        key={step.id === "linkUrl" ? step.pick.id : step.id}
-      >
-        {question(step)}
+      <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
+        {/*
+         * Static chrome, outside the keyed subtree below (§7.2, §7.11): the bar never remounts
+         * with the content, which is what lets its fill tween instead of blinking.
+         */}
+        <ProgressBar steps={steps} at={at} high={high} />
+        {/*
+         * Keyed by the step, so each question arrives with its own empty state. Two link-URL
+         * screens in a row are the same component and would otherwise hold the previous answer.
+         */}
+        <div key={step.id === "linkUrl" ? step.pick.id : step.id}>{question(step)}</div>
       </div>
       <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
         <Preview project={working} />
