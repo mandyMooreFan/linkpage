@@ -68,6 +68,12 @@ export interface Escape {
 
 export interface QuestionProps {
   readonly title: string;
+  /**
+   * §7.3's orientation (#141): one quiet line above the title, so the screen's first words are
+   * orientation and its first act is still the question. Step one carries it; nothing else
+   * does — a preamble on every screen would be chrome, and the bar already says where you are.
+   */
+  readonly preamble?: string;
   /** One quiet line under the title, where the question genuinely needs one. */
   readonly hint?: ReactNode;
   readonly children?: ReactNode;
@@ -93,6 +99,7 @@ export interface QuestionProps {
 
 export function Question({
   title,
+  preamble,
   hint,
   children,
   escape,
@@ -118,6 +125,11 @@ export function Question({
           if (!submitDisabled) onSubmit?.();
         }}
       >
+        {preamble !== undefined && (
+          <p className="-mb-2 font-sans text-sm text-ink-quiet" data-question-preamble>
+            {preamble}
+          </p>
+        )}
         {shell.level === 1 ? (
           <h1 className="text-3xl leading-tight tracking-tight">{title}</h1>
         ) : (
