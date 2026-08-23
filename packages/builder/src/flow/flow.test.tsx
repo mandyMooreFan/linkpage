@@ -529,3 +529,36 @@ describe("the page fills in beside the question (§7.1, §7.6)", () => {
     expect(screen.getByRole("button", { name: "See the page" })).toBeTruthy();
   });
 });
+
+describe("a screen change is a view transition, chrome held still (§7.11)", () => {
+  /** jsdom has no view transitions, which is itself the fallback the language relies on. */
+  const host = document as { startViewTransition?: (update: () => void) => unknown };
+
+  afterEach(() => {
+    delete host.startViewTransition;
+  });
+
+  it("routes the swap through the browser's transition when it has one", () => {
+    const started = vi.fn((update: () => void) => {
+      update();
+      return {};
+    });
+    host.startViewTransition = started;
+
+    harness();
+    choosePreset("food");
+    expect(title()).toBe(NAME);
+    expect(started).toHaveBeenCalledTimes(1);
+
+    type(/Business name/, "Ada's Bakery");
+    fireEvent.click(submit() as Element);
+    expect(title()).toBe("One line about what you do?");
+    expect(started).toHaveBeenCalledTimes(2);
+  });
+
+  it("swaps instantly where the browser cannot transition — the honest reduced form", () => {
+    harness();
+    choosePreset("food");
+    expect(title()).toBe(NAME);
+  });
+});

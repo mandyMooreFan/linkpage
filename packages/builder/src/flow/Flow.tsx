@@ -1,4 +1,5 @@
 import { useEffect, useState, type JSX, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { applyIntake, clearLogo, type LogoIntake } from "../logo/index.js";
 import { Preview } from "../preview/Preview.js";
 import { emptyDraft, type Draft } from "../project/index.js";
@@ -116,6 +117,22 @@ export function Flow({
   }, [finished, onDone]);
   if (step === undefined) return null;
 
+  /**
+   * Move between screens as §7.11 says a screen change moves: fade out, swap, fade in, with
+   * the chrome holding still. The view transition is scoped in `theme.css` to the one element
+   * named `flow-content`; a browser without the API swaps instantly, which is the language's
+   * honest reduced form, so there is no second code path to keep true.
+   */
+  function navigate(action: () => void): void {
+    if (typeof document.startViewTransition !== "function") {
+      action();
+      return;
+    }
+    document.startViewTransition(() => {
+      flushSync(action);
+    });
+  }
+
   /** Move to the next screen, or off the end of the flow and onto the list. */
   function goNext(list = steps): void {
     // Leaving a unit's last screen forwards is what finishes it (§7.2) — computed against the
@@ -125,14 +142,16 @@ export function Flow({
     if (unit !== undefined && at === unit.last && !doneUnits.has(unit.label)) {
       setDoneUnits(new Set([...doneUnits, unit.label]));
     }
-    const next = at + 1;
-    if (next >= list.length) onDone();
-    else setAt(next);
+    navigate(() => {
+      const next = at + 1;
+      if (next >= list.length) onDone();
+      else setAt(next);
+    });
   }
 
   /** §7.2: a jump is navigation only. It writes nothing and finishes nothing. */
   function jumpTo(index: number): void {
-    setAt(index);
+    navigate(() => setAt(index));
   }
 
   /**
@@ -150,7 +169,7 @@ export function Flow({
     goNext();
   }
 
-  const onBack = at > 0 ? () => setAt(at - 1) : undefined;
+  const onBack = at > 0 ? () => navigate(() => setAt(at - 1)) : undefined;
 
   const suggestions = preset === null ? [] : findPreset(preset).suggestions;
 
@@ -164,7 +183,7 @@ export function Flow({
               setPreset(id);
               // Deliberately not `commit`: a preset writes nothing, ever (§7.3). It changes
               // the plan, and the plan is not the project.
-              setAt(1);
+              navigate(() => setAt(1));
             }}
             onOpenFile={onOpenFile}
             fileError={fileError}
@@ -307,7 +326,7 @@ export function Flow({
 
   return (
     <div
-      className="flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
+      className="enter-fade flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
       data-screen="flow"
     >
       <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
@@ -326,7 +345,12 @@ export function Flow({
          * Keyed by the step, so each question arrives with its own empty state. Two link-URL
          * screens in a row are the same component and would otherwise hold the previous answer.
          */}
-        <div key={step.id === "linkUrl" ? step.pick.id : step.id}>{question(step)}</div>
+        <div
+          className="[view-transition-name:flow-content]"
+          key={step.id === "linkUrl" ? step.pick.id : step.id}
+        >
+          {question(step)}
+        </div>
       </div>
       <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
         <Preview project={working} />

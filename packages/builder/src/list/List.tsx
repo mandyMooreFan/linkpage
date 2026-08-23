@@ -136,7 +136,7 @@ export function List({
 
   return (
     <main
-      className="flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
+      className="enter-fade flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
       data-screen="list"
     >
       <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">

@@ -66,6 +66,56 @@
 }
 
 /**
+ * §7.11: the frame motion language — still chrome, fading content, one verb.
+ *
+ * **The fade is the only movement the builder makes.** A surface earns `enter-fade` when it
+ * arrives (a run beginning, the list on arrival, the drawer opening); a *screen change inside
+ * the flow* is the two-phase version — fade out, swap, fade in — carried by a view transition
+ * scoped to the one element named `flow-content`, while the root pair is pinned still so the
+ * bar and everything around the content never so much as flickers. Browsers without view
+ * transitions swap instantly, which is the language's own honest reduced form, and
+ * `prefers-reduced-motion` collapses every duration toward instant rather than switching to a
+ * lesser language. Durations are §7.11's felt-approved values.
+ */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@utility enter-fade {
+  animation: fade-in 320ms ease-out both;
+}
+
+::view-transition-image-pair(root) {
+  isolation: auto;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(flow-content) {
+  animation: fade-out 170ms ease-in both;
+}
+::view-transition-new(flow-content) {
+  animation: fade-in 320ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter-fade,
+  ::view-transition-old(flow-content),
+  ::view-transition-new(flow-content) {
+    animation-duration: 1ms;
+  }
+}
+
+/**
  * One focus ring for the whole tool, defined once.
  *
  * `:focus-visible` rather than `:focus` so a mouse press does not draw it, and an outline rather
