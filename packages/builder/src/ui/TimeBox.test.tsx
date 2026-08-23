@@ -4,19 +4,37 @@ import { cleanup, fireEvent, render as mount, screen } from "@testing-library/re
 import { useState, type JSX } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Clock } from "@linkpage/renderer";
+import { Question } from "../flow/questions/Question.js";
 import { TimeBox } from "./TimeBox.js";
 
 afterEach(cleanup);
 
-/** A box wired to state, which is how the hours screen holds it. */
-function Harness({ clock = "12h", start = "" }: { clock?: Clock; start?: string }): JSX.Element {
-  const [value, setValue] = useState(start);
-  return (
-    <>
-      <TimeBox label="Monday opens" value={value} clock={clock} onChange={setValue} />
-      <output>{value === "" ? "(nothing stored)" : value}</output>
-    </>
-  );
+/**
+ * A box wired to state inside the real shell, which is how the hours screen holds it — the
+ * shell matters now, because §7.9's judgement (#142) belongs to `Continue`, and `Continue` is
+ * the shell's.
+ */
+function harness({ clock = "12h", start = "" }: { clock?: Clock; start?: string } = {}) {
+  const submitted = vi.fn();
+
+  function Harness(): JSX.Element {
+    const [value, setValue] = useState(start);
+    return (
+      <Question title="t" onSubmit={submitted}>
+        <TimeBox
+          label="Monday opens"
+          name="time-test"
+          value={value}
+          clock={clock}
+          onChange={setValue}
+        />
+        <output>{value === "" ? "(nothing stored)" : value}</output>
+      </Question>
+    );
+  }
+
+  mount(<Harness />);
+  return { submitted };
 }
 
 const box = (): HTMLInputElement => screen.getByLabelText("Monday opens") as HTMLInputElement;
@@ -24,89 +42,125 @@ const type = (text: string): void => {
   fireEvent.change(box(), { target: { value: text } });
   fireEvent.blur(box());
 };
+const pressContinue = (): void => {
+  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+};
+const message = (): Element | null => document.querySelector("[data-message]");
 
 describe("the box rewrites what was typed (§7.10)", () => {
   it("reads back in the page's convention", () => {
-    mount(<Harness />);
+    harness();
     type("9am");
     expect(box().value).toBe("9:00 AM");
   });
 
   it("reads back 24-hour when that is what the page says", () => {
-    mount(<Harness clock="24h" />);
+    harness({ clock: "24h" });
     type("9am");
     expect(box().value).toBe("09:00");
   });
 
   it("says nothing when it succeeds", () => {
     // §7.9 decision 4: a successful mend is silent. A rewritten box is not an announcement.
-    mount(<Harness />);
+    harness();
     type("930");
-    expect(document.querySelector("[data-message]")).toBeNull();
+    expect(message()).toBeNull();
   });
 
   it("is a view of the stored time, so a later clock change moves it", () => {
     // The intended relationship rather than a side effect: flipping *How times read* changes
     // these boxes with it, because the box is not a field of its own.
-    const { rerender } = mount(<TimeBox label="t" value="17:30" clock="12h" onChange={vi.fn()} />);
+    const shell = (clock: Clock): JSX.Element => (
+      <Question title="t">
+        <TimeBox label="t" name="time-test" value="17:30" clock={clock} onChange={vi.fn()} />
+      </Question>
+    );
+    const { rerender } = mount(shell("12h"));
     expect((screen.getByLabelText("t") as HTMLInputElement).value).toBe("5:30 PM");
-    rerender(<TimeBox label="t" value="17:30" clock="24h" onChange={vi.fn()} />);
+    rerender(shell("24h"));
     expect((screen.getByLabelText("t") as HTMLInputElement).value).toBe("17:30");
   });
 });
 
-describe("an unreadable time is said and dropped (§7.9, §7.10)", () => {
-  it("speaks on leaving the field, in §7.9's shape", () => {
-    mount(<Harness />);
+describe("an unreadable time is judged on Continue (§7.9 decision 2, #142)", () => {
+  it("is silent on leaving the field — nothing judges an answer still being given", () => {
+    harness();
     type("lunchtime");
-    const message = document.querySelector("[data-message]");
-    expect(message?.textContent).toBe("This time won't reach your page — try 5:30pm");
+    expect(message()).toBeNull();
+  });
+
+  it("speaks on Continue, in §7.9's shape, and the screen stays", () => {
+    const { submitted } = harness();
+    type("lunchtime");
+    pressContinue();
+
+    expect(message()?.textContent).toBe("This time won't reach your page — try 5:30pm");
+    expect(submitted).not.toHaveBeenCalled();
     // Consequence then fix, and none of §7.9's banned words.
     for (const banned of ["invalid", "format", "valid"]) {
-      expect(message?.textContent?.toLowerCase()).not.toContain(banned);
+      expect(message()?.textContent?.toLowerCase()).not.toContain(banned);
     }
   });
 
   it("describes the control, so the message is announced with it", () => {
-    mount(<Harness />);
+    harness();
     type("lunchtime");
+    pressContinue();
     const id = box().getAttribute("aria-describedby");
     expect(id).not.toBeNull();
     expect(document.getElementById(id as string)?.textContent).toContain("won't reach your page");
   });
 
   it("stores nothing, rather than storing something that is not a time", () => {
-    mount(<Harness start="09:00" />);
+    harness({ start: "09:00" });
     expect(screen.getByText("09:00")).toBeTruthy();
     type("lunchtime");
     expect(screen.getByText("(nothing stored)")).toBeTruthy();
+    // And the owner's text stays on screen for the sentence to point at.
+    expect(box().value).toBe("lunchtime");
   });
 
   it("blocks nothing — there is no disabled state here at all", () => {
-    mount(<Harness />);
+    harness();
     type("lunchtime");
     expect(box().disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
   });
 
   it("stops speaking the moment the value becomes usable", () => {
     // Late to speak, quick to stop (§7.9 decision 2).
-    mount(<Harness />);
+    harness();
     type("lunchtime");
-    expect(document.querySelector("[data-message]")).not.toBeNull();
+    pressContinue();
+    expect(message()).not.toBeNull();
+    fireEvent.change(box(), { target: { value: "9am" } });
+    expect(message()).toBeNull();
+  });
+
+  it("lets the answer continue once cleared or fixed", () => {
+    const { submitted } = harness();
+    type("lunchtime");
+    pressContinue();
+    expect(submitted).not.toHaveBeenCalled();
+
     type("9am");
-    expect(document.querySelector("[data-message]")).toBeNull();
+    pressContinue();
+    expect(submitted).toHaveBeenCalledTimes(1);
   });
 
   it("is silent while the owner is still typing", () => {
-    mount(<Harness />);
+    harness();
     fireEvent.change(box(), { target: { value: "9" } });
-    expect(document.querySelector("[data-message]")).toBeNull();
+    expect(message()).toBeNull();
   });
 
   it("clearing the box is not a complaint", () => {
-    mount(<Harness start="09:00" />);
+    harness({ start: "09:00" });
     type("");
-    expect(document.querySelector("[data-message]")).toBeNull();
+    pressContinue();
+    expect(message()).toBeNull();
     expect(screen.getByText("(nothing stored)")).toBeTruthy();
   });
 });

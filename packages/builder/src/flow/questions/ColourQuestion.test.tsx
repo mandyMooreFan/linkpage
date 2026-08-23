@@ -89,11 +89,12 @@ describe("the question", () => {
     expect(onAnswer).toHaveBeenCalledWith("#8A2BE2");
   });
 
-  it("says what it cannot use, and blocks nothing (§7.9)", () => {
-    // This screen used to be the only one that blocked on the *shape* of an answer: a swatch
-    // plus junk in the box killed `Continue` even though a perfectly good answer was selected,
-    // with nothing to say the two facts were related. §7.9 decision 1 removed that — our rules
-    // go stale and the owner's colour does not.
+  it("says what it cannot use on Continue, and never while typing (§7.9 decision 2, #142)", () => {
+    // This screen used to be the counter-example twice over: it blocked on the *shape* of an
+    // answer, and it re-judged every keystroke so typing `#` already read as failure. Both are
+    // gone — `Continue` stays enabled (decision 1), the box stays quiet until Continue judges
+    // it (decision 2), and the message then explains why the typing had no effect while the
+    // swatch underneath still stands.
     const onAnswer = vi.fn();
     mount(<ColourQuestion initial={undefined} onAnswer={onAnswer} />);
 
@@ -101,11 +102,17 @@ describe("the question", () => {
     fireEvent.change(screen.getByLabelText(/exact colour/), { target: { value: "#8A2B" } });
 
     expect(submit().disabled).toBe(false);
+    expect(document.querySelector("[data-message]")).toBeNull();
+
+    fireEvent.click(submit());
     expect(document.querySelector("[data-message]")?.textContent).toContain(
       "This won't change your colour",
     );
+    // Held, not blocked: the sentence is on screen and the way on is to fix or clear the box.
+    expect(onAnswer).not.toHaveBeenCalled();
 
-    // The swatch stands, which is what the message is explaining.
+    fireEvent.change(screen.getByLabelText(/exact colour/), { target: { value: "" } });
+    expect(document.querySelector("[data-message]")).toBeNull();
     fireEvent.click(submit());
     expect(onAnswer).toHaveBeenCalledWith(BRAND_SWATCHES[0]?.hex);
   });

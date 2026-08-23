@@ -256,6 +256,7 @@ export function HoursQuestion({
                     <div className="flex items-center gap-2" key={index}>
                       <TimeBox
                         label={`${DAY_NAMES[day]} opens`}
+                        name={`time-${day}-${index}-opens`}
                         value={open}
                         clock={clock}
                         onChange={(stored) =>
@@ -269,6 +270,7 @@ export function HoursQuestion({
                       />
                       <TimeBox
                         label={`${DAY_NAMES[day]} closes`}
+                        name={`time-${day}-${index}-closes`}
                         value={close}
                         clock={clock}
                         onChange={(stored) =>

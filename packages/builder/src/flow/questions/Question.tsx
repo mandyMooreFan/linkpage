@@ -9,6 +9,8 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
+import { FormProvider, useForm, useFormContext, useFormState } from "react-hook-form";
+import { useEffect, useRef } from "react";
 
 /**
  * The shell every question wears. `SPEC.md` §7.2, §7.4, §7.6.
@@ -111,62 +113,141 @@ export function Question({
 }: QuestionProps): JSX.Element {
   const shell = useContext(ShellContext);
 
+  /**
+   * §7.9 decision 2 (#142): judgement speaks on `Continue` and not before, then re-checks
+   * live. react-hook-form is the error store every question shares — `useJudged` below is how
+   * a field opts in — and the judging itself runs synchronously at submit, because a valid
+   * answer must advance in the same tick it always did. A field without a judge — phone,
+   * email, a web address — is never judged on screen, and its notice stays the review list's
+   * mark (decision 5). A submit with something unusable shows its sentences and stays;
+   * `submitDisabled` remains what it always was — presence, never shape (decision 1).
+   */
+  const form = useForm();
+  const judges = useRef(new Map<string, () => string | true>());
+
   return (
-    <section className="font-serif">
-      {/*
-       * A form, so Enter submits — the owner typing a business name should not have to find a
-       * button. `noValidate` because the browser's own bubbles are the modal §7.9 rules out.
-       */}
-      <form
-        className="flex flex-col gap-4"
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!submitDisabled) onSubmit?.();
-        }}
-      >
-        {preamble !== undefined && (
-          <p className="-mb-2 font-sans text-sm text-ink-quiet" data-question-preamble>
-            {preamble}
-          </p>
-        )}
-        {shell.level === 1 ? (
-          <h1 className="text-3xl leading-tight tracking-tight">{title}</h1>
-        ) : (
-          <h2 className="text-2xl leading-tight tracking-tight">{title}</h2>
-        )}
-        {hint !== undefined && (
-          <p className="-mt-2 font-sans text-base text-ink-quiet" data-question-hint>
-            {hint}
-          </p>
-        )}
+    <FormProvider {...form}>
+      <JudgeContext.Provider value={judges.current}>
+        <section className="font-serif">
+          {/*
+           * A form, so Enter submits — the owner typing a business name should not have to
+           * find a button. `noValidate` because the browser's own bubbles are the modal §7.9
+           * rules out.
+           */}
+          <form
+            className="flex flex-col gap-4"
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (submitDisabled) return;
+              let held = false;
+              for (const [name, judge] of judges.current) {
+                const verdict = judge();
+                if (verdict === true) form.clearErrors(name);
+                else {
+                  form.setError(name, { type: "unusable", message: verdict });
+                  held = true;
+                }
+              }
+              if (!held) onSubmit?.();
+            }}
+          >
+            {preamble !== undefined && (
+              <p className="-mb-2 font-sans text-sm text-ink-quiet" data-question-preamble>
+                {preamble}
+              </p>
+            )}
+            {shell.level === 1 ? (
+              <h1 className="text-3xl leading-tight tracking-tight">{title}</h1>
+            ) : (
+              <h2 className="text-2xl leading-tight tracking-tight">{title}</h2>
+            )}
+            {hint !== undefined && (
+              <p className="-mt-2 font-sans text-base text-ink-quiet" data-question-hint>
+                {hint}
+              </p>
+            )}
 
-        <div className="flex flex-col gap-4 font-sans">{children}</div>
+            <div className="flex flex-col gap-4 font-sans">{children}</div>
 
-        {onSubmit !== undefined && (
-          <Button type="submit" weight="primary" className="mt-6" disabled={submitDisabled}>
-            {submitLabel ?? shell.submitLabel}
-          </Button>
-        )}
+            {onSubmit !== undefined && (
+              <Button type="submit" weight="primary" className="mt-6" disabled={submitDisabled}>
+                {submitLabel ?? shell.submitLabel}
+              </Button>
+            )}
 
-        {escape !== undefined && (
-          <Button weight="quiet" data-escape onClick={escape.onEscape}>
-            {escape.label}
-          </Button>
-        )}
-      </form>
+            {escape !== undefined && (
+              <Button weight="quiet" data-escape onClick={escape.onEscape}>
+                {escape.label}
+              </Button>
+            )}
+          </form>
 
-      {footer !== undefined && (
-        <div className="mt-8 border-t border-rule pt-4 font-sans">{footer}</div>
-      )}
+          {footer !== undefined && (
+            <div className="mt-8 border-t border-rule pt-4 font-sans">{footer}</div>
+          )}
 
-      {onBack !== undefined && (
-        <Button weight="quiet" className="mt-4 text-ink-quiet" onClick={onBack}>
-          Back
-        </Button>
-      )}
-    </section>
+          {onBack !== undefined && (
+            <Button weight="quiet" className="mt-4 text-ink-quiet" onClick={onBack}>
+              Back
+            </Button>
+          )}
+        </section>
+      </JudgeContext.Provider>
+    </FormProvider>
   );
+}
+
+/**
+ * The submit-time judges, one per field that opts in. A plain map rather than react-hook-form's
+ * own registration because the judging must be synchronous — a valid answer advances in the
+ * same tick it always did, and only an unusable one holds the screen to say its sentence.
+ */
+const JudgeContext = createContext<Map<string, () => string | true> | null>(null);
+
+/**
+ * Opt a field into §7.9's judgement (#142): silent until `Continue`, then the sentence under
+ * the field, then re-checked on every change so it disappears the moment the value becomes
+ * usable. Late to speak, quick to stop. Returns the sentence to show, or nothing.
+ *
+ * react-hook-form's form state is the store — `Question` provides it — so the sentence, its
+ * timing and its clearing behave identically for every judged field in the builder.
+ */
+export function useJudged(
+  name: string,
+  value: string,
+  validate: (value: string) => string | true,
+): string | undefined {
+  const form = useFormContext();
+  const judges = useContext(JudgeContext);
+  const latest = useRef({ value, validate });
+  latest.current = { value, validate };
+
+  useEffect(() => {
+    judges?.set(name, () => latest.current.validate(latest.current.value));
+    return () => {
+      judges?.delete(name);
+      // A field that leaves the screen takes its sentence with it: a submit must never be
+      // held by a judgement nothing renders (a day switched to Closed, for instance).
+      form.clearErrors(name);
+    };
+  }, [name, judges, form]);
+
+  const state = useFormState();
+  const error = form.getFieldState(name, state).error;
+
+  // Quick to stop: once spoken, re-judge on every change until the sentence clears.
+  useEffect(() => {
+    if (error === undefined) return;
+    const verdict = latest.current.validate(value);
+    if (verdict === true) form.clearErrors(name);
+    else if (verdict !== error.message) {
+      form.setError(name, { type: "unusable", message: verdict });
+    }
+    // The judgement depends only on the value; everything else is read through refs.
+  }, [value]);
+
+  return error?.message;
 }
 
 /**
