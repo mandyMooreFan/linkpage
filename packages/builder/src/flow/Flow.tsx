@@ -2,7 +2,7 @@ import { useEffect, useState, type JSX, type ReactNode } from "react";
 import { applyIntake, clearLogo, type LogoIntake } from "../logo/index.js";
 import { Preview } from "../preview/Preview.js";
 import { emptyDraft, type Draft } from "../project/index.js";
-import { planSteps, type FlowEntry, type Pick, type Step } from "./plan.js";
+import { openingAt, planSteps, type FlowEntry, type Pick, type Step } from "./plan.js";
 import { findPreset, type PresetId } from "./presets.js";
 import { ColourQuestion } from "./questions/ColourQuestion.js";
 import { NameQuestion, TaglineQuestion } from "./questions/HeaderQuestions.js";
@@ -92,7 +92,10 @@ export function Flow({
   );
   const [preset, setPreset] = useState<PresetId | null>(null);
   const [picks, setPicks] = useState<readonly Pick[]>([]);
-  const [at, setAt] = useState(0);
+  // A re-entry run opens at the topic that was ticked (§7.1, #146); every other run at the top.
+  const [at, setAt] = useState(() =>
+    openingAt(planSteps({ entry, draft, preset: null, picks: [] }), entry),
+  );
 
   /**
    * The topics this run has finished with — left forwards, answered or escaped. A set keyed by

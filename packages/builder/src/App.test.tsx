@@ -234,8 +234,8 @@ describe("which screen the owner gets", () => {
     mount(<App storage={storage} />);
     firstRun();
 
-    // "An owner who skipped opening hours and comes back to add them ticks the box, and the
-    // flow picks them up and walks them through hours, then puts them back on the list."
+    // "An owner who skipped opening hours and comes back to add them ticks the box" — and the
+    // run opens on hours with the rest of the unanswered territory on offer (§7.1, #146).
     fireEvent.click(screen.getByRole("button", { name: "Opening hours" }));
     expect(title()).toBe("When are you open?");
     expect(screen.queryByText("What kind of business is this?")).toBeNull();
@@ -247,6 +247,9 @@ describe("which screen the owner gets", () => {
     );
     fireEvent.click(submit());
 
+    // The run offers what is still unanswered; leaving is the bar's own exit (#146).
+    fireEvent.click(document.querySelector("[data-progress-bar] > button") as Element);
+    fireEvent.click(screen.getByRole("button", { name: "Done for now" }));
     expect(title()).toBe("Ada's Bakery");
     // Answered, so it is no longer territory the owner has not covered.
     expect(screen.queryByRole("button", { name: "Opening hours" })).toBeNull();
@@ -260,6 +263,8 @@ describe("which screen the owner gets", () => {
     fireEvent.click(screen.getByRole("button", { name: "Address" }));
     fireEvent.click(escapeButton() as Element);
 
+    fireEvent.click(document.querySelector("[data-progress-bar] > button") as Element);
+    fireEvent.click(screen.getByRole("button", { name: "Done for now" }));
     expect(title()).toBe("Ada's Bakery");
     expect(storage.getItem(PROJECT_STORAGE_KEY)).toBe(before);
     // Still on offer, because a declined section is not a section (§7.1).
@@ -327,6 +332,8 @@ describe("which screen the owner gets", () => {
     });
     fireEvent.click(submit());
 
+    fireEvent.click(document.querySelector("[data-progress-bar] > button") as Element);
+    fireEvent.click(screen.getByRole("button", { name: "Done for now" }));
     expect(title()).toBe("Ada's Bakery");
     // And it is a row now, with the answer in it, rather than a tick-on.
     expect(screen.getByRole("button", { name: /^Link buttons\s*Our menu/ })).toBeTruthy();

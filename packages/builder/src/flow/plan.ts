@@ -30,10 +30,12 @@ import { hasContent, TOPICS, type Topic } from "./topics.js";
  * which is why the caller holds the answer still for the life of the run rather than deriving
  * it. `App.tsx` is the only caller and says where a run begins.
  *
- * **Re-entry is the same code path as first run.** Ticking _opening hours_ on the list a month
- * later builds `{ kind: "add", topics: ["hours"] }`, which plans the same hours step the flow
- * would have run on day one, and returns the owner to the list when it is answered. There is no
- * second wizard and no "edit hours" screen, because there is nothing for a second one to do.
+ * **Re-entry is the same code path as first run, and it spans the whole unanswered territory**
+ * (§7.1, #146). Ticking _opening hours_ a month later builds `{ kind: "add", topics: ["hours"] }`,
+ * which plans every topic the draft still lacks in page order, and `openingAt` opens the run on
+ * the ticked one. The rest is on offer, not owed: the bar's "Done for now" or walking off the
+ * end leaves whenever the owner likes. There is no second wizard and no "edit hours" screen,
+ * because there is nothing for a second one to do.
  *
  * **The preset question is in the plan for the first moment only.** `kind: "add"` never
  * includes it, so it is one-time and unreachable once the list is reached (§7.3) — not because
@@ -68,9 +70,9 @@ export type FlowEntry =
    */
   | { readonly kind: "resume" }
   /**
-   * Territory the owner has not covered: a section ticked on the list (§7.1). Anything still
-   * required is planned from the draft as well, so ticking _hours_ on a file with no colour
-   * asks for both.
+   * Territory the owner has not covered: a section ticked on the list (§7.1). The run spans
+   * every unanswered topic and opens at the ticked one (#146); anything still required is
+   * planned from the draft as well, so ticking _hours_ on a file with no colour asks for both.
    */
   | { readonly kind: "add"; readonly topics: readonly Topic[] };
 
@@ -163,7 +165,11 @@ export interface PlanInput {
  * difference between them, which is why it is three lines rather than a mode flag threaded
  * through the plan.
  */
-function requestedTopics(entry: FlowEntry, preset: PresetId | null): readonly Topic[] {
+function requestedTopics(
+  entry: FlowEntry,
+  preset: PresetId | null,
+  draft: Draft | null,
+): readonly Topic[] {
   switch (entry.kind) {
     case "empty":
       // A preset chooses among the four sections and nothing else (§7.3). The three that are
@@ -175,7 +181,11 @@ function requestedTopics(entry: FlowEntry, preset: PresetId | null): readonly To
       // that from the draft on its own (§4.6); everything else is on the list to be ticked.
       return [];
     case "add":
-      return entry.topics;
+      // §7.1 (#146): a re-entry run contains every unanswered topic, not just the ticked one.
+      // The filter runs over TOPICS so the page's own order and de-duplication come for free;
+      // the union keeps a ticked topic even if a caller hands one the draft already covers.
+      if (draft === null) return entry.topics;
+      return TOPICS.filter((topic) => entry.topics.includes(topic) || !hasContent(draft, topic));
   }
 }
 
@@ -205,7 +215,7 @@ export function planSteps({ entry, draft, preset, picks }: PlanInput): Step[] {
   // is not asked again — which is the whole difference between an import and a first run.
   if (draft === null || draft.header.name === undefined) steps.push({ id: "name" });
 
-  const requested = requestedTopics(entry, preset);
+  const requested = requestedTopics(entry, preset, draft);
 
   const wanted = (topic: Topic): boolean => requested.includes(topic);
 
@@ -231,4 +241,20 @@ export function planSteps({ entry, draft, preset, picks }: PlanInput): Step[] {
   }
 
   return steps;
+}
+
+/**
+ * Where a run opens (§7.1, #146).
+ *
+ * A re-entry run spans the whole unanswered territory but **opens at the topic that was
+ * ticked** — the owner asked for hours, so hours is what they see. What sits earlier in page
+ * order is still in the plan, reachable by `Back` or the bar, and still honestly not-done in
+ * the bar's count. Every other entry opens at the top.
+ */
+export function openingAt(steps: readonly Step[], entry: FlowEntry): number {
+  if (entry.kind !== "add") return 0;
+  const ticked = entry.topics[0];
+  if (ticked === undefined) return 0;
+  const index = steps.findIndex((step) => step.id === ticked);
+  return index === -1 ? 0 : index;
 }

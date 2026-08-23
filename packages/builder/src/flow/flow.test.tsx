@@ -392,11 +392,11 @@ describe("the flow re-enters for anything new (§7.1)", () => {
     links: [],
   });
 
-  it("walks a ticked section and puts the owner back on the list", () => {
+  it("opens on the ticked section, offers the rest, and Done for now ends it (§7.1, #146)", () => {
     const flow = harness({ entry: { kind: "add", topics: ["hours"] }, draft: COMPLETE });
 
     // No preset question a month later: it is one-time and unreachable once the list is
-    // reached (§7.3). Straight to the thing that was ticked.
+    // reached (§7.3). The run spans everything unanswered but opens on the thing ticked.
     expect(title()).toBe("When are you open?");
     fireEvent.click(
       within(screen.getByRole("radiogroup", { name: "Monday" })).getByRole("radio", {
@@ -413,14 +413,24 @@ describe("the flow re-enters for anything new (§7.1)", () => {
     fireEvent.blur(closes);
     fireEvent.click(submit() as Element);
 
-    expect(onList()).toBe(true);
+    // The hours are committed and the run carries on into the rest of the unanswered
+    // territory (#146) — leaving is a decision, made here through the bar's own exit.
+    expect(title()).toBe("How do people reach you?");
     expect((flow.latest() as Draft).hours?.days).toEqual({ mon: [["09:00", "17:00"]] });
+
+    fireEvent.click(document.querySelector("[data-progress-bar] > button") as Element);
+    fireEvent.click(screen.getByRole("button", { name: "Done for now" }));
+    expect(onList()).toBe(true);
   });
 
   it("leaves nothing behind when the owner changes their mind", () => {
     const flow = harness({ entry: { kind: "add", topics: ["hours"] }, draft: COMPLETE });
 
+    // Escaping the ticked section moves on rather than out (#146); Done for now is the exit.
     fireEvent.click(escapeButton() as Element);
+    expect(onList()).toBe(false);
+    fireEvent.click(document.querySelector("[data-progress-bar] > button") as Element);
+    fireEvent.click(screen.getByRole("button", { name: "Done for now" }));
 
     expect(onList()).toBe(true);
     expect(flow.onChange).not.toHaveBeenCalled();
