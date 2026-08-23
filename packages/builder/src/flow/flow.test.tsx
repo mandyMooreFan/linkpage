@@ -562,3 +562,35 @@ describe("a screen change is a view transition, chrome held still (§7.11)", () 
     expect(title()).toBe(NAME);
   });
 });
+
+describe("the first screen orients before it asks (§7.3, #141)", () => {
+  const LINE =
+    "About ten quick questions. Everything stays on this device — stop anytime, nothing is lost.";
+  const preamble = () => document.querySelector("[data-question-preamble]");
+
+  it("carries the line above the question, and only on screen one", () => {
+    harness();
+    expect(preamble()?.textContent).toBe(LINE);
+    // Orientation first, interrogation second: the line precedes the heading in the document.
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(
+      (preamble()?.compareDocumentPosition(heading) ?? 0) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    choosePreset("food");
+    expect(preamble()).toBeNull();
+  });
+
+  it("does not orient an owner who is already oriented — a re-entry run carries no line", () => {
+    harness({
+      entry: { kind: "add", topics: ["hours"] },
+      draft: readDraft({
+        version: 1,
+        lang: "en-GB",
+        style: { brand: "#c2185b" },
+        header: { name: "Ada's Bakery" },
+      }),
+    });
+    expect(preamble()).toBeNull();
+  });
+});

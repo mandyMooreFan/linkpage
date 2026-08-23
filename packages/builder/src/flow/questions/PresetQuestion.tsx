@@ -11,6 +11,12 @@ import { Question } from "./Question.js";
  * ordinary question wearing the ordinary shell, and choosing an answer moves on — **there is
  * no confirmation screen**, here or anywhere in the flow (§7.3).
  *
+ * **The screen's first words are orientation** (§7.3, #141): one quiet line above the title
+ * carrying the three doubts a cold owner actually holds — how long, can I leave, where does
+ * this go. Nothing precedes the screen; the line asks for nothing; "about ten" is honest as a
+ * range stated once and never updated, with §7.2's bar carrying the exact count from screen
+ * two onward.
+ *
  * **The examples are the question.** _café, restaurant, takeaway, bar_ is what tells a chip
  * shop owner they are looking at their own row; without it "Food & drink" is a category and
  * the owner has to do the classifying. §7.3's growth rule leans on the same fact — a candidate
@@ -49,6 +55,7 @@ export function PresetQuestion({
   return (
     <Question
       title="What kind of business is this?"
+      preamble="About ten quick questions. Everything stays on this device — stop anytime, nothing is lost."
       hint="It only decides what we ask you next. Nothing about it ends up on your page."
       footer={
         onOpenFile === undefined ? undefined : (
