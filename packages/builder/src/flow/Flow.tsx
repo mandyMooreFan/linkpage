@@ -12,7 +12,15 @@ import { HoursQuestion } from "./questions/HoursQuestion.js";
 import { PresetQuestion } from "./questions/PresetQuestion.js";
 import { AddressQuestion, ContactQuestion, SocialQuestion } from "./questions/SectionQuestions.js";
 // PROTOTYPE (#139, throwaway): two phone-seam rivals behind `?variant=`. Baseline is untouched.
-import { PagePeek, SeamSwitcher, TopicTrail, useSeamVariant } from "./SeamPrototype.js";
+import {
+  PagePeek,
+  SeamSwitcher,
+  TailwindPlusBar,
+  TopicBar,
+  TopicStepper,
+  TopicTrail,
+  useSeamVariant,
+} from "./SeamPrototype.js";
 import {
   addLink,
   answerBrand,
@@ -298,6 +306,9 @@ export function Flow({
         key={step.id === "linkUrl" ? step.pick.id : step.id}
       >
         {seamVariant === "trail" && <TopicTrail steps={steps} at={at} />}
+        {seamVariant === "bar" && <TopicBar steps={steps} at={at} />}
+        {seamVariant === "stepper" && <TopicStepper steps={steps} at={at} />}
+        {seamVariant === "twbar" && <TailwindPlusBar steps={steps} at={at} />}
         {question(step)}
       </div>
       <div
