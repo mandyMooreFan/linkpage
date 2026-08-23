@@ -26,7 +26,13 @@ function harness(): void {
     const [done, setDone] = useState(false);
     if (done) return <p>the review list</p>;
     return (
-      <Flow entry={{ kind: "empty" }} draft={null} lang="en-GB" onChange={vi.fn()} onDone={() => setDone(true)} />
+      <Flow
+        entry={{ kind: "empty" }}
+        draft={null}
+        lang="en-GB"
+        onChange={vi.fn()}
+        onDone={() => setDone(true)}
+      />
     );
   }
   mount(<Harness />);
@@ -87,7 +93,9 @@ describe("the units are topics, not screens (§7.2)", () => {
   });
 
   it("has no units to show before a plan exists", () => {
-    expect(barUnits(planSteps({ entry: { kind: "empty" }, draft: null, preset: null, picks: [] }))).toEqual([]);
+    expect(
+      barUnits(planSteps({ entry: { kind: "empty" }, draft: null, preset: null, picks: [] })),
+    ).toEqual([]);
   });
 });
 
