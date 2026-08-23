@@ -195,3 +195,50 @@ describe("hasContent is the one definition of covered", () => {
     }
   });
 });
+
+describe("a mend is shown, not said (§7.9 decision 4, #142)", () => {
+  it("stores a link URL mended, so the correction is met where it was typed", () => {
+    const draft = addLink(DRAFT, { label: "Menu", url: " mysite.com/menu " });
+    expect(draft.links[0]?.url).toBe("https://mysite.com/menu");
+  });
+
+  it("leaves a scheme-bearing link exactly as typed", () => {
+    const draft = addLink(DRAFT, { label: "Menu", url: "https://ada.example/menu" });
+    expect(draft.links[0]?.url).toBe("https://ada.example/menu");
+  });
+
+  it("stores what it cannot mend exactly as typed, for the mark to point at", () => {
+    const draft = addLink(DRAFT, { label: "Menu", url: " not a url " });
+    expect(draft.links[0]?.url).toBe("not a url");
+  });
+
+  it("strips the spaces an email cannot carry", () => {
+    const draft = answerSection(DRAFT, {
+      section: "contact",
+      value: { phone: "", email: "hello @ada.example" },
+    });
+    expect(draft.contact?.email).toBe("hello@ada.example");
+  });
+
+  it("mends the directions link and the social links through the same door", () => {
+    const withAddress = answerSection(DRAFT, {
+      section: "address",
+      value: { lines: ["12 Mill Lane"], directionsUrl: "maps.example/ada" },
+    });
+    expect(withAddress.address?.directionsUrl).toBe("https://maps.example/ada");
+
+    const withSocial = answerSection(DRAFT, {
+      section: "social",
+      value: [{ platform: "instagram", url: "instagram.com/ada" }],
+    });
+    expect(withSocial.social?.[0]?.url).toBe("https://instagram.com/ada");
+  });
+
+  it("never touches a phone number — its normalisation stays in the href alone", () => {
+    const draft = answerSection(DRAFT, {
+      section: "contact",
+      value: { phone: " 0161 496 0000 ", email: "" },
+    });
+    expect(draft.contact?.phone).toBe("0161 496 0000");
+  });
+});

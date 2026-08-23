@@ -150,18 +150,24 @@ URL fields governed by _Derived targets_ below.
 #### Derived targets
 
 **Five fields are the owner's text plus a machine target derived from it**: the contact phone (`tel:`),
-the contact email (`mailto:`), a link button's URL, `address.directionsUrl`, and a social URL. **The
-text is the owner's and is never rewritten; the target is ours and is mended silently.** The renderer
-already worked this way for one of them — `0161 496 0000` renders inside `<a href="tel:01614960000">`
-with the typed spacing left on the page — so what follows closes an inconsistency rather than adding a
-capability.
+the contact email (`mailto:`), a link button's URL, `address.directionsUrl`, and a social URL. The
+renderer already worked this way for one of them — `0161 496 0000` renders inside
+`<a href="tel:01614960000">` with the typed spacing left on the page — so what follows closes an
+inconsistency rather than adding a capability.
 
-**Nothing derived is ever stored.** The stored string stays exactly what the owner typed; mending is a
-render-time act, in the same place §3.2 recomputes colours rather than storing them; and §4.4's
-_preserve anything the owner typed_ holds unchanged. **§4 gains no field for any of this**, which is
-worth stating as a position rather than leaving as an absence: _"normalise the phone number"_ reads like
-a schema change and is not one. A later builder that gets cleverer re-derives from the owner's original
-rather than from our guess.
+**Where the mend lives split in two at §7.9 decision 4 (#142).** For **phone**, the original position
+holds in full: the text is the owner's and is never rewritten, the target is mended silently at render
+time, nothing derived is ever stored, and a later builder that gets cleverer re-derives from the
+owner's original. A number is written the way a local reader expects to see it, and showing our
+normalisation would be showing our results rather than the owner's intent. For **the four URL and
+email fields**, the builder now stores the _mended_ value — `mysite.com` commits as
+`https://mysite.com`, an email's spaces are stripped — because §7.9's amended decision 4 requires the
+correction to be visible where the owner typed it rather than met for the first time on the exported
+page. The mend functions live in the renderer beside their href siblings so the builder and the page
+cannot disagree; what cannot be mended stores as typed, and §7.9's mark still points at it. **§4 gains
+no field for any of this** — the stored string is still the only string, mended or not — and §4.4's
+_preserve anything the owner typed_ now reads _preserve, or mend visibly and store the mend_ for
+exactly these four fields and no others.
 
 **Where no target can be derived there is no link — and what happens next differs by field, because
 the fields are not the same kind of thing.**
