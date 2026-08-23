@@ -3,7 +3,6 @@
 import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
 import { useState, type JSX } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Draft } from "../project/index.js";
 import { Flow } from "./Flow.js";
 import { barUnits } from "./ProgressBar.js";
 import { planSteps } from "./plan.js";
@@ -27,7 +26,13 @@ function harness(): void {
     const [done, setDone] = useState(false);
     if (done) return <p>the review list</p>;
     return (
-      <Flow entry={{ kind: "empty" }} draft={null} lang="en-GB" onChange={vi.fn()} onDone={() => setDone(true)} />
+      <Flow
+        entry={{ kind: "empty" }}
+        draft={null}
+        lang="en-GB"
+        onChange={vi.fn()}
+        onDone={() => setDone(true)}
+      />
     );
   }
   mount(<Harness />);
@@ -88,7 +93,9 @@ describe("the units are topics, not screens (§7.2)", () => {
   });
 
   it("has no units to show before a plan exists", () => {
-    expect(barUnits(planSteps({ entry: { kind: "empty" }, draft: null, preset: null, picks: [] }))).toEqual([]);
+    expect(
+      barUnits(planSteps({ entry: { kind: "empty" }, draft: null, preset: null, picks: [] })),
+    ).toEqual([]);
   });
 });
 
