@@ -89,7 +89,7 @@ export function Preview({ project }: PreviewProps): JSX.Element {
          */}
         {open && (
           <iframe
-            className="block h-full w-[min(100%,27.5rem)] border border-rule bg-surface"
+            className="enter-fade block h-full w-[min(100%,27.5rem)] border border-rule bg-surface"
             title="Your page"
             data-preview-frame
             sandbox=""
