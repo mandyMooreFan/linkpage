@@ -3,7 +3,6 @@
 import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
 import { useState, type JSX } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Draft } from "../project/index.js";
 import { Flow } from "./Flow.js";
 import { barUnits } from "./ProgressBar.js";
 import { planSteps } from "./plan.js";
