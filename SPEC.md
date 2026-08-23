@@ -1315,7 +1315,15 @@ that list is where they live from then on. Coming back a month later opens the l
 
 The wizard is not a first-run device that never returns. It is the mechanism for _territory the owner
 has not covered yet_. An owner who skipped opening hours and comes back to add them ticks the box, and
-the flow picks them up and walks them through hours, then puts them back on the list.
+the flow picks them up and walks them through hours.
+
+**A re-entry run contains every unanswered topic, opening at the one ticked** (#146). Ticking _hours_
+asks hours first, and the rest of the uncovered territory is then in the same run — jumpable via
+§7.2's bar or walked in order — with a **"Done for now"** row in the bar's topic list that ends the
+run at will and returns to the list. The alternative, a run of exactly one topic, made the run's own
+navigation pointless at the very place the #138 walk demanded it: a single-topic run shows "0 of 1"
+with nothing to jump to. Leaving after the ticked topic is one tap, so this is breadth on offer, not
+a gauntlet.
 
 That keeps one mental model instead of two: **you never face a blank field you weren't walked into.**
 It also kills the failure the alternative would have shipped — a half-filled _Opening hours_ row
@@ -1364,25 +1372,37 @@ answer happens to have seven parts, in the same way the link step is one questio
 That reading is what lets §7.10 keep the hours on a single screen, and it is written here so the rule is
 not read as forbidding it.
 
-**The flow shows no progress indicator, and the reason matters more than the fact.** There is no honest
-global count to show. On screen one the plan is one item long, so a total does not merely go unknown —
-**it does not exist yet**. After the preset the units are fixed at 7 to 10 depending on which preset. At
-the link step one screen per pick is appended as a contiguous run. The only honest global count is over
-_units_, and it would read `5 of 9` across four consecutive screens while the owner taps through that
-run: honest about topics, wrong about what the owner is counting, and a counter that sits still reads as
-broken. An unnumbered bar says nothing false in words and then has to either jump backwards as four picks
-enlarge the denominator, or be clamped — a lie told visually instead.
+**The flow carries a progress bar from the preset onwards, and the arithmetic that once refused one is
+defeated rather than dodged** (#139, revisited at exactly the seam the previous version of this section
+named). The old refusal was sound about _screens_: the link run appends one per pick, so any
+screen-denominated count must jump backwards or be clamped — a lie told visually. The bar therefore
+counts **topics**. The topic set is fixed the moment the preset is picked — link picks add screens,
+never topics — so the total exists, never grows, and never retreats. On screen one no total exists yet,
+so **the bar is absent there**, which is the old argument kept where it was right.
 
-**What the owner has instead is the page.** The step order _is_ §2.1's page order, so progress is legible
-as the artifact growing, which is the thing they came for. And the store is **write-through** — answers
-reach storage as they are given, not at the end — so closing the tab at screen four loses nothing, and
-reopening lands on the review list with the rest waiting as unticked rows. **The flow is not a gauntlet
-that has to be finished**, which is most of what a progress indicator is for.
+**What the bar is:** the standard labelled progress-bar pattern — the current topic's name, a count in
+the shape _"3 of 8 done"_, and a filled rounded track — sitting above the question as **static chrome**
+(§7.11). **The fill means completion, not position**: topics answered this run over topics in the run.
+It never overstates and never moves backwards, whatever order the owner visits topics in.
 
-> **The limit, stated rather than buried.** That argument is strongest on a laptop, where §7.6 lets the
-> drawer sit open beside the question, and weakest on the phone §7.6 calls the primary case, where the
-> page is one tap away and not visible while answering. There it is the write-through store carrying the
-> decision rather than the preview. If this is ever revisited, that is the seam it will be revisited at.
+**The bar is the run's navigation** (#146). Tapping it drops open the run's topic list — full-width
+named rows, done-state visible, a _"Done for now"_ row on a re-entry run — and tapping a topic jumps
+there. Only the current run's topics are listed: editing what already exists is the review list's job,
+and the bar never becomes an editor. Jumping applies to every run, first included — jumping forward is
+several skips at once, which the escapes already permit. **Jumping away from a half-answered screen
+discards it, exactly as `Back` does**: nothing is written until something is answered, and a jump that
+silently committed half-typed text would be §7.9's "did that save?" fear built into navigation. A run
+still ends as it always did — walking off its last screen — and jumped-over topics stay unanswered,
+visible as the gap between the bar's count and its total, waiting as unticked rows.
+
+**The page is still the progress that matters.** The step order _is_ §2.1's page order, the store is
+**write-through** — answers reach storage as they are given — so closing the tab at screen four loses
+nothing. **The flow is not a gauntlet that has to be finished.** The bar reports; it never demands.
+
+> **Provenance.** The refusal this section replaced was overturned by evidence, not preference: the
+> #138 cold phone walk produced no "how much more?" moment on the first run (the arithmetic held where
+> it applied) and a direct demand for jump-around structure at re-entry (where a fixed topic total
+> exists and the arithmetic never reached). The #139 prototypes are on `prototype/phone-seam-issue-139`.
 
 **The one count that is true is given.** Each screen in the link run keeps its title and gains one
 sentence — _"The second of four."_ — because there the count can neither stale nor jump: the picks are
@@ -1397,6 +1417,17 @@ trades four small asks that each carry their own escape for one tall screen.
 **Step one of the flow is _"What kind of business is this?"_** — not a gallery in front of it. A
 pre-flow chooser is a decision made while knowing nothing about the tool and reads as a commitment; as
 step one of the same one-question-per-screen sequence it is no heavier than "what's it called?".
+
+**One quiet line of orientation sits above that question's title, and nothing precedes the screen**
+(#141): _"About ten quick questions. Everything stays on this device — stop anytime, nothing is
+lost."_ Small sans in quiet ink; the screen's first words are orientation, its first act is still the
+question. The rejection above is re-read and holds as written — it refused a pre-flow **choice**, and
+this asks for nothing — but a whole orientation _screen_ would still tax every arrival with a tap and
+read as a brochure to exactly the impatient owner it hopes to reassure. The line carries the three
+doubts a cold owner actually holds — how long, can I leave, where does this go — and no more: free and
+no-signup are demonstrated by never being asked to sign up, and saying them is noise. _"About ten"_ is
+honest where a counter is not: a range stated once, before anything is fixed and never updated, is
+true of every path through the flow, and §7.2's bar carries the exact count from screen two onward.
 
 **A preset selects which of the four optional section steps the flow runs, and which suggestions appear
 on the link step. That is the whole mechanism.**
@@ -1514,6 +1545,13 @@ flow and the list the same product at two moments, so they share it, and the mig
 one pass rather than screen by screen: a half-migrated tree contradicts §7.1 visibly for as long as it
 runs.
 
+**Paper carries one deliberate exception: §7.2's progress bar** (#139). The bar uses the standard
+pattern's own vocabulary — a rounded grey track with a coloured fill — which is progress _chrome_, and
+a second colour the tool shows beside `notice`. The exception was chosen with the collision in view,
+against a paper-native alternative (an advancing hairline) that was built, judged on a phone, and
+rejected as reading like a rule rather than progress. It is scoped to the bar and its topic list:
+nothing else gains a card, a shadow, or a colour from it.
+
 **No dark mode in the builder, and not on cost.** It is one variant and it works. **The builder is a
 viewing booth for the owner's page, and a dark surround changes how a colour reads** — §3.3 guarantees the
 page's readability and §3.1 makes light or dark the owner's own choice, so the tool must not tint the
@@ -1566,7 +1604,20 @@ design with a mobile fallback.
 
 What this deliberately gives up: on a narrow screen you cannot watch the page change _while_ you type.
 Being one tap from the page is close enough, and pretending otherwise is what forces a desktop-only
-builder.
+builder. §7.2's bar is what tells you where you are in the meantime.
+
+**On the review list, the drawer defaults open at every size** (#147). The laptop always landed with
+the page beside the list; the phone was the only size where arriving hid it, and the #138 walk's
+verdict on that was _"on mobile I only care what it looks like"_. So a phone landing on the list shows
+**the page itself, full-screen**, with the list one tap beneath — and the default applies to **every
+arrival without an expressed preference, the end of a run included**: finishing a run means the
+finished page rising to meet you, which is §7.11's one set-piece. The choice stays what it always was —
+a default, not a mode, one boolean, session-only. Remembering a hide across visits was rejected because
+it quietly recreates the old behaviour for exactly the returning owner this decision serves. §7.4's
+arrival line sits where it always did, first seen when the owner steps back to the list. **The open
+drawer's control on the list reads _"Edit your page"_** ("See the page" when closed is unchanged, and
+the flow's labels are unchanged): same drawer, same control, same interaction — the word now names why
+an owner landing on their page would tap it.
 
 **The one width at which the drawer opens beside the question is a single token** (§5.1), not a number
 agreed by hand between two stylesheets — which is what it was, and what let them drift.
@@ -1700,12 +1751,14 @@ wrongly _accept_ costs one broken button, which decisions 5 and 6 then catch.
 > depends only on whether an answer exists; junk in the box is ignored, the swatch stands, and the message
 > explains why the typing had no effect.
 
-**2. It speaks on leaving the field, or on `Continue` for a field never left.** Both are needed, because a
-one-question-per-screen flow often has no blur before the button. It is **silent while the owner is first
-typing**, and once it has spoken it re-checks live, so it disappears the moment the value becomes usable.
-Late to speak, quick to stop. The colour box today is the counter-example and an instructive one: it
-re-judges every keystroke, so typing `#` already tells the owner they have failed before they have
-finished trying.
+**2. It speaks on `Continue`, and not before** (#142). Nothing judges the owner while they are still
+answering — not on a keystroke, and not on leaving a field, which on a phone is half of typing. Tapping
+`Continue` is the invitation to check; once it has spoken it re-checks live, so it disappears the moment
+the value becomes usable. Late to speak, quick to stop. This is the standard shape of form validation,
+and the implementation is standard with it — **react-hook-form, with each base input a component**
+(#142, superseding this section's earlier speak-on-blur position). The #138 walk supplied the moment:
+the hours screen marking answers wrong before they were finished was the single clearest "I am being
+told off" in the run.
 
 **3. It sits below the control, and the hint stays.** `Field` becomes label → hint → message, with the
 message **joining** the hint in `aria-describedby` rather than replacing it. Below the control, because
@@ -1713,11 +1766,15 @@ that is where the eye already is; the hint stays, because a hint is frequently _
 at the moment of complaint is the worst possible timing. One optional line per field, with no layout
 reserved when it is absent. That is the component §7.4's component layer is built around.
 
-**4. A successful mend is silent.** Nobody is told that the spaces in their phone number were stripped, or
-that a scheme was added to a bare domain, and nobody has missed being told. This is what keeps the surface
-rare enough to mean anything: typing a bare domain is normal, so announcing every mend would fire
-constantly on input that was fine — teaching the owner a concept solely so that they can learn to ignore
-it. **The message is reserved for input we genuinely cannot make a target from.**
+**4. A mend is shown, not said** (#142, superseding the silent mend). When the tool fixes a web address
+or an email — a scheme added to a bare domain, spaces stripped — **the fixed value appears in the field
+itself on submit, and on the review row after it**: type `mysite.com`, continue, and what stands where
+you typed is `https://mysite.com`. No message narrates it — a sentence about something the owner can now
+see would fire constantly on input that was fine, which is the rarity argument this decision keeps. What
+it retires is the invisible correction: a mend the owner never sees is one they cannot trust or undo,
+and one they would otherwise meet for the first time on the exported page. It is trustworthy because it
+is visible and undoable because it is just text where they typed. **The message stays reserved for input
+we genuinely cannot make a target from.**
 
 **5. What cannot be used is marked in two places that outlive the screen** — the review-list row (§7.4)
 and, conditionally, the Download sheet (§7.7). This is the decision that stops _never blocks_ from meaning
@@ -1862,6 +1919,36 @@ the single biggest thing given up here, and still unjudged on a real phone (§11
 > times read_, which lives at the foot of the review list's How-it-looks step and appears only once there
 > are hours to read. So the first echo is always the seeded default (§4.1), and it can change under them
 > later. Accepted — it changes a display, never a fact.
+
+### 7.11 Motion
+
+**The builder's motion language is _frame_: still chrome, fading content** (#140). A run's chrome —
+§7.2's bar, and any footer the wizard gains — **never animates and never remounts**. Only the content
+between moves. This is paper's own physics: the sheet stays put, what is written on it changes. The
+diagnosis that produced it, judged live against a whole-surface alternative: _animating the whole page
+reads as a layout shift, not motion._
+
+- **The one verb is the fade.** A screen change is fade out (~170ms, ease-in), swap, fade in (~320ms,
+  ease-out) — identical forwards, on `Back`, on a jump, and on the preset pick. Translation lost on
+  contact; nothing slides, so nothing ever implies elevation, which is §7.4 violated in time rather
+  than in space.
+- **The bar advances by tween, never by remount** — its fill slides to the new width (~500ms,
+  ease-out). This falls out of the bar being static chrome, and it is the fix for the bar blinking
+  along with every screen.
+- **The drawer fades**, and §7.6's run-end arrival — the finished page rising to meet the owner — is a
+  fade-in, the language's one set-piece.
+- **The list moves exactly as the flow does** (§7.1: both or neither).
+- **§7.9's messages are ordinary content** — they appear with standard form validation and carry no
+  arrival choreography of their own (#142).
+- **`prefers-reduced-motion` is honest by construction**: the language is already opacity-only, so the
+  reduced form shortens durations toward instant rather than substituting a lesser language.
+- **Motion is reviewed the way it was judged — a person walking flow and list on a phone.**
+  `scripts/review-shots.mjs` remains the appearance ritual; stills cannot review motion, and no
+  automated capture is added. The language is a handful of named classes, so the review is
+  read-then-walk.
+
+Durations are felt-approved indicative values from the #140 prototype; the decision is the frame and
+the verb, and implementation tunes within them. Nothing here touches the exported page (invariant 4).
 
 ---
 
