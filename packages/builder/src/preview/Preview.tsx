@@ -75,7 +75,17 @@ export function Preview({ project, onList = false }: PreviewProps): JSX.Element 
       className="group flex flex-col gap-3 font-sans text-ink data-[open=true]:fixed data-[open=true]:inset-0 data-[open=true]:z-20 data-[open=true]:h-dvh data-[open=true]:gap-0 data-[open=true]:bg-surface wide:data-[open=true]:static wide:data-[open=true]:h-auto wide:data-[open=true]:gap-3 wide:data-[open=true]:bg-transparent"
       data-open={open}
     >
-      <div className="flex justify-end group-data-[open=true]:border-b group-data-[open=true]:border-rule group-data-[open=true]:px-3 group-data-[open=true]:py-2 wide:group-data-[open=true]:border-0 wide:group-data-[open=true]:p-0">
+      <div className="flex items-center justify-end gap-3 group-data-[open=true]:border-b group-data-[open=true]:border-rule group-data-[open=true]:px-3 group-data-[open=true]:py-2 wide:group-data-[open=true]:border-0 wide:group-data-[open=true]:p-0">
+        {/*
+         * #169: landing on the page (§7.6) reads like a hosted page, and it is not one yet.
+         * Said here, in the header beside the one control, because this is the exact moment
+         * the illusion holds — and only on the list: mid-flow the page is visibly being made.
+         */}
+        {onList && open && (
+          <p className="m-0 mr-auto text-sm text-ink-quiet">
+            Only you can see this. To share it, download the file and put it online.
+          </p>
+        )}
         <button
           type="button"
           className="tap rounded-sm border border-rule bg-transparent px-4 py-2 font-sans"
