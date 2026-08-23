@@ -78,8 +78,9 @@ describe("every answer is a row (§7.4)", () => {
       "style",
       "lang",
     ]);
-    // #32's drawer, not a second one: the page is one tap away at both sizes (§7.6).
-    expect(screen.getByRole("button", { name: "See the page" })).toBeTruthy();
+    // #32's drawer, not a second one — and on the list it lands open (§7.6, #147), so the one
+    // control reads as the way into editing rather than the way to the page.
+    expect(screen.getByRole("button", { name: "Edit your page" })).toBeTruthy();
   });
 
   it("shows the answer in the row, not just its name", () => {

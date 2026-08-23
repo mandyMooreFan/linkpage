@@ -218,7 +218,7 @@ export function List({
       </div>
 
       <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
-        <Preview project={draft} />
+        <Preview project={draft} onList />
       </div>
     </main>
   );

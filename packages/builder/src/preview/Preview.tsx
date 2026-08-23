@@ -30,21 +30,32 @@ export const SIDE_BY_SIDE = "(min-width: 60rem)";
 export interface PreviewProps {
   /** The project as the builder holds it — mid-flow drafts included (see `pageHtml`). */
   readonly project: Draft;
+  /**
+   * The list lands on the page (§7.6, #147): on the review list the drawer defaults open at
+   * every size, and the open control reads "Edit your page" — the word names why an owner
+   * landing on their page would tap it. Behaviour is otherwise identical: same drawer, same
+   * control, same interaction. The flow leaves this unset and keeps the roomy default and its
+   * own words.
+   */
+  readonly onList?: boolean;
 }
 
-export function Preview({ project }: PreviewProps): JSX.Element {
+export function Preview({ project, onList = false }: PreviewProps): JSX.Element {
   const roomy = useMediaQuery(SIDE_BY_SIDE);
 
   /**
    * `null` until the owner touches the control, and then whatever they said.
    *
-   * The default follows the room available, so a laptop opens with the page already beside the
-   * question and a phone opens on the question — but it is a *default*, not a mode. One boolean
-   * is the whole state, the owner overrides it at either size, and a window that is resized or
-   * a phone that is rotated re-defaults only while nobody has expressed a preference.
+   * The default follows the room available — and, on the list, the arrival (#147): a laptop
+   * opens with the page already beside the question, a phone opens on the question mid-flow
+   * and on the page itself on the list, run-end included. It is a *default*, not a mode. One
+   * boolean is the whole state, the owner overrides it at either size, it lasts only this
+   * mount — every preference-less arrival lands on the page again, deliberately — and a window
+   * that is resized or a phone that is rotated re-defaults only while nobody has expressed a
+   * preference.
    */
   const [choice, setChoice] = useState<boolean | null>(null);
-  const open = choice ?? roomy;
+  const open = choice ?? (onList || roomy);
 
   const drawerId = useId();
 
@@ -72,7 +83,7 @@ export function Preview({ project }: PreviewProps): JSX.Element {
           aria-controls={drawerId}
           onClick={() => setChoice(!open)}
         >
-          {open ? "Hide the page" : "See the page"}
+          {open ? (onList ? "Edit your page" : "Hide the page") : "See the page"}
         </button>
       </div>
       <div
