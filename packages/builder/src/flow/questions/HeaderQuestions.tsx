@@ -1,5 +1,6 @@
 import { useState, type JSX } from "react";
-import { Field, Question } from "./Question.js";
+import { TextField } from "../../ui/TextField.js";
+import { Question } from "./Question.js";
 
 /**
  * The two text questions about the business itself. `SPEC.md` §2.3, §4.6.
@@ -34,15 +35,12 @@ export function NameQuestion({ initial, onAnswer, onBack }: NameQuestionProps): 
       submitDisabled={name.trim() === ""}
       onBack={onBack}
     >
-      <Field label="Business name">
-        <input
-          type="text"
-          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
-          value={name}
-          autoComplete="organization"
-          onChange={(event) => setName(event.target.value)}
-        />
-      </Field>
+      <TextField
+        label="Business name"
+        value={name}
+        onValueChange={setName}
+        autoComplete="organization"
+      />
     </Question>
   );
 }
@@ -71,14 +69,7 @@ export function TaglineQuestion({
       escape={{ label: "We don't need one", onEscape: onSkip }}
       onBack={onBack}
     >
-      <Field label="Tagline">
-        <input
-          type="text"
-          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
-          value={tagline}
-          onChange={(event) => setTagline(event.target.value)}
-        />
-      </Field>
+      <TextField label="Tagline" value={tagline} onValueChange={setTagline} />
     </Question>
   );
 }

@@ -6,6 +6,7 @@ import {
   type SocialLink,
 } from "@linkpage/renderer";
 import { useId, useState, type JSX } from "react";
+import { TextField } from "../../ui/TextField.js";
 import { Field, Question } from "./Question.js";
 
 /**
@@ -49,26 +50,23 @@ export function ContactQuestion({
       escape={{ label: "Not on my page", onEscape: onSkip }}
       onBack={onBack}
     >
-      <Field label="Phone">
-        <input
-          type="tel"
-          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
-          value={phone}
-          autoComplete="tel"
-          onChange={(event) => setPhone(event.target.value)}
-        />
-      </Field>
-      <Field label="Email">
-        <input
-          type="email"
-          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
-          value={email}
-          spellCheck={false}
-          autoCapitalize="none"
-          autoComplete="email"
-          onChange={(event) => setEmail(event.target.value)}
-        />
-      </Field>
+      {/* No judge on either box (§7.9 decision 5): their notice is the review list's mark. */}
+      <TextField
+        label="Phone"
+        type="tel"
+        value={phone}
+        onValueChange={setPhone}
+        autoComplete="tel"
+      />
+      <TextField
+        label="Email"
+        type="email"
+        value={email}
+        onValueChange={setEmail}
+        spellCheck={false}
+        autoCapitalize="none"
+        autoComplete="email"
+      />
     </Question>
   );
 }

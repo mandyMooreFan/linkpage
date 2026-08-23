@@ -1,6 +1,7 @@
 import { useId, useState, type JSX } from "react";
 import type { Pick } from "../plan.js";
 import type { Suggestion } from "../presets.js";
+import { TextField } from "../../ui/TextField.js";
 import { Field, Question } from "./Question.js";
 
 /**
@@ -249,18 +250,17 @@ export function LinkUrlQuestion({
       escape={{ label: "Leave this one out", onEscape: onSkip }}
       onBack={onBack}
     >
-      <Field label="Web address">
-        <input
-          type="url"
-          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
-          inputMode="url"
-          value={url}
-          spellCheck={false}
-          autoCapitalize="none"
-          placeholder="https://"
-          onChange={(event) => setUrl(event.target.value)}
-        />
-      </Field>
+      {/* No judge (§7.9 decision 5): an unusable address is the review list's mark. */}
+      <TextField
+        label="Web address"
+        type="url"
+        inputMode="url"
+        value={url}
+        onValueChange={setUrl}
+        spellCheck={false}
+        autoCapitalize="none"
+        placeholder="https://"
+      />
     </Question>
   );
 }

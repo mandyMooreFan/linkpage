@@ -1,6 +1,7 @@
 import { parseHex } from "@linkpage/renderer";
 import { useState, type JSX } from "react";
-import { Field, Question } from "./Question.js";
+import { TextField } from "../../ui/TextField.js";
+import { Question } from "./Question.js";
 
 /**
  * The brand colour. `SPEC.md` §3.1, §3.3, §4.6.
@@ -93,9 +94,6 @@ export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProp
   );
 
   const typedIsColour = typed.trim() !== "" && parseHex(typed.trim()) !== null;
-  // Something in the box that is not a colour. It is *said* (§7.9) and it changes nothing else:
-  // the swatch underneath still stands, and `Continue` is not held hostage to it.
-  const unusable = typed.trim() !== "" && !typedIsColour;
   const answer = typedIsColour ? typed.trim() : brand;
 
   return (
@@ -139,23 +137,27 @@ export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProp
        */}
       {answer !== "" && <p className="text-base">Your colour: {colourName(answer)}</p>}
 
-      <Field
+      {/*
+       * Judged on `Continue` and not before (§7.9 decision 2, #142) — typing junk no longer
+       * draws the sentence per keystroke. The swatch underneath still stands either way, and
+       * `Continue` is not disabled by it (decision 1); a submit with junk in the box stays to
+       * say why the typing had no effect, and the sentence clears the moment the box does.
+       */}
+      <TextField
         label="Or type your exact colour"
         hint="From a designer or a brand guide."
-        message={
-          unusable ? "This won't change your colour — a colour looks like #c2185b." : undefined
+        name="exactColour"
+        validate={(value) =>
+          value.trim() === "" || parseHex(value.trim()) !== null
+            ? true
+            : "This won't change your colour — a colour looks like #c2185b."
         }
-      >
-        <input
-          type="text"
-          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
-          value={typed}
-          placeholder="#c2185b"
-          spellCheck={false}
-          autoCapitalize="none"
-          onChange={(event) => setTyped(event.target.value)}
-        />
-      </Field>
+        value={typed}
+        onValueChange={setTyped}
+        placeholder="#c2185b"
+        spellCheck={false}
+        autoCapitalize="none"
+      />
     </Question>
   );
 }
