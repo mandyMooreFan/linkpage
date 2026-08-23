@@ -13,12 +13,14 @@ import { PresetQuestion } from "./questions/PresetQuestion.js";
 import { AddressQuestion, ContactQuestion, SocialQuestion } from "./questions/SectionQuestions.js";
 // PROTOTYPE (#139, throwaway): two phone-seam rivals behind `?variant=`. Baseline is untouched.
 import {
+  enterClass,
   PagePeek,
   SeamSwitcher,
   TailwindPlusBar,
   TopicBar,
   TopicStepper,
   TopicTrail,
+  useSeamMotion,
   useSeamVariant,
 } from "./SeamPrototype.js";
 import {
@@ -103,6 +105,24 @@ export function Flow({
   const [picks, setPicks] = useState<readonly Pick[]>([]);
   const [at, setAt] = useState(0);
   const seamVariant = useSeamVariant(); // PROTOTYPE (#139)
+  const seamMotion = useSeamMotion(); // PROTOTYPE (#140)
+  const [leaving, setLeaving] = useState(false); // PROTOTYPE (#140): frame mode's fade-out phase
+
+  /**
+   * PROTOTYPE (#140): in frame mode a screen change is fade-out, swap, fade-in; in every other
+   * mode the action runs immediately, as shipped.
+   */
+  function transitionThen(action: () => void): void {
+    if (seamMotion !== "frame") {
+      action();
+      return;
+    }
+    setLeaving(true);
+    setTimeout(() => {
+      setLeaving(false);
+      action();
+    }, 170);
+  }
 
   const steps = planSteps({ entry, draft: opening, preset, picks });
 
@@ -117,9 +137,11 @@ export function Flow({
 
   /** Move to the next screen, or off the end of the flow and onto the list. */
   function goNext(list = steps): void {
-    const next = at + 1;
-    if (next >= list.length) onDone();
-    else setAt(next);
+    transitionThen(() => {
+      const next = at + 1;
+      if (next >= list.length) onDone();
+      else setAt(next);
+    });
   }
 
   /**
@@ -137,7 +159,7 @@ export function Flow({
     goNext();
   }
 
-  const onBack = at > 0 ? () => setAt(at - 1) : undefined;
+  const onBack = at > 0 ? () => transitionThen(() => setAt(at - 1)) : undefined;
 
   const suggestions = preset === null ? [] : findPreset(preset).suggestions;
 
@@ -151,7 +173,7 @@ export function Flow({
               setPreset(id);
               // Deliberately not `commit`: a preset writes nothing, ever (§7.3). It changes
               // the plan, and the plan is not the project.
-              setAt(1);
+              transitionThen(() => setAt(1));
             }}
             onOpenFile={onOpenFile}
             fileError={fileError}
@@ -301,15 +323,22 @@ export function Flow({
        * Keyed by the step, so each question arrives with its own empty state. Two link-URL
        * screens in a row are the same component and would otherwise hold the previous answer.
        */}
-      <div
-        className={`mx-auto w-full max-w-lg wide:mx-0 wide:flex-1${seamVariant === "peek" ? " pb-44 wide:pb-0" : ""}`}
-        key={step.id === "linkUrl" ? step.pick.id : step.id}
-      >
+      {/*
+       * PROTOTYPE (#140): the progress signal is static chrome — it lives OUTSIDE the keyed
+       * swap so it never blinks with the content, and its width/state actually tweens between
+       * steps. Only the inner keyed div (the content) takes the motion language.
+       */}
+      <div className={`mx-auto w-full max-w-lg wide:mx-0 wide:flex-1${seamVariant === "peek" ? " pb-44 wide:pb-0" : ""}`}>
         {seamVariant === "trail" && <TopicTrail steps={steps} at={at} />}
         {seamVariant === "bar" && <TopicBar steps={steps} at={at} />}
         {seamVariant === "stepper" && <TopicStepper steps={steps} at={at} />}
         {seamVariant === "twbar" && <TailwindPlusBar steps={steps} at={at} />}
-        {question(step)}
+        <div
+          className={`${enterClass(seamMotion, "screen")} ${leaving ? "proto-leave" : ""}`}
+          key={step.id === "linkUrl" ? step.pick.id : step.id}
+        >
+          {question(step)}
+        </div>
       </div>
       <div
         className={`mx-auto w-full max-w-lg wide:mx-0 wide:flex-1${seamVariant === "peek" ? " hidden wide:block" : ""}`}

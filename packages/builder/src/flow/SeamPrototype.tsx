@@ -59,9 +59,69 @@ function go(variant: SeamVariant): void {
   window.dispatchEvent(new Event("seam-variant"));
 }
 
-/** Floating switcher pill. Top-centre because Rival A owns the bottom edge. */
+/**
+ * PROTOTYPE — ticket #140: candidate motion languages, behind `?motion=`, composable with
+ * `?variant=`. `none` is the builder as shipped (no motion at all). `quiet` is opacity only.
+ * `drift` adds a 10px paper-slide; under `prefers-reduced-motion` it honestly degrades to
+ * `quiet`'s fades rather than to nothing.
+ */
+const MOTIONS = ["none", "quiet", "drift", "frame"] as const;
+export type SeamMotion = (typeof MOTIONS)[number];
+
+function readMotion(): SeamMotion {
+  const raw = new URLSearchParams(globalThis.location?.search ?? "").get("motion");
+  return (MOTIONS as readonly string[]).includes(raw ?? "") ? (raw as SeamMotion) : "none";
+}
+
+export function useSeamMotion(): SeamMotion {
+  const [motion, setMotion] = useState<SeamMotion>(readMotion);
+  useEffect(() => {
+    const onChange = () => setMotion(readMotion());
+    window.addEventListener("seam-variant", onChange);
+    window.addEventListener("popstate", onChange);
+    return () => {
+      window.removeEventListener("seam-variant", onChange);
+      window.removeEventListener("popstate", onChange);
+    };
+  }, []);
+  return motion;
+}
+
+function goMotion(motion: SeamMotion): void {
+  const url = new URL(globalThis.location.href);
+  if (motion === "none") url.searchParams.delete("motion");
+  else url.searchParams.set("motion", motion);
+  history.replaceState(null, "", url);
+  window.dispatchEvent(new Event("seam-variant"));
+}
+
+/** Enter-animation class for a screen or drawer under the current motion language. */
+export function enterClass(motion: SeamMotion, kind: "screen" | "drawer"): string {
+  if (motion === "none") return "";
+  if (motion === "quiet") return "proto-enter-fade";
+  if (motion === "frame") return "proto-enter-fade-slow";
+  return kind === "drawer" ? "proto-enter-rise" : "proto-enter-drift";
+}
+
+const MOTION_CSS = `
+@keyframes proto-fade { from { opacity: 0; } }
+@keyframes proto-drift { from { opacity: 0; transform: translateY(28px); } }
+@keyframes proto-rise { from { opacity: 0; transform: translateY(60dvh); } }
+.proto-enter-fade { animation: proto-fade 400ms ease-out both; }
+.proto-enter-drift { animation: proto-drift 450ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.proto-enter-rise { animation: proto-rise 450ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+@keyframes proto-out { to { opacity: 0; } }
+.proto-leave { animation: proto-out 170ms ease-in both; }
+.proto-enter-fade-slow { animation: proto-fade 320ms ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .proto-enter-drift, .proto-enter-rise { animation-name: proto-fade; }
+}
+`;
+
+/** Floating switcher pill: variant on the left, motion language on the right. */
 export function SeamSwitcher(): JSX.Element | null {
   const variant = useSeamVariant();
+  const motion = useSeamMotion();
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -87,6 +147,17 @@ export function SeamSwitcher(): JSX.Element | null {
       <button type="button" className="px-2 py-1" onClick={() => go(cycle(variant, 1))}>
         →
       </button>
+      <span className="mx-1 h-4 w-px bg-ground/40" />
+      <button
+        type="button"
+        className="px-2 py-1"
+        onClick={() =>
+          goMotion(MOTIONS[(MOTIONS.indexOf(motion) + 1) % MOTIONS.length] as SeamMotion)
+        }
+      >
+        M: {motion}
+      </button>
+      <style>{MOTION_CSS}</style>
     </div>
   );
 }

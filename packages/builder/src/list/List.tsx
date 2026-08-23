@@ -25,6 +25,9 @@ import { LinkButtons } from "./LinkButtons.js";
 import { listRows, type Row, type RowId } from "./rows.js";
 import { StyleStep } from "./StyleStep.js";
 import { Button } from "../ui/Button.js";
+// PROTOTYPE (#140, throwaway): the list takes part in the candidate motion languages (§7.1 —
+// a language that moves the flow and leaves the list still breaks visibly).
+import { enterClass, SeamSwitcher, useSeamMotion } from "../flow/SeamPrototype.js";
 
 /**
  * The review list: the screen the owner lives on. `SPEC.md` §7.4, §7.1, §7.5–§7.8.
@@ -134,11 +137,14 @@ export function List({
     close();
   };
 
+  const seamMotion = useSeamMotion(); // PROTOTYPE (#140)
+
   return (
     <main
-      className="flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
+      className={`flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12 ${enterClass(seamMotion, "screen")}`}
       data-screen="list"
     >
+      <SeamSwitcher />
       <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
         <div className="flex items-center justify-between gap-2">
           <Menu onImport={onImport} confirm={importConfirm} error={importError} />

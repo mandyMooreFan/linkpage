@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useId, useState, useSyncExternalStore, type JSX } from "react";
 import { pageHtml } from "../page.js";
 import type { Draft } from "../project/index.js";
+// PROTOTYPE (#140, throwaway): the drawer takes part in the candidate motion languages.
+import { enterClass, useSeamMotion } from "../flow/SeamPrototype.js";
 
 /**
  * The preview: the exported page itself, in a drawer the owner steps in and out of (§5.2, §7.6).
@@ -34,6 +36,7 @@ export interface PreviewProps {
 
 export function Preview({ project }: PreviewProps): JSX.Element {
   const roomy = useMediaQuery(SIDE_BY_SIDE);
+  const seamMotion = useSeamMotion(); // PROTOTYPE (#140)
 
   /**
    * `null` until the owner touches the control, and then whatever they said.
@@ -89,7 +92,7 @@ export function Preview({ project }: PreviewProps): JSX.Element {
          */}
         {open && (
           <iframe
-            className="block h-full w-[min(100%,27.5rem)] border border-rule bg-surface"
+            className={`block h-full w-[min(100%,27.5rem)] border border-rule bg-surface ${enterClass(seamMotion, "drawer")}`}
             title="Your page"
             data-preview-frame
             sandbox=""
