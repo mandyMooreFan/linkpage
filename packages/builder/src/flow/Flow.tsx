@@ -11,6 +11,8 @@ import { LogoQuestion } from "./questions/LogoQuestion.js";
 import { HoursQuestion } from "./questions/HoursQuestion.js";
 import { PresetQuestion } from "./questions/PresetQuestion.js";
 import { AddressQuestion, ContactQuestion, SocialQuestion } from "./questions/SectionQuestions.js";
+// PROTOTYPE (#139, throwaway): two phone-seam rivals behind `?variant=`. Baseline is untouched.
+import { PagePeek, SeamSwitcher, TopicTrail, useSeamVariant } from "./SeamPrototype.js";
 import {
   addLink,
   answerBrand,
@@ -92,6 +94,7 @@ export function Flow({
   const [preset, setPreset] = useState<PresetId | null>(null);
   const [picks, setPicks] = useState<readonly Pick[]>([]);
   const [at, setAt] = useState(0);
+  const seamVariant = useSeamVariant(); // PROTOTYPE (#139)
 
   const steps = planSteps({ entry, draft: opening, preset, picks });
 
@@ -291,14 +294,19 @@ export function Flow({
        * screens in a row are the same component and would otherwise hold the previous answer.
        */}
       <div
-        className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1"
+        className={`mx-auto w-full max-w-lg wide:mx-0 wide:flex-1${seamVariant === "peek" ? " pb-44 wide:pb-0" : ""}`}
         key={step.id === "linkUrl" ? step.pick.id : step.id}
       >
+        {seamVariant === "trail" && <TopicTrail steps={steps} at={at} />}
         {question(step)}
       </div>
-      <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
+      <div
+        className={`mx-auto w-full max-w-lg wide:mx-0 wide:flex-1${seamVariant === "peek" ? " hidden wide:block" : ""}`}
+      >
         <Preview project={working} />
       </div>
+      {seamVariant === "peek" && <PagePeek project={working} />}
+      <SeamSwitcher />
     </div>
   );
 }
