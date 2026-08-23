@@ -133,8 +133,9 @@ test("the downloaded index.html is the preview's srcdoc, and it opens offline", 
   await expect(page.getByRole("heading", { level: 1, name: NAME })).toBeVisible();
 
   // 2. The preview's `srcdoc` — the attribute, not the rendered document inside the frame.
-  //    The drawer opens by default at this viewport (§7.6); the click is for when it does not.
-  const toggle = page.getByRole("button", { name: /the page$/ });
+  //    The list lands with the drawer open at every size (§7.6, #147), its control reading
+  //    "Edit your page"; the click is for when it somehow does not.
+  const toggle = page.getByRole("button", { name: /(the|your) page$/ });
   if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
 
   const frame = page.locator("iframe[data-preview-frame]");

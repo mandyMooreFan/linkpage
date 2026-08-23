@@ -214,3 +214,36 @@ describe("one design, not two", () => {
     expect(shapes[0]).toBe(shapes[1]);
   });
 });
+
+describe("the list lands on the page (§7.6, #147)", () => {
+  it("defaults open on a phone when it is the list's drawer, and names the way out of it", () => {
+    viewport.set(false);
+    mount(<Preview project={POPULATED} onList />);
+
+    expect(frame()).not.toBeNull();
+    expect(toggle().textContent).toBe("Edit your page");
+  });
+
+  it("keeps the choice a default: hiding is one tap and the words follow", () => {
+    viewport.set(false);
+    mount(<Preview project={POPULATED} onList />);
+
+    fireEvent.click(toggle());
+    expect(frame()).toBeNull();
+    expect(toggle().textContent).toBe("See the page");
+
+    fireEvent.click(toggle());
+    expect(frame()).not.toBeNull();
+    expect(toggle().textContent).toBe("Edit your page");
+  });
+
+  it("leaves the flow's drawer exactly as it was", () => {
+    viewport.set(false);
+    mount(<Preview project={POPULATED} />);
+
+    expect(frame()).toBeNull();
+    expect(toggle().textContent).toBe("See the page");
+    fireEvent.click(toggle());
+    expect(toggle().textContent).toBe("Hide the page");
+  });
+});
