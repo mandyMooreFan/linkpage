@@ -247,3 +247,28 @@ describe("the list lands on the page (§7.6, #147)", () => {
     expect(toggle().textContent).toBe("Hide the page");
   });
 });
+
+describe("the landing says it is not live yet (#169)", () => {
+  const notice = (): Element | null => document.querySelector("[data-open] p");
+
+  it("sits in the header beside the one control, on the list's open drawer", () => {
+    viewport.set(false);
+    mount(<Preview project={POPULATED} onList />);
+    expect(notice()?.textContent).toBe(
+      "Only you can see this. To share it, download the file and put it online.",
+    );
+  });
+
+  it("goes with the page: a hidden drawer needs no warning about it", () => {
+    viewport.set(false);
+    mount(<Preview project={POPULATED} onList />);
+    fireEvent.click(toggle());
+    expect(notice()).toBeNull();
+  });
+
+  it("says nothing mid-flow, where the page is visibly being made", () => {
+    viewport.set(true);
+    mount(<Preview project={POPULATED} />);
+    expect(notice()).toBeNull();
+  });
+});
