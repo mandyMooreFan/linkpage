@@ -1,12 +1,18 @@
 # Builder app — design audit findings
 
-**Asset for issue [#174](https://github.com/mandyMooreFan/linkpage/issues/174)** (audit the builder
-app) of the **design-audit map [#171](https://github.com/mandyMooreFan/linkpage/issues/171)**.
+**Asset for issues [#174](https://github.com/mandyMooreFan/linkpage/issues/174)** (audit the builder
+app) **and [#178](https://github.com/mandyMooreFan/linkpage/issues/178)** (finish the visual sweep),
+of the **design-audit map [#171](https://github.com/mandyMooreFan/linkpage/issues/171)**.
 Audited **2026-08-24** against `main` @ `ef15616`.
 
-**55 findings**, plus a list of checks that passed and a statement of what the audit did not reach.
+**74 findings** — B-1 to B-55 from #174 (source, plus five screens), B-56 to B-74 from #178 (the
+rest of the visual sweep) — plus a list of checks that passed, three calibrations where the screens
+softened or failed to reproduce a source finding, and a statement of what the audit did not reach.
+
 Both of the owner's seed complaints are **confirmed**, each with a structural cause rather than a
-one-screen slip: [B-4](#b-4) and [B-14](#b-14) respectively.
+one-screen slip: [B-4](#b-4) and [B-14](#b-14) respectively. The worst single thing the sweep found
+is [B-57](#b-57) — the focus ring is drawn straight through the hint text, which is the same
+zero-gap defect as the first seed complaint, at the point where it stops being cosmetic.
 
 ## What was audited, and how
 
@@ -18,9 +24,9 @@ one-screen slip: [B-4](#b-4) and [B-14](#b-14) respectively.
   32 mobile at 390×844 (branch `audit/172-baseline-screens`) — read alongside the builder source.
 - **The scope:** `packages/builder` only. The generated link page is
   [#175](https://github.com/mandyMooreFan/linkpage/issues/175)'s and is not judged here.
-- **Both widths** were covered, as the map's Notes require — but not evenly. Every file in
-  `packages/builder` was read; **5 of the 62 captures** were viewed directly. See Group 8 for which,
-  and "What is still owed" for the gap this leaves.
+- **Both widths** were covered, as the map's Notes require. Every file in `packages/builder` was
+  read, and **33 of the 62 captures** were viewed directly — **every distinct screen type at at
+  least one width**. See Groups 8 and 9 for which, and "What is still owed" for what remains.
 
 ## The constraint every finding is written under
 
@@ -729,14 +735,12 @@ pass/fail thresholds rather than judgement.
 
 # Group 8 — Confirmed in the rendered screens
 
-**Coverage, stated plainly:** the source findings above were read against the whole of
-`packages/builder`. The _visual_ pass did _not_ cover all 62 baseline captures. A screen-by-screen
-sweep was attempted and did not deliver a usable report, so what follows is a focused pass over
-**five** screens chosen because they carry the largest claims:
+**Coverage:** this group was written during [#174](https://github.com/mandyMooreFan/linkpage/issues/174)
+from a focused pass over five screens —
 `desktop/08-flow-tagline-revisited-via-back`, `desktop/25-list-reedit-tagline`,
 `desktop/28-download-sheet-full`, `mobile/01-flow-preset-empty`, `mobile/23-list-arrived`.
-Findings below are only for screens actually viewed. **A full visual sweep of the remaining
-captures is still owed** — see "What is still owed" at the end.
+[#178](https://github.com/mandyMooreFan/linkpage/issues/178) continued the sweep; its findings are
+**Group 10**, and its coverage statement is there.
 
 ## B-49 Seed finding (a), confirmed on screen
 
@@ -836,6 +840,318 @@ rather than swapped in. Exactly one is worth swapping.
 
 ---
 
+---
+
+# Group 10 — The rest of the visual sweep
+
+Added by [#178](https://github.com/mandyMooreFan/linkpage/issues/178), which finished the pass
+Group 8 started.
+
+**Coverage:** **33 of the 62 captures** have now been viewed directly (the 5 from Group 8 plus 28
+more). Crucially, **every distinct screen type in the walk was viewed at at least one width** — the
+unviewed half is almost entirely the `-empty`/`-filled` twin of a screen already seen, or its
+opposite width. What remains genuinely unseen is listed in "What is still owed".
+
+Viewed here — desktop: `02`, `03`, `06`, `07`, `09`, `10`, `11`, `12`, `13`, `15`, `16`, `17`, `21`,
+`19`, `24`, `26`, `29`, `30`. Mobile: `09`, `11`, `15`, `16`, `20`, `25`, `27`, `28`, `29`, `32`.
+
+Several of these could not have come from a source read at all — the worst one is a control with no
+class to grep, and two more are collisions that only exist once the pixels are laid out.
+
+## B-56 The link checkboxes are unstyled native controls, so they paint in the browser's blue
+
+- **Screens:** `desktop/11-flow-links-empty`, `desktop/12-flow-links-filled`,
+  `mobile/11-flow-links-empty`.
+- **Checklist:** §3 — "every color used is a ramp member, not an ad-hoc hex"; §6 — "Stick to the
+  theme tokens … a value outside `--color-*` is off-system by definition."
+- **What is visible:** "See the menu", "Order for pickup" and "Book a table" are raw
+  `<input type="checkbox">` with no styling. Unchecked they are small default squares; **checked,
+  they fill with the browser's own accent blue** (`desktop/12`). That blue is the most saturated
+  colour anywhere in the builder — more prominent than `--color-notice`, and belonging to no ramp
+  in `theme.css`. In a tool whose whole argument is one warm ground, one ink and one notice red, the
+  first genuinely coloured thing the owner meets is a colour the product never chose.
+- **Why the source pass could not find this:** there is no class to grep. The violation is the
+  _absence_ of styling, so it is invisible to a class-based audit and obvious the moment you look.
+- **Also:** the box is roughly 13px, far under §7.6's 44px floor. The label is clickable, so the
+  effective target is larger, but the drawn control is tiny next to `text-base` text.
+- **Suggested fix:** style the control in paper's own terms — at minimum `accent-color` set to
+  `--color-ink` so the checked state is ink rather than system blue, and a size step up. This stays
+  well inside paper: a ticked box in ink is exactly what "one ink" means.
+
+## B-57 The focus outline overlaps the hint text and strikes through it
+
+- **Screens:** `desktop/10-flow-colour-filled`, `desktop/16-flow-hours-filled`,
+  `mobile/16-flow-hours-filled`.
+- **Checklist:** §1 — "Helper text sits ≥ 8px below its control … in every state"; §5 — helper text
+  "never touching the control".
+- **What is visible:** on the exact-colour field, the hint "From a designer or a brand guide." has
+  the focus ring's **top edge drawn straight through it** — the text reads as struck through. Same
+  on the hours note: "Bank holidays, seasonal changes." is cut by the ring around "Closed bank
+  holidays". This is not a near miss; the line passes through the glyphs.
+- **Why it happens:** B-4's zero gap plus `theme.css`'s `outline-offset: 2px`. The ring is drawn 2px
+  _outside_ the control, and since the hint sits flush against the control's top edge, the ring
+  lands inside the hint's line box.
+- **Why it matters more than B-4 alone:** this is the point where the spacing defect stops being an
+  aesthetic complaint and starts destroying text. It fires on the two fields most likely to be
+  wrong — a hex code and an opening-hours note — i.e. exactly when the owner needs the hint.
+- **Suggested fix:** B-4's `gap-2` resolves it. Any fix must leave **at least** the outline offset
+  plus its width (4px) of clearance, so 8px is the floor, not a preference.
+
+## B-58 The focus ring is a rectangle around a control drawn as a line
+
+- **Screens:** `desktop/03-flow-name-filled`, `desktop/10`, `desktop/16`, `mobile/16`.
+- **Checklist:** §6 — "One focus style app-wide"; §5 — "Focus state: border thickens and recolors
+  **in place**."
+- **What is visible:** a focused text field shows **both** treatments at once — the underline turns
+  ink (`focus:border-ink`) _and_ a full notice-red rectangle is drawn around the whole input
+  (`:focus-visible`). The control is a line at rest and a box when focused, so focusing changes the
+  control's apparent shape, not just its state. In `desktop/03` the red box around "Ada & Sons
+  Bakers" is the single most prominent element on the screen.
+- **This is B-36 seen from the front**, and the screens add the part the code does not: the two
+  treatments are not merely redundant, they disagree about what shape the control is.
+- **Suggested fix:** decide which one owns focus. Paper's own logic points at the underline —
+  thicken and recolour the line in place, and drop the rectangle for text inputs — but a rectangle
+  everywhere is also defensible. What cannot stay is both.
+
+## B-59 The dead hint class renders at full ink beside a correctly-grey hint on the same screen
+
+- **Screen:** `desktop/07-flow-logo-filled`.
+- **Checklist:** §2 — "At most 2–3 text colors … secondary text is distinguished by colour."
+- **What is visible:** two quiet asides, one above the other. "A picture file from your signage,
+  menus or social profile." is grey. "Have a look at your page to see it." is **full-strength
+  black** at body size, so a throwaway aside outweighs the question's own hint and competes with the
+  Continue button.
+- **This is direct visual proof of B-1**: the second line is the one carrying `question__hint`, the
+  class no stylesheet defines. Two hints, same role, same screen, different colour — because one of
+  them is styled and the other is not.
+
+## B-60 The hours step is dominated by seven solid ink blocks while its primary action is the palest thing on it
+
+- **Screens:** `desktop/15-flow-hours-empty`, `desktop/16`, `mobile/15`, `mobile/16`.
+- **Checklist:** §4 — "exactly one solid high-contrast button"; "the highest-contrast fill on the
+  page belongs to the single primary action."
+- **What is visible:** every day defaults to "Not shown", and that segment renders as a **solid ink
+  fill**. Seven of them stack down the screen. Meanwhile Continue is disabled and renders as pale
+  `--color-rule`. So the seven highest-contrast objects on the screen are _default states nobody
+  chose_, and the one real action is the faintest thing on it. On mobile the blocks are
+  proportionally larger and the effect is stronger.
+- **Relation to existing findings:** B-34 records the three-selection-vocabularies problem from the
+  code. This is the consequence, and it is a hierarchy failure rather than a consistency one.
+- **Suggested fix:** the segmented control should not use the page's strongest fill for a default.
+  Give the selected segment paper's lighter selected treatment (a border/ink outline per B-34) and
+  keep the solid ink for actions.
+
+## B-61 The selected segment's square fill breaks out of its rounded container
+
+- **Screens:** `mobile/15-flow-hours-empty`, `mobile/16-flow-hours-filled` (visible but subtler on
+  the desktop pair).
+- **Checklist:** §6 — "One radius per component class."
+- **What is visible:** the Open/Closed/Not shown group is a `rounded-sm border` box. The selected
+  segment's ink fill is **square**, and where it sits at either end of the group it covers the
+  container's rounded corner and its border — the dark block runs flush past the curve. At the right
+  edge of "Not shown" the fill visibly overruns the outline it is supposed to sit inside.
+- **Suggested fix:** `overflow-hidden` on the group, or match the fill's corners to the container's
+  radius on the first and last segment. A one-line fix, but it is the kind of thing that reads as
+  unfinished.
+
+## B-62 In the review list the label is inked and the answer is grey
+
+- **Screens:** `desktop/24-list-arrived-full`, `desktop/26-preview-inline`, `mobile/25-list-rows`,
+  `mobile/27-list-reedit-tagline`.
+- **Checklist:** §2 — "Hierarchy is made with weight and color before size … secondary text is
+  distinguished by `text-gray-500`-class colour"; §1 — the stacked-list anchor, where the **title**
+  is `text-gray-900` and the **meta** is grey.
+- **What is visible:** each row renders its field name ("Business name", "Opening hours") in full
+  ink at the smaller size, and the owner's own answer ("Ada & Sons Bakers", "Mon 7:00 AM – 2:00 PM")
+  in `--color-ink-quiet` at the larger size. The emphasis is on the label and the de-emphasis on the
+  content — backwards for a screen whose entire job is "look over your answers". The owner's eye is
+  pulled down a column of our vocabulary rather than their business.
+- **Suggested fix:** swap the colour roles — answer in `text-ink`, field name in `text-ink-quiet`.
+  Size can stay as it is; colour alone carries it, which is what §2 prefers.
+
+## B-63 An opened row repeats the value shown in its own collapsed summary directly above it
+
+- **Screens:** `desktop/25-list-reedit-tagline`, `mobile/27-list-reedit-tagline`.
+- **Checklist:** §1 — "Related items sit closer together than unrelated items"; §5 — "Don't add
+  labels that restate obvious format … audit display screens for label-noise."
+- **What is visible:** opening the tagline row leaves the row's own summary in place, so
+  "Sourdough, pastries, and the best cheese scone in town" appears **twice within about 400px** —
+  once as the collapsed summary, once in the editing field — with only a hairline between them and
+  no visual distinction between "the row" and "the editor". On mobile the two are close enough to
+  read as a duplicated block.
+- **Relation to existing findings:** this compounds B-41 and B-42. Even once the open row is
+  properly separated, the doubled value stays.
+- **Suggested fix:** hide the row's summary while the row is open — the editor is showing that value
+  already, in an editable form. Worth putting to the owner, since keeping the summary may be a
+  deliberate "here is what it was" affordance; if so it needs to look like one.
+
+## B-64 An empty field is invisible
+
+- **Screens:** `desktop/02-flow-name-empty`, `desktop/17-flow-contact-empty`,
+  `desktop/21-flow-social-empty`, `mobile/15-flow-hours-empty`.
+- **Checklist:** §3 — non-text contrast ≥ 3:1 for interactive component boundaries.
+- **What is visible:** on a step whose field has no placeholder, there is a label, then a large
+  blank region, then — barely — a hairline. The field does not read as a field; it reads as a gap
+  with a faint rule under it. On `mobile/15` the hours note is over 100px of apparently empty ground
+  before the line appears.
+- **This is B-23 from the front**, and it makes the 1.31:1 measurement concrete: at that ratio the
+  boundary is not a weak affordance, it is close to no affordance. It is also why B-56's unstyled
+  checkbox is jarring — the one control that _is_ clearly visible is the one nobody styled.
+
+## B-65 The gap inside a field is larger than the gap between fields, so each label reads as belonging to the field above
+
+- **Screens:** `desktop/17-flow-contact-empty`, `desktop/21-flow-social-empty`.
+- **Checklist:** §1 — "between-field gap ≈ 3–4× the within-field gap"; "for any element, the gap to
+  its own group's members is strictly smaller than the gap to the next group."
+- **What is visible:** on the contact step, "Phone" sits about **52px** above its own underline,
+  while that underline sits about **33px** above the next label, "Email". On the social step it is
+  worse — roughly 52px within, **25px** between. The ratio is not merely short of 3–4×, it is
+  **inverted**: every label is nearer the field above it than the field it names.
+- **Why the source pass under-stated this:** B-4 and B-6 describe the gaps as authored (0px and
+  16px). What the screens add is that the empty input's own height becomes the dominant intra-field
+  gap, so fixing the authored numbers alone will not fix the perceived grouping — the between-field
+  gap has to clear the control's height, not just its margin.
+- **Suggested fix:** B-6's `gap-6` is the right direction, but validate it against the _rendered_
+  field, not the class list. On this evidence 24px is likely still too tight for empty fields.
+
+## B-66 "Copy these times" is separated from the two buttons it labels
+
+- **Screens:** `desktop/16-flow-hours-filled`, `mobile/16-flow-hours-filled`.
+- **Checklist:** §1 — related items closer than unrelated; §6 — alignment consistent per context.
+- **What is visible:** the row reads "Add another time · Copy these times · to weekdays" and then
+  wraps, dropping "to every day" to the next line. So the label is split from half of what it
+  labels. On mobile it is worse: the wrap puts "Copy these times" at the end of a line whose other
+  occupant is "Add another time" — a button it does **not** label — and both of its real buttons sit
+  on the line below.
+- **Suggested fix:** keep the label and its two buttons in one non-wrapping group, or restate it as
+  a heading above them.
+
+## B-67 Primary button labels wrap to two and three lines in narrow containers
+
+- **Screens:** `desktop/30-open-replace-confirm` ("Download my work first" over two lines),
+  `mobile/23-list-arrived`, `mobile/28-preview-open` ("Edit your page" over **three**),
+  `mobile/32-open-replace-confirm` (two lines again).
+- **Checklist:** §4 — "Sizing/padding is consistent across a row … siblings share height."
+- **What is visible:** the same defect at both widths, so this is not a mobile problem — it is a
+  narrow-container problem. The replace confirmation lives in a ~256px menu panel on desktop and
+  wraps there too. A three-line button in a tall thin box is the least resolved-looking object in
+  the walk.
+- **This generalises B-53**, which recorded only the mobile case.
+- **Suggested fix:** let the containers give their buttons room (the menu panel and the mobile
+  header row both have space to spare), or shorten the two labels. Do not solve it with smaller
+  type — that breaks the one-spec-per-variant rule.
+
+## B-68 The replace confirmation stacks three buttons at three different alignments
+
+- **Screens:** `desktop/30-open-replace-confirm`, `mobile/32-open-replace-confirm`.
+- **Checklist:** §6 — "Alignment is consistent per context"; §4 — siblings in one action row share
+  their spec.
+- **What is visible:** "Download my work first" spans the panel's full width, "Open the file" is
+  left-aligned and narrower, and "Cancel" is **centred**. Three actions, one stack, three different
+  horizontal treatments — plus three different weights, one of which (`Cancel`) matches no weight in
+  `Button.tsx`.
+- **This is B-3's fourth-weight finding seen from the front**, and the alignment scatter is the part
+  the class list does not convey.
+- **Suggested fix:** one alignment for the stack, and route `Cancel` through `weight="quiet"`.
+
+## B-69 The scrim reads cold against the warm ground
+
+- **Screen:** `mobile/29-download-sheet`.
+- **Checklist:** §3 — every colour a ramp member.
+- **What is visible:** above the sheet, the veiled strip holding "Menu" and "Download" is a
+  **neutral grey**, sitting directly against the sheet's warm cream. The temperature break is
+  obvious at the seam. This is `bg-black/40` over a `#faf7f2` ground.
+- **This is B-27 confirmed**, and it is more visible than the code suggests, because the scrim
+  always appears immediately adjacent to an unveiled warm surface.
+
+## B-70 On short steps at narrow widths the question floats, leaving a large gap under the progress bar
+
+- **Screens:** `mobile/09-flow-colour-empty` and `mobile/11-flow-links-empty` against
+  `mobile/15-flow-hours-empty`.
+- **Checklist:** §1 — the monotonic ladder; §6 — alignment consistent per context.
+- **What is visible:** the vertical distance from the progress bar to the `<h1>` is not stable
+  between steps. On the hours step it is about 90px. On the colour step it is roughly **250px** of
+  empty ground, and on the links step about 200px. Stepping through the wizard, the heading jumps
+  down the screen and back up again, and on the short steps the bar reads as detached from the
+  question it is describing.
+- **Suggested fix:** pin the content to a consistent top offset at narrow widths rather than letting
+  short steps centre in the viewport, so the bar stays attached to its question. Worth confirming
+  with the owner that the centring is not deliberate.
+
+## B-71 The placeholder is larger than the label above it
+
+- **Screen:** `mobile/11-flow-links-empty`.
+- **Checklist:** §2 — "no orphan sizes"; §5 — placeholder "lighter than entered text".
+- **What is visible:** "Something else" (the label) is `text-base`; "What would the button say?"
+  (the placeholder) is `text-lg`, so the hint-of-a-value is **visually bigger** than the name of the
+  field. Combined with B-2 leaving it at the browser's default grey, the placeholder is the loudest
+  element in its own field.
+- **This is B-29's concrete consequence** — the inputs being one step larger than their labels is
+  not only a scale problem, it inverts label-versus-placeholder prominence.
+
+## B-72 The primary button is full-width in the flow and content-width in the sheet
+
+- **Screens:** `mobile/29-download-sheet` against any flow step (e.g. `mobile/11`).
+- **Checklist:** §4 — "all buttons on a screen share one padding/radius/type spec per size
+  variant"; §6 — pixel-identical repeated elements.
+- **What is visible:** in the flow, Continue stretches the full column. In the download sheet,
+  "Download index.html" is content-width and left-aligned, in a sheet whose body is full-width. Same
+  weight, same role — the one action of its section — two different widths.
+- **Relation to B-16:** the code cause is `primary`'s `shrink-0` versus the column's stretch. The
+  screens show it is a visible inconsistency, not just an untidy class.
+
+## B-73 The address field is a native textarea, complete with its resize grip
+
+- **Screens:** `desktop/19-flow-address-empty`, `mobile/20-flow-address-filled`.
+- **Checklist:** §6 — "Stick to the theme tokens"; §5 — "inputs share one radius, one padding, one
+  resting-border grey everywhere."
+- **What is visible:** the Address control is a `<textarea>` styled with paper's underline, but the
+  browser's **resize grip** is left in place — the diagonal hatch in the bottom-right corner, inside
+  the field. It is the only piece of native chrome in the builder, and dragging it would stretch the
+  field out of the column the whole layout is built on. Empty, the textarea is also the largest
+  instance of B-64: a tall blank region whose only evidence of being a control is a 1.31:1 hairline
+  far below the label.
+- **Suggested fix:** `resize-none` (or `resize-y` with a max height if multi-line growth is wanted).
+  Paper has no other drag handles; this one arrived by default rather than by decision.
+
+## B-74 On mobile the focus outline is drawn outside the content column
+
+- **Screen:** `mobile/20-flow-address-filled`.
+- **Checklist:** §6 — "Alignment is consistent per context"; §5 — one focus treatment.
+- **What is visible:** the focused textarea's notice-red rectangle sits about 8px **left of the
+  column's own margin** — closer to the screen edge than any other element on the page. Because
+  `theme.css` gives the ring `outline-offset: 2px` and the control is full-column-width, the ring
+  has nowhere to go but outside the layout. At mobile's tighter gutter it reads as the box escaping
+  the page rather than marking the field.
+- **Relation to B-58:** same ring, different symptom. B-58 is that it contradicts the control's
+  shape; this is that at full width it has no room to be drawn at all.
+- **Suggested fix:** falls out of B-58 — if focus is carried by thickening the underline in place,
+  there is no box to overflow. If the rectangle is kept, it needs an inset offset
+  (`-outline-offset-2`) so a full-width control can show it inside its own bounds.
+
+## Calibrations — things that turned out milder, or that did not reproduce
+
+Recorded so the review does not over-weight a source finding the screens soften, and so the two
+that failed to reproduce are not carried forward as fact.
+
+- **B-2's placeholder gap is milder than it reads.** The unstyled placeholders render in the
+  browser's default grey, which happens to sit close to `--color-ink-quiet`, so
+  `desktop/09` versus `desktop/10` does show the placeholder clearly lighter than an entered value.
+  B-2 remains a real spec violation (§7.4's component rule) and a real risk — nothing pins that
+  colour, and it varies by browser — but its **present visual damage is small**. Priority should
+  reflect that; B-71 is the part of it that actually shows.
+- **B-40(a) did not reproduce.** The "Copy these times" row was predicted to sit on a different
+  baseline from its buttons because `secondary` carries `self-start` inside an `items-center` row.
+  In `desktop/16` the label and buttons appear correctly aligned. The real defect in that row is the
+  line wrap (B-66), not the baseline. B-40(b) — the progress drawer's 4px inset — was not separately
+  verified.
+- **B-46 was not confirmed.** `Hosting`'s second list was predicted to lose its `[&_strong]:text-ink`
+  and render bold lead-ins in grey. In `mobile/29` and `desktop/28` the lead-ins that are visible
+  ("Ask whoever looks after your website.", "Or use a service you drag a file onto.") all render
+  dark. The second list's lead-in sits below the fold in both captures, so the finding is **neither
+  confirmed nor refuted** — it stands on the source reading alone and should be checked in a browser
+  before it is acted on.
+
 # Checks that passed
 
 Recorded so the review does not re-raise them, and so a later effort can see what was actually
@@ -863,6 +1179,12 @@ verified rather than assumed.
   the problem is the absence of a compensating widening at the group's _edge_ (B-7).
 - **The brand swatch hexes are content, not tokens.** The twelve values in `ColourQuestion.tsx` are
   the owner's choosable palette and carry a written justification. Not a token violation.
+- **What the visual sweep confirmed as sound.** The preset rows, the swatch grid and the preview
+  panel all hold up at both widths; the progress bar's indigo fill is clearly legible once it has
+  any width (the track behind it is the problem, B-26, not the fill); the review list's collapsed
+  rows breathe well; the serif/sans pairing reads exactly as §7.4 intends; and the generated page in
+  the preview pane looks markedly more finished than the tool around it — which is the right way
+  round for a viewing booth.
 - **No dark mode, no cards, no elevation.** Verified as deliberate and argued in SPEC §7.4; the only
   contradiction found in the code is the single `shadow-lg` at B-37.
 
@@ -873,14 +1195,15 @@ verified rather than assumed.
 Recorded so the review knows the audit's reach, and so nothing is quietly assumed to have been
 checked.
 
-- **A full visual sweep of the baseline captures.** 5 of the 62 screens were viewed directly (listed
-  at the head of Group 8). The other 57 — most of the wizard's per-step empty/filled pairs, the
-  logo, colour, links, hours, contact, address and social steps, the menu, the replace confirmation,
-  and nearly all of the mobile set — were audited **through their source** but not looked at. The
-  source pass is the stronger instrument for the systemic findings (Groups 1–7) and the weaker one
-  for cramping, wrapping and per-screen balance, which is exactly what B-53 and B-54 turned out to
-  be. A second visual pass is likely to add findings of that kind and is unlikely to overturn the
-  ones recorded here.
+- **29 of the 62 captures were never opened** — but no distinct screen _type_ is unseen. What is
+  unviewed is almost entirely the `-empty`/`-filled` twin of a screen already inspected, or the
+  same screen at the other width: `desktop/01, 04, 05, 14, 18, 20, 22, 23, 27` and
+  `mobile/02–08, 10, 12–14, 17–19, 21, 22, 24, 26, 30, 31`. The address step was the one type with no
+  viewed counterpart and has since been opened at both widths (`desktop/19`, `mobile/20`, yielding
+  B-73 and B-74), so **no screen type is now unseen**. The nearest remaining blind spot is the
+  mobile menu and full download sheet (`mobile/30, 31`), whose desktop twins were viewed.
+- **Nothing was re-verified after a fix**, because nothing was fixed. Every finding describes
+  `ef15616` as captured.
 - **The live site was not driven.** The audit used `main` @ `ef15616` and #172's captures of the
   deployed build at that commit. Nothing was clicked in a browser, so hover states, focus rings in
   motion, the view transitions of §7.11 and any real reduced-motion behaviour are unverified.
