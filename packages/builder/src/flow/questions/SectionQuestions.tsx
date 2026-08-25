@@ -10,6 +10,7 @@ import { TextField } from "../../ui/TextField.js";
 import { Field, Question } from "./Question.js";
 import { TextArea, TextInput } from "../../ui/TextInput.js";
 import { Button } from "../../ui/Button.js";
+import { LADDER } from "../../ui/ladder.js";
 
 /**
  * Contact, address and social — the three optional sections that are ordinary forms.
@@ -181,7 +182,13 @@ export function SocialQuestion({
       <ul className="m-0 flex list-none flex-col gap-2 p-0">
         {rows.map((row, index) => (
           // Positional keys: a row is identified by where it is, and rows are only appended.
-          <li key={index} className="flex flex-col gap-2 border-b border-rule py-2">
+          // Two fields, so the gap between them is the field-to-field rung and not the one used
+          // *inside* a field — which is what made every label here read as belonging to the box
+          // above it (B-65 measured this step as the worst of them).
+          <li
+            key={index}
+            className={`flex flex-col ${LADDER.betweenFields.className} border-b border-rule py-2`}
+          >
             <Field label="Where">
               <TextInput
                 type="text"

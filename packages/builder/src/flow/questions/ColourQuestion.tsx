@@ -135,7 +135,14 @@ export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProp
        * was rejected too: they would meet *Raspberry* for the first time in the review row, with
        * nothing where they chose it to say where the word came from.
        */}
-      {answer !== "" && <p className="text-base">Your colour: {colourName(answer)}</p>}
+      {/*
+       * Pulled back to 8px of the grid, because it belongs to it and not to the field below it —
+       * `-mt-6` against the stack's 32px is what buys that. As a plain child of
+       * the stack it sat the same distance from both, so nothing said which it was reporting on
+       * (B-13); this is the codebase's own grouping idiom, the one the preamble and the question
+       * hint already use.
+       */}
+      {answer !== "" && <p className="-mt-6 text-base">Your colour: {colourName(answer)}</p>}
 
       {/*
        * Judged on `Continue` and not before (§7.9 decision 2, #142) — typing junk no longer

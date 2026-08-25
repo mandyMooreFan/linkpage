@@ -4,6 +4,8 @@ import { formatRatio, readout, ROLE_LABELS } from "./contrast.js";
 import { setAdvancedEnabled, setOverride } from "./edits.js";
 import { TextInput } from "../ui/TextInput.js";
 import { Checkbox } from "../ui/Checkbox.js";
+import { Field } from "../flow/questions/Question.js";
+import { LADDER } from "../ui/ladder.js";
 
 /**
  * The advanced tier, at the foot of _How it looks_. `SPEC.md` §3.4, §3.3, §7.4.
@@ -57,7 +59,18 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
         Advanced colours
       </button>
 
-      <div id={panelId} hidden={!open} className="flex flex-col gap-4">
+      {/*
+       * The panel is a sibling of the button in a container that is not a flex parent, so it
+       * owns its own offset — and had none, which opened its first sentence flush against the
+       * control that reveals it (B-9). Disclosure to disclosed is a section boundary.
+       */}
+      <div
+        id={panelId}
+        hidden={!open}
+        // Its own parts are sections — a sentence, a switch, ten fields, a readout — so they sit
+        // a rung above the gap the fields inside them use, and the ladder stays monotonic.
+        className={`${LADDER.betweenSections.className} flex flex-col ${LADDER.betweenSections.gapClassName}`}
+      >
         <p className="text-sm text-ink-quiet">
           The colours above are picked so they always read well together. Set your own here and that
           stops being true — the numbers at the bottom are how you check.
@@ -72,24 +85,29 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
           <span>Set the colours by hand</span>
         </label>
 
-        <ul className="m-0 flex list-none flex-col gap-3 p-0">
+        {/*
+         * Ten fields through the one `Field`, rather than a hand-built label-over-input that had
+         * the ladder inverted — 0px inside each row against 12px between them (B-10). Routing
+         * them through the component is §7.4's rule, and it is also the whole fix: the spacing
+         * arrives with it.
+         */}
+        <ul className={`m-0 flex list-none flex-col ${LADDER.betweenFields.className} p-0`}>
           {ROLE_LABELS.map(([role, label]) => (
-            <li key={role} className="flex flex-col">
-              <label className="block text-base font-medium" htmlFor={`${panelId}-${role}`}>
-                {label}
-              </label>
-              <TextInput
-                id={`${panelId}-${role}`}
-                type="text"
-                spellCheck={false}
-                autoCapitalize="none"
-                // The derived colour, so an empty box reads as "whatever the derivation says"
-                // rather than as nothing. Leaving it empty is how a role goes back.
-                placeholder={palette[role]}
-                value={advanced.colors[role] ?? ""}
-                disabled={!advanced.enabled}
-                onChange={(event) => onChange(setOverride(draft, role, event.target.value))}
-              />
+            <li key={role}>
+              <Field label={label}>
+                <TextInput
+                  id={`${panelId}-${role}`}
+                  type="text"
+                  spellCheck={false}
+                  autoCapitalize="none"
+                  // The derived colour, so an empty box reads as "whatever the derivation says"
+                  // rather than as nothing. Leaving it empty is how a role goes back.
+                  placeholder={palette[role]}
+                  value={advanced.colors[role] ?? ""}
+                  disabled={!advanced.enabled}
+                  onChange={(event) => onChange(setOverride(draft, role, event.target.value))}
+                />
+              </Field>
             </li>
           ))}
         </ul>

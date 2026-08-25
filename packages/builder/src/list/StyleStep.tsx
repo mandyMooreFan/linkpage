@@ -9,6 +9,7 @@ import {
 import { useId, useState, type JSX, type ReactNode } from "react";
 import { BRAND_SWATCHES } from "../flow/index.js";
 import { Field } from "../flow/questions/Question.js";
+import { LADDER } from "../ui/ladder.js";
 import { hasContent } from "../flow/topics.js";
 import type { Draft } from "../project/index.js";
 import { Advanced } from "./Advanced.js";
@@ -71,7 +72,9 @@ export function StyleStep({ draft, onChange }: StyleStepProps): JSX.Element {
   const hours = draft.hours;
 
   return (
-    <div className="mt-4 flex flex-col gap-6" data-style-step>
+    // Six controls in a stack is a stack of fields, so it takes the field-to-field rung — it had
+    // the ladder right already at 24px, and follows it up now that the rung has moved.
+    <div className={`mt-4 flex flex-col ${LADDER.betweenFields.className}`} data-style-step>
       <ColourControl
         label="Your main colour"
         hint="Everything else on the page is worked out from it."
@@ -171,7 +174,12 @@ function ColourControl({
   return (
     <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
       <legend className="block text-base font-medium">{label}</legend>
-      <p className="mt-1 block text-sm text-ink-quiet">{hint}</p>
+      {/*
+       * No `mt-1` of its own: the fieldset is a gapped column, so the offset was additive and
+       * the same hint string rendered 12px here against `Field`'s 4px (B-11). The container owns
+       * the ladder, in one place, exactly as it does inside a field.
+       */}
+      <p className="block text-sm text-ink-quiet">{hint}</p>
 
       <ul className="m-0 flex list-none flex-row flex-wrap gap-3 p-0">
         {BRAND_SWATCHES.map((swatch) => (
