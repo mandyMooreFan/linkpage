@@ -214,7 +214,8 @@ function ColourControl({
 
       {onClear !== undefined && value !== "" && (
         <Button
-          weight="quiet"
+          weight="secondary"
+          data-escape
           onClick={() => {
             setTyped("");
             onClear();
