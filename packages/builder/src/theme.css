@@ -70,18 +70,30 @@
    * framework's palette, sitting on a warm ground — the one place in the tool where a colour
    * disagreed with the paper around it.
    *
-   * **Both of the bar's boundaries cannot clear 3:1 at once.** Contrast composes along
-   * ground → track → fill, so a track at 3:1 carrying a fill at 3:1 needs the fill itself over
-   * **9:1** on the ground; this one is at 5.88. So the boundary that carries the state — the
-   * fill against the track, the edge you read a proportion off — keeps the 3:1, and the track
-   * goes as dark as that allows. `#c1b9ac` is `rule` blended toward the ink until it stops:
-   * **1.82:1** on the ground against 1.16 before, with the fill still at **3.23:1** on it. Both
-   * numbers are asserted in `controls.test.ts`, along with the arithmetic that says why the
-   * track stops there — so the day the fill is darkened past 9:1, the test that pins this
-   * trade-off goes red and the track can be taken the rest of the way.
+   * **The two boundaries used to be in competition, and this is how that was resolved.**
+   * Contrast composes along ground → track → fill, so a track at 3:1 carrying a fill at 3:1
+   * needs the fill itself over **9:1** on the ground. At `#4f46e5` the fill was at **5.88**, and
+   * no track colour existed that cleared both edges — balancing them lands both on 2.43. #185
+   * therefore held the boundary that carries the *state* — the fill against the track, the edge
+   * you read a proportion off — at 3:1, took the track as dark as that allowed (`#c1b9ac`,
+   * **1.82:1**, visible but under the line), and wrote the alternative up rather than shipping
+   * it: darkening §7.4's exception colour changes the tool's second colour, which is an owner's
+   * call and not a ticket's.
+   *
+   * **The owner made that call** (#222), having seen both on the real wizard screens at both of
+   * §7.6's sizes. `--color-progress` steps one stop darker to indigo-800, which buys the track
+   * the rest of its distance: fill **9.30:1** on the ground, track **3.08:1** on the ground,
+   * fill **3.02:1** on the track. Both edges of the bar now clear SC 1.4.11, so B-26 is closed
+   * whole — how far there is left to go is as legible as how far you have come — and the track
+   * keeps the warm cast that was the other half of that finding.
+   *
+   * The two ratios and the composition that ties them together are asserted in
+   * `controls.test.ts`; the trade above is history now, not a live constraint, and the guard
+   * that used to pin it (`fill/ground < 9`) has been replaced by the pair of 3:1s it was
+   * holding the door open for.
    */
-  --color-progress: #4f46e5;
-  --color-progress-track: #c1b9ac;
+  --color-progress: #3730a3;
+  --color-progress-track: #938d83;
 
   /**
    * §7.6's single width, which `flow.css` and `preview.css` used to agree on by hand. One token
