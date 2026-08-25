@@ -119,9 +119,17 @@ export function LinkButtons({
             </Field>
 
             <div className="flex items-center gap-2">
+              {/*
+               * The disabled arrows say *unavailable* in the vocabulary every other disabled
+               * control in the tool uses — `disabled:text-ink-quiet disabled:border-rule`, the
+               * pair `Button`'s weights spend (item 1.8, finding B-25). They used to say it in
+               * `text-rule`, which at 1.31:1 on the ground is not a state but a disappearance:
+               * the top row's *up* and the bottom row's *down* are disabled every time this
+               * editor opens, so what the owner saw was two arrows where there should be four.
+               */}
               <button
                 type="button"
-                className="tap min-w-11 rounded-sm border border-rule bg-transparent text-lg disabled:text-rule"
+                className="tap min-w-11 rounded-sm border border-rule bg-transparent text-lg disabled:border-rule disabled:text-ink-quiet"
                 disabled={index === 0}
                 aria-label={`Move ${link.label} up`}
                 onClick={() => commit(moved(rows, index, index - 1))}
@@ -130,7 +138,7 @@ export function LinkButtons({
               </button>
               <button
                 type="button"
-                className="tap min-w-11 rounded-sm border border-rule bg-transparent text-lg disabled:text-rule"
+                className="tap min-w-11 rounded-sm border border-rule bg-transparent text-lg disabled:border-rule disabled:text-ink-quiet"
                 disabled={index === rows.length - 1}
                 aria-label={`Move ${link.label} down`}
                 onClick={() => commit(moved(rows, index, index + 1))}
