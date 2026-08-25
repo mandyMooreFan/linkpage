@@ -19,6 +19,15 @@ import { Button } from "../ui/Button.js";
  * with it both branches of this fork are safe: download and replace, or replace knowing you
  * chose not to.
  *
+ * **Focus and weight answer different questions, so they point at different buttons.** The
+ * keyboard lands on the escape, because the OS picker has just closed and an unaimed press must
+ * not be the one that replaces the project. The solid fill sits on _Open the file_, because that
+ * is the errand the owner is here on — they picked a file. The two used to agree, and reading
+ * that agreement as a rule made the escape the loudest thing on the screen while the errand was
+ * merely outlined. Focus order is about what a press nobody aimed does; weight is about what the
+ * screen is for. Nothing in the safe-focus argument above ever depended on the escape also being
+ * the primary, which is why that argument survives the swap unchanged.
+ *
  * **Why this appears after the file is picked, not before.** "Opening _this file_ will replace
  * it" is a sentence about a file the owner has already chosen — and by the time it is on screen
  * that file has already been parsed and validated, so a mistyped `index.html` is refused
@@ -63,7 +72,9 @@ export function ReplaceConfirm({
   const escape = useRef<HTMLButtonElement>(null);
 
   // The OS picker has just closed, so the keyboard is nowhere useful. It lands on the safe
-  // branch of the fork rather than on the one that replaces the project.
+  // branch of the fork rather than on the one that replaces the project — which stays true with
+  // the fill on `Open the file`, because where focus starts and what the screen emphasises are
+  // separate decisions (see the docblock).
   useEffect(() => {
     escape.current?.focus();
   }, []);
@@ -86,10 +97,16 @@ export function ReplaceConfirm({
         Opening this file will replace it.
       </p>
 
-      <div className="mt-3 flex flex-col gap-2">
+      {/*
+       * One alignment for the stack. `items-start` rather than three per-button decisions: the
+       * outlined and quiet weights already start-align themselves, and the filled one used to
+       * stretch to the full width, so a fork of three choices sat at two different left-to-right
+       * shapes at once.
+       */}
+      <div className="mt-3 flex flex-col items-start gap-2">
         <Button
           type="button"
-          weight="primary"
+          weight="secondary"
           ref={escape}
           onClick={() => {
             outgoing.save();
@@ -98,10 +115,10 @@ export function ReplaceConfirm({
         >
           Download my work first
         </Button>
-        <Button type="button" weight="secondary" onClick={onOpen}>
+        <Button type="button" weight="primary" onClick={onOpen}>
           Open the file
         </Button>
-        <Button weight="quiet" onClick={onCancel}>
+        <Button type="button" weight="quiet" onClick={onCancel}>
           Cancel
         </Button>
       </div>
