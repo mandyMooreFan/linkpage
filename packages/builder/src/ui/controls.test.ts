@@ -1,7 +1,8 @@
 import { contrastRatio, parseHex } from "@linkpage/renderer";
 import { describe, expect, it } from "vitest";
-import { INPUT_CLASS } from "./TextInput.js";
+import { INPUT_CLASS, TEXTAREA_CLASS } from "./TextInput.js";
 import { WEIGHT } from "./Button.js";
+import { CHECKBOX_CLASS } from "./Checkbox.js";
 
 /**
  * The control layer holds, and the two colours it spends.
@@ -66,6 +67,49 @@ describe("the one text input", () => {
     expect(quiet).not.toBeNull();
     expect(ground).not.toBeNull();
     expect(contrastRatio(quiet!, ground!)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+/**
+ * The two native controls (design change 6, findings B-56 and B-73).
+ *
+ * **These guard an absence, which is why they read the sources.** Neither defect was findable by
+ * reading classes: a raw `<input type="checkbox">` and a bare `<textarea>` have empty class lists
+ * and look perfectly deliberate in a diff. What they do is take the browser's defaults — a
+ * saturated accent blue belonging to no ramp, and a grip that drags the field out of §7.6's
+ * column — and no test that renders a component can see either, because jsdom paints nothing.
+ * So the assertion is that the element does not appear raw anywhere: a future tick box or
+ * multi-line field has to come through the component that carries the styling.
+ */
+describe("the two native controls", () => {
+  it("has no raw checkbox left in the markup", () => {
+    const offenders = others("./Checkbox.tsx")
+      .filter(([, text]) => text.includes('type="checkbox"'))
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  it("paints the tick in the tool's own ink, at a size you can see", () => {
+    expect(CHECKBOX_CLASS).toContain("accent-ink");
+    // Stepped up from the browser's ~0.8125rem, which reads as a stray mark beside `text-lg`.
+    expect(CHECKBOX_CLASS).toMatch(/\bsize-[5-9]\b/);
+    // §7.6's floor is the pressable row's, not the box's: `tap` is a min-height, and a
+    // 1.25rem-wide box 2.75rem tall is a stretched rectangle. See `Checkbox.tsx`.
+    expect(CHECKBOX_CLASS).not.toMatch(/\btap\b/);
+  });
+
+  it("has no raw textarea left in the markup", () => {
+    const offenders = others("./TextInput.tsx")
+      .filter(([, text]) => text.includes("<textarea"))
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  it("cannot be dragged, and is otherwise the same ruled line", () => {
+    expect(TEXTAREA_CLASS).toContain(INPUT_CLASS);
+    // Not `resize-y`: Chromium paints the identical grip for it, so the mark stays. See
+    // `TextInput.tsx` for the two alternatives the review shots ruled out.
+    expect(TEXTAREA_CLASS).toMatch(/\bresize-none\b/);
   });
 });
 

@@ -4,6 +4,7 @@ import type { Suggestion } from "../presets.js";
 import { TextField } from "../../ui/TextField.js";
 import { Field, Question } from "./Question.js";
 import { TextInput } from "../../ui/TextInput.js";
+import { Checkbox } from "../../ui/Checkbox.js";
 import { Button } from "../../ui/Button.js";
 
 /**
@@ -89,8 +90,7 @@ export function LinksQuestion({
             return (
               <li key={id}>
                 <label className="tap flex items-center gap-3">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={on}
                     onChange={() =>
                       setChosen(on ? chosen.filter((each) => each !== id) : [...chosen, id])

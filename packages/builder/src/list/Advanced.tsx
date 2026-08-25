@@ -3,6 +3,7 @@ import type { Draft } from "../project/index.js";
 import { formatRatio, readout, ROLE_LABELS } from "./contrast.js";
 import { setAdvancedEnabled, setOverride } from "./edits.js";
 import { TextInput } from "../ui/TextInput.js";
+import { Checkbox } from "../ui/Checkbox.js";
 
 /**
  * The advanced tier, at the foot of _How it looks_. `SPEC.md` §3.4, §3.3, §7.4.
@@ -63,9 +64,8 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
         </p>
 
         <label className="tap flex items-center gap-2 font-medium" htmlFor={switchId}>
-          <input
+          <Checkbox
             id={switchId}
-            type="checkbox"
             checked={advanced.enabled}
             onChange={(event) => onChange(setAdvancedEnabled(draft, event.target.checked))}
           />
