@@ -3,6 +3,9 @@
 import { cleanup, render as mount, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Field } from "./Question.js";
+import { LADDER } from "../../ui/ladder.js";
+import { TextField } from "../../ui/TextField.js";
+import { TextArea } from "../../ui/TextInput.js";
 
 /**
  * `Field`: a label, an optional hint, and a control. Issue #91.
@@ -74,15 +77,26 @@ describe("a hinted field", () => {
     expect(describedText(screen.getByRole("textbox"))).toBe("Like #c2185b.");
   });
 
-  it("keeps the hint visible, between the label and the control", () => {
+  it("keeps the hint visible, below the control", () => {
     openHinted();
     const field = document.querySelector("[data-field]");
-    // Asserted by shape rather than by class name: what matters is label, then hint, then the
-    // control, and a class list is a styling detail that would make this test edit itself every
-    // time the presentation moves.
+    // Asserted by shape rather than by class name: what matters is that a field reads **name,
+    // box, explanation** — never explanation first (#187) — and a class list is a styling detail
+    // that would make this test edit itself every time the presentation moves.
     const order = [...(field?.children ?? [])].map((el) => el.tagName);
-    expect(order).toEqual(["LABEL", "SPAN", "INPUT"]);
+    expect(order).toEqual(["LABEL", "INPUT", "SPAN"]);
     expect(field?.querySelector("[data-hint]")?.textContent).toBe("Like #c2185b.");
+  });
+
+  it("holds the label and its control apart, which is the whole complaint", () => {
+    // The gap was **zero** — only the input's own padding stood between a label and its box, and
+    // between the box and the hint. It is a class list rather than a measurement because jsdom
+    // has no layout; the rendered distance was measured on the real page, and the ladder these
+    // classes come from is asserted in `ladder.test.ts`.
+    openHinted();
+    expect(document.querySelector("[data-field]")?.className).toContain(
+      LADDER.withinField.className,
+    );
   });
 
   it("keeps the hint out of the label's subtree, which is what caused it", () => {
@@ -211,7 +225,10 @@ describe("a field with something the tool cannot use (§7.9)", () => {
     const order = [...(document.querySelector("[data-field]")?.children ?? [])].map(
       (el) => el.tagName,
     );
-    expect(order).toEqual(["LABEL", "SPAN", "INPUT", "SPAN"]);
+    expect(order).toEqual(["LABEL", "INPUT", "SPAN", "SPAN"]);
+    // And below the hint rather than above it, so the two do not swap places when one appears.
+    const spans = [...document.querySelectorAll("[data-field] > span")];
+    expect(spans.map((el) => el.getAttribute("data-hint") !== null)).toEqual([true, false]);
   });
 
   it("joins the hint rather than replacing it", () => {
@@ -238,5 +255,74 @@ describe("a field with something the tool cannot use (§7.9)", () => {
     );
     expect(document.querySelector("[data-message]")).toBeNull();
     expect(describedText(screen.getByRole("textbox"))).toBe("Copy it from your browser.");
+  });
+});
+
+/**
+ * The same guarantees, through the control the product actually uses.
+ *
+ * **Every test above this point hands `Field` a bare `<input>`, and no screen in the builder
+ * does.** They all pass `TextInput`, and that difference silently turned the association off:
+ * `labelableControl` only recognised host elements, so a component fell through to the wrapping
+ * `<label>` branch, where the hint is back inside the accessible name — the exact bug (#91) this
+ * file was written to prevent. It went unnoticed through #183, which introduced the wrapper and
+ * changed no markup, because nothing here rendered one.
+ *
+ * So these mount what ships. A test whose fixture is simpler than the product is a test that can
+ * be true about nothing.
+ */
+describe("a field built from the tool's own controls", () => {
+  const openField = (): void => {
+    mount(
+      <TextField
+        label="Or type your exact colour"
+        hint="From a designer or a brand guide."
+        value=""
+        onValueChange={() => undefined}
+      />,
+    );
+  };
+
+  it("names the control with the label alone", () => {
+    openField();
+    expect(screen.getByRole("textbox", { name: "Or type your exact colour" })).toBeDefined();
+  });
+
+  it("keeps the hint a description, and keeps it wired", () => {
+    openField();
+    expect(describedText(screen.getByRole("textbox"))).toBe("From a designer or a brand guide.");
+  });
+
+  it("points a real label at it, so the words are a click target", () => {
+    openField();
+    const label = document.querySelector<HTMLLabelElement>("[data-field] label");
+    const input = screen.getByRole("textbox");
+    expect(label?.htmlFor).not.toBe("");
+    expect(label?.htmlFor).toBe(input.id);
+    // A real `<label for>` is what makes clicking the words focus the box; `aria-labelledby`
+    // names correctly and silently costs that.
+    expect(label?.textContent).toBe("Or type your exact colour");
+  });
+
+  it("reads name, box, explanation", () => {
+    openField();
+    const order = [...(document.querySelector("[data-field]")?.children ?? [])].map(
+      (el) => el.tagName,
+    );
+    expect(order).toEqual(["LABEL", "INPUT", "SPAN"]);
+  });
+
+  it("does the same for the several-line answer", () => {
+    // `TextArea` is the same control at a second height (§7.4), so it has to be associable the
+    // same way — the address is the one field in the builder that uses it.
+    mount(
+      <Field label="Address" hint="Write it the way you'd write it on an envelope.">
+        <TextArea rows={4} defaultValue="" />
+      </Field>,
+    );
+    const box = screen.getByRole("textbox");
+    expect(box.tagName).toBe("TEXTAREA");
+    expect(describedText(box)).toBe("Write it the way you'd write it on an envelope.");
+    expect(screen.getByRole("textbox", { name: "Address" })).toBeDefined();
   });
 });

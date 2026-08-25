@@ -4,7 +4,7 @@ import { applyIntake, type LogoIntake } from "../logo/index.js";
 import { NameQuestion, TaglineQuestion } from "../flow/questions/HeaderQuestions.js";
 import { HoursQuestion } from "../flow/questions/HoursQuestion.js";
 import { LogoQuestion } from "../flow/questions/LogoQuestion.js";
-import { QuestionShellProvider } from "../flow/questions/Question.js";
+import { Field, QuestionShellProvider } from "../flow/questions/Question.js";
 import {
   AddressQuestion,
   ContactQuestion,
@@ -18,6 +18,7 @@ import {
   type Topic,
 } from "../flow/topics.js";
 import { Preview } from "../preview/Preview.js";
+import { LADDER } from "../ui/ladder.js";
 import type { Draft } from "../project/index.js";
 import { removeTopic, setLang } from "./edits.js";
 import { LANGUAGE_NAMES } from "./languages.js";
@@ -451,10 +452,14 @@ function LangRow({
   const listId = useId();
 
   return (
-    <div className="mt-4 flex w-full flex-col items-start gap-4">
+    // A picker and a field stacked, which is a field-to-field relationship whatever the two are
+    // built from.
+    <div className={`mt-4 flex w-full flex-col items-start ${LADDER.betweenFields.className}`}>
       <fieldset className="m-0 flex w-full flex-col gap-2 border-0 p-0">
         <legend className="block text-base font-medium">Page language</legend>
-        <span className="mt-1 block text-sm text-ink-quiet">
+        {/* The gapped fieldset owns the offset; `mt-1` on top of it was the third distance the
+            same hint string rendered at (B-11). */}
+        <span className="block text-sm text-ink-quiet">
           It sets the words on your page, and tells screen readers how to read it.
         </span>
 
@@ -493,20 +498,27 @@ function LangRow({
        * displayable without the control silently rewriting it to `en`.
        */}
       {typing ? (
-        <label className="flex w-full flex-col" htmlFor={fieldId}>
-          <span className="block text-base font-medium">Or type a code</span>
-          <span className="mt-1 block text-sm text-ink-quiet">
-            A language code, like <code>en</code> or <code>fr-CA</code>.
-          </span>
-          <TextInput
-            id={fieldId}
-            type="text"
-            value={value}
-            spellCheck={false}
-            autoCapitalize="none"
-            onChange={(event) => setValue(event.target.value)}
-          />
-        </label>
+        // Through `Field` rather than a fourth hand-built label-hint-input, which is where the
+        // same hint string picked up its fourth offset (B-11) and its explanation-first order.
+        <div className="w-full">
+          <Field
+            label="Or type a code"
+            hint={
+              <>
+                A language code, like <code>en</code> or <code>fr-CA</code>.
+              </>
+            }
+          >
+            <TextInput
+              id={fieldId}
+              type="text"
+              value={value}
+              spellCheck={false}
+              autoCapitalize="none"
+              onChange={(event) => setValue(event.target.value)}
+            />
+          </Field>
+        </div>
       ) : (
         <Button weight="quiet" onClick={() => setTyping(true)}>
           Or type a code

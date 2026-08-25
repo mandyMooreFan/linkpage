@@ -1,4 +1,6 @@
 import { Button } from "../../ui/Button.js";
+import { LADDER } from "../../ui/ladder.js";
+import { TextArea, TextInput } from "../../ui/TextInput.js";
 import {
   cloneElement,
   createContext,
@@ -176,7 +178,17 @@ export function Question({
               </p>
             )}
 
-            <div className="flex flex-col gap-4 font-sans">{children}</div>
+            {/*
+             * §1's ladder, and the widening the heading block never had. The two negative
+             * margins above are correct grouping — they pull the preamble and the hint to 8px
+             * of their title — but nothing then said the *group had ended*, so hint → first
+             * field was the same 16px as field → field and the whole screen read as one stack.
+             */}
+            <div
+              className={`${LADDER.outOfHeading.className} flex flex-col ${LADDER.betweenFields.className} font-sans`}
+            >
+              {children}
+            </div>
 
             {onSubmit !== undefined && (
               <Button type="submit" weight="primary" className="mt-6" disabled={submitDisabled}>
@@ -196,7 +208,13 @@ export function Question({
           )}
 
           {onBack !== undefined && (
-            <Button weight="quiet" className="mt-4 text-ink-quiet" onClick={onBack}>
+            <Button
+              weight="quiet"
+              // The most separate thing on the screen, so it takes the inter-section rung rather
+              // than the intra-form one it used to share with a gap between two fields (B-8).
+              className={`${LADDER.betweenSections.className} text-ink-quiet`}
+              onClick={onBack}
+            >
               Back
             </Button>
           )}
@@ -267,18 +285,29 @@ export function useJudged(
  * element, a `<span>` wrapping two controls, so "did I get one element?" cheerfully answers yes
  * and produces a label attached to a span.
  *
- * A component rather than a host element (`typeof type !== "string"`) is also excluded: what it
- * renders is its own business and may not be labelable at all.
+ * A component is excluded by default for the same reason: what it renders is its own business and
+ * may not be labelable at all. **The two exceptions are ours**, and they have to be named here or
+ * the check quietly stops working. `TextInput` and `TextArea` each render exactly one labelable
+ * host element and forward every attribute they are handed, so they are associable in the way an
+ * `<input>` is — but they are functions, not strings, so the host-element test says no. It said no
+ * to *every text field in the builder* between #183, which replaced the raw inputs with them, and
+ * #187, which noticed: each one fell through to the wrapping-label branch below, where the hint
+ * rejoins the accessible name — which is bug #91, restored by a refactor that changed no markup.
+ * `TextField.test.tsx` now mounts the real component rather than a bare `<input>`, so the next
+ * control that grows a wrapper fails a test instead of losing its description in silence.
  */
 const LABELABLE = new Set(["button", "input", "meter", "output", "progress", "select", "textarea"]);
+const LABELABLE_CONTROLS = new Set<unknown>([TextInput, TextArea]);
 
 type Associable = ReactElement<{ id?: string; "aria-describedby"?: string }>;
 
 function labelableControl(children: ReactNode): Associable | undefined {
   if (!isValidElement(children)) return undefined;
-  return typeof children.type === "string" && LABELABLE.has(children.type)
-    ? (children as Associable)
-    : undefined;
+  const labelable =
+    typeof children.type === "string"
+      ? LABELABLE.has(children.type)
+      : LABELABLE_CONTROLS.has(children.type);
+  return labelable ? (children as Associable) : undefined;
 }
 
 /**
@@ -301,6 +330,14 @@ function labelableControl(children: ReactNode): Associable | undefined {
  *
  * A hint sits outside the label and is attached with `aria-describedby` — the attribute that means
  * *supplementary*, which is what a hint is.
+ *
+ * **And it sits below the control**, so a field reads *name → box → explanation* rather than
+ * explanation first (#187). Nothing about the association moves with it: `aria-describedby` names
+ * the hint wherever it is on screen, which is exactly why the order is free to be the right one.
+ *
+ * **The gaps are `ladder.ts`'s, not this file's.** They were zero — label→control and hint→control
+ * both — with only the input's own padding holding them apart, which is where the owner's first
+ * complaint started and where the focus ring found room to strike a hint out (B-57).
  *
  * **The message slot is §7.9's, and it is written here once rather than fourteen times.**
  *
@@ -360,43 +397,49 @@ export function Field({
   // left, and it is what this component did before; the name is imprecise but present, which
   // beats a label attached to nothing. No caller is in this state.
   const labelText = <span className="block text-base font-medium">{label}</span>;
+  // The offsets are the container's, not each span's: the same string used to render 4px here and
+  // 12px inside a gapped copy of it, which is one hint at three distances (B-11).
   const hintText =
     hint === undefined ? null : (
-      <span className="mt-1 block text-sm text-ink-quiet" id={hintId} data-hint>
+      <span className="block text-sm text-ink-quiet" id={hintId} data-hint>
         {hint}
       </span>
     );
   // Live, so it is announced when it appears rather than only when the control is next reached.
   const messageText =
     message === undefined ? null : (
-      <span className="mt-1 block text-sm text-notice" id={messageId} data-message role="status">
+      <span className="block text-sm text-notice" id={messageId} data-message role="status">
         {message}
       </span>
     );
 
+  const stack = `flex flex-col ${LADDER.withinField.className}`;
+
   if (target === undefined) {
     return (
-      <label className="flex flex-col" data-field>
+      <label className={stack} data-field>
         {labelText}
-        {hintText}
         {children}
+        {hintText}
         {messageText}
       </label>
     );
   }
 
   return (
-    <div className="flex flex-col" data-field>
+    <div className={stack} data-field>
       <label className="block text-base font-medium" htmlFor={target}>
         {label}
       </label>
-      {hintText}
-      {htmlFor !== undefined || control === undefined
+      {control === undefined
         ? children
         : cloneElement(control, {
-            id: target,
+            // A caller naming its own `htmlFor` has already put that id on the control; the
+            // description still has to be attached, or a hint on a composite reaches nobody.
+            ...(htmlFor === undefined ? { id: target } : {}),
             ...(describedBy === undefined ? {} : { "aria-describedby": describedBy }),
           })}
+      {hintText}
       {messageText}
     </div>
   );

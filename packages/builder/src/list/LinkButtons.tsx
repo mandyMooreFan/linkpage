@@ -5,6 +5,7 @@ import type { Draft } from "../project/index.js";
 import { moved, setLinks, withoutAt } from "./edits.js";
 import { TextInput } from "../ui/TextInput.js";
 import { Button } from "../ui/Button.js";
+import { LADDER } from "../ui/ladder.js";
 
 /**
  * The link buttons row: arrows, and a marked top slot. `SPEC.md` §7.5, §2.3, §7.6.
@@ -72,7 +73,13 @@ export function LinkButtons({
         {rows.map((link, index) => (
           // Positional keys: a button's identity on this screen *is* where it is in the order,
           // which is the same thing the arrows change and the page reads.
-          <li key={index} className="flex flex-col gap-2 border-b border-rule py-3" data-button-row>
+          <li
+            key={index}
+            // Two fields inside one row, so they are a rung apart rather than sharing the gap a
+            // label keeps from its own control.
+            className={`flex flex-col ${LADDER.betweenFields.className} border-b border-rule py-3`}
+            data-button-row
+          >
             {index === 0 && (
               <p className="m-0 text-sm font-semibold text-notice" data-mark>
                 Most people will tap this one
