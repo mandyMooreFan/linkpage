@@ -330,10 +330,14 @@ export function Flow({
       data-screen="flow"
     >
       {/*
-       * Balanced in the viewport (#148, walk moment 3): on a phone the bar is the header, the
-       * question sits centred in the space between, and the drawer's control below becomes the
-       * footer. On wide the column shrinks to its content (the root is items-start), so the
-       * centring is a no-op there and nothing branches.
+       * Balanced in the viewport (#148, walk moment 3): on a phone the bar is the header and
+       * the drawer's control below becomes the footer, which is what `flex-1` here buys — the
+       * column grows to the screen and the control is carried to its bottom edge. On wide the
+       * column shrinks to its content (the root is items-start), so it is a no-op there and
+       * nothing branches.
+       *
+       * **The third part of that composition — the question centred between them — is gone**
+       * (#196, B-70). See the content div below.
        */}
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col wide:mx-0 wide:flex-1">
         {/*
@@ -347,7 +351,22 @@ export function Flow({
           onJump={jumpTo}
           onLeave={entry.kind === "add" ? onDone : undefined}
         />
-        <div className="flex flex-1 flex-col justify-center">
+        {/*
+         * **The question is pinned under the bar, and the slack goes below it** (#196, B-70).
+         *
+         * This used to be `justify-center`, centring the question in whatever the bar and the
+         * drawer left over — so the gap from the bar to the heading was a function of how tall
+         * the question happened to be. Measured at 390: **24px on the hours step and 185px on
+         * the name step**, one screen, one width. §7.2's bar is a caption for the question it
+         * describes, and a caption that lands most of a screen away from its subject has
+         * stopped captioning it.
+         *
+         * `flex-1` stays, so the *space* still exists and still lands at the bottom, where the
+         * drawer's control sits on the footer edge. What changed is which end of the column
+         * gets it. Narrow-only in effect and with no branch: on wide the root is `items-start`,
+         * so there was never any slack here to give away.
+         */}
+        <div className="flex flex-1 flex-col" data-flow-body>
           {/*
            * Keyed by the step, so each question arrives with its own empty state. Two link-URL
            * screens in a row are the same component and would otherwise hold the previous

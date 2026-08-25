@@ -7,7 +7,7 @@ import { POPULATED } from "../fixtures.js";
 import type { Topic } from "../flow/topics.js";
 import type { Draft } from "../project/index.js";
 import { ROW_OPEN } from "../ui/row.js";
-import { List } from "./List.js";
+import { List, MENU_PANEL } from "./List.js";
 
 /**
  * The review list, driven by pressing things. `SPEC.md` §7.4, §7.5, §7.1, §3.4, §7.7.
@@ -497,6 +497,24 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
     // In place, with the project intact behind it — never a modal (§7.9).
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Ada & Sons <Bakers>");
+  });
+
+  /**
+   * The menu's surface holds §7.8's fork, so it has to be wide enough for it (#196, B-53/B-67).
+   *
+   * The panel is `absolute` inside a shrink-wrapped `relative`, so its shrink-to-fit width
+   * resolves against the Menu button and not against what it holds: a `min-width` there is not a
+   * floor, it is the width, and the content has no way to ask for more. At 256px that left
+   * "Download my work first" exactly 0px of slack at both of §7.6's sizes.
+   */
+  it("lets the panel grow to what it is holding, within a cap (#196)", () => {
+    editing(POPULATED, {
+      onImport: () => {},
+      importConfirm: <p>Opening this file will replace it.</p>,
+    });
+
+    const panel = document.querySelector("[data-menu-panel]") as HTMLElement;
+    expect(panel.className).toContain(MENU_PANEL.className);
   });
 
   it("does not track downloaded versus changed since (§7.7)", () => {
