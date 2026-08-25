@@ -9,14 +9,31 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   {
     /**
-     * The screenshot capture script. Plain ESM run by hand, never by CI, so it is not covered by
-     * either package's tsconfig — which means `no-undef` is the only thing checking its names,
-     * and it needs to be told which ones exist. `window` appears inside a `page.addInitScript`
-     * callback, which is serialised and run in the browser rather than here.
+     * The screenshot capture script — `scripts/review-shots.mjs`, §7.4's appearance ritual. Plain
+     * ESM run by hand, never by CI, so it is not covered by either package's tsconfig — which
+     * means `no-undef` is the only thing checking its names, and it needs to be told which ones
+     * exist.
+     *
+     * `SPEC.md` names it `scripts/review-shots.mjs`, which is its path *as run from the builder
+     * package* — the way both scripts here are invoked.
+     *
+     * The browser globals below are not a lie about where this runs. `document`, `localStorage`,
+     * `HTMLElement` and `window` appear only inside `page.evaluate` callbacks, which are
+     * serialised and run in the browser rather than here.
      */
     files: ["packages/builder/scripts/**/*.mjs"],
     languageOptions: {
-      globals: { console: "readonly", process: "readonly", URL: "readonly", window: "readonly" },
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        fetch: "readonly",
+        setTimeout: "readonly",
+        URL: "readonly",
+        window: "readonly",
+        document: "readonly",
+        localStorage: "readonly",
+        HTMLElement: "readonly",
+      },
     },
   },
   {

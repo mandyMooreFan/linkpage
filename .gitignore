@@ -10,3 +10,6 @@ test-results/
 .env.*
 !.env.example
 .exported-page.html
+
+# Output of scripts/review-shots.mjs — pictures for a person, never committed by default.
+review-shots/
