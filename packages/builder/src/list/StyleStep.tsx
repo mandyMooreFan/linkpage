@@ -73,8 +73,9 @@ export function StyleStep({ draft, onChange }: StyleStepProps): JSX.Element {
 
   return (
     // Six controls in a stack is a stack of fields, so it takes the field-to-field rung — it had
-    // the ladder right already at 24px, and follows it up now that the rung has moved.
-    <div className={`mt-4 flex flex-col ${LADDER.betweenFields.className}`} data-style-step>
+    // the ladder right already at 24px, and follows it up now that the rung has moved. The top
+    // offset is the open row's, once, and no longer this editor's (B-42).
+    <div className={`flex flex-col ${LADDER.betweenFields.className}`} data-style-step>
       <ColourControl
         label="Your main colour"
         hint="Everything else on the page is worked out from it."

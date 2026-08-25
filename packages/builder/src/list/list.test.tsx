@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { POPULATED } from "../fixtures.js";
 import type { Topic } from "../flow/topics.js";
 import type { Draft } from "../project/index.js";
+import { ROW_OPEN } from "../ui/row.js";
 import { List } from "./List.js";
 
 /**
@@ -156,6 +157,101 @@ describe("every answer is a row (§7.4)", () => {
 
     expect(latest()?.header.tagline).toBe("Very good coffee");
     expect(screen.getByRole("button", { name: /Very good coffee/ })).toBeTruthy();
+  });
+});
+
+/**
+ * The screen's own ladder, and which half of a row is emphasised. `SPEC.md` §7.4, §1, §2;
+ * design change 4 (#191), findings B-41, B-42, B-44, B-62, B-63.
+ *
+ * **These read class names, which the suite otherwise avoids on purpose.** The rule here *is* a
+ * set of authored numbers — 32 / 8 / 24 / 24, and 48px under an open row — and the defect was that
+ * they had drifted to be all the same. A test that renders the component and looks at nothing
+ * cannot fail when they drift again, and the alternative instrument (a screenshot diff) is the
+ * flaky one §7.4 refuses. The hooks are `data-*` for the same reason §7.4 gives: a utility may
+ * change with the design, so the test names the thing rather than the class that styles it.
+ */
+describe("the list's ladder and emphasis (§1, §2)", () => {
+  const row = (id: string): HTMLElement =>
+    document.querySelector(`[data-row="${id}"]`) as HTMLElement;
+
+  it("groups the arrival line with the title it belongs to, not with the bar above it", () => {
+    mount(<List draft={POPULATED} arrived onChange={() => {}} onAdd={() => {}} />);
+
+    const line = document.querySelector("[data-arrival]") as HTMLElement;
+    const title = screen.getByRole("heading", { level: 1 });
+    const block = line.parentElement as HTMLElement;
+
+    // One block, 8px apart inside it — the line describes the title, not the buttons.
+    expect(block.contains(title)).toBe(true);
+    expect(block.className).toContain("gap-2");
+    // …and 32px from the bar, which is the biggest break on the screen. It sits on the block so
+    // that a list arrived at without the line gets the same break.
+    expect(block.className).toContain("mt-8");
+    expect(line.className).not.toMatch(/\bmt-\d/);
+    expect(title.className).not.toMatch(/\bmt-\d/);
+  });
+
+  it("keeps the bar-to-title break when there is no arrival line", () => {
+    mount(<List draft={POPULATED} onChange={() => {}} onAdd={() => {}} />);
+
+    const title = screen.getByRole("heading", { level: 1 });
+    expect(document.querySelector("[data-arrival]")).toBeNull();
+    expect((title.parentElement as HTMLElement).className).toContain("mt-8");
+  });
+
+  it("separates an open row with space rather than with a heavier line (B-41, B-42)", () => {
+    editing();
+    openRow(/^A line about what you do/);
+
+    const body = row("tagline").querySelector("[data-row-body]") as HTMLElement;
+    // The same hairline as between two collapsed rows — the line is not what changed.
+    expect(body.className).toContain("border-t border-rule");
+    expect(body.className).not.toMatch(/border-t-[2-9]/);
+    // 32px above and 48px below: the widest gap on the screen, and wider than any rung inside
+    // the form it closes. `controls.test.ts` holds those numbers against the ladder itself.
+    expect(body.className).toContain(ROW_OPEN.className);
+  });
+
+  it("owns the open row's top offset once, so no editor brings its own (B-42)", () => {
+    editing();
+
+    for (const [name, hook] of [
+      [/^How it looks/, "[data-style-step]"],
+      [/^Link buttons/, "[data-button-row]"],
+    ] as const) {
+      openRow(name);
+      const editor = document.querySelector(hook)?.closest("[data-row-body] > *");
+      expect(editor, `${hook} must be inside an open row's body`).toBeTruthy();
+      expect(editor?.className).toEqual(expect.not.stringMatching(/\bmt-\d/));
+      fireEvent.click(screen.getByRole("button", { name, expanded: true }));
+    }
+  });
+
+  it("prints the owner's answer in ink and our field name in the quiet colour (B-62)", () => {
+    editing();
+
+    const label = row("address").querySelector("[data-row-label]") as HTMLElement;
+    const answer = row("address").querySelector("[data-row-summary]") as HTMLElement;
+
+    expect(answer.textContent).toContain("12 Mill Lane");
+    expect(answer.className).toContain("text-ink");
+    expect(answer.className).not.toContain("text-ink-quiet");
+    expect(label.className).toContain("text-ink-quiet");
+  });
+
+  it("stops showing the summary while the row is open, so the value appears once (B-63)", () => {
+    editing();
+    const tagline = POPULATED.header.tagline ?? "";
+
+    expect(row("tagline").querySelector("[data-row-summary]")?.textContent).toBe(tagline);
+
+    openRow(/^A line about what you do/);
+
+    expect(row("tagline").querySelector("[data-row-summary]")).toBeNull();
+    // Once, and in the field that can change it.
+    expect(screen.getByLabelText("Tagline")).toHaveProperty("value", tagline);
+    expect(row("tagline").textContent).not.toContain(tagline);
   });
 });
 
