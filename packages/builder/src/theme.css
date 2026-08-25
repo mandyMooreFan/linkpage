@@ -215,14 +215,92 @@
 }
 
 /**
- * One focus ring for the whole tool, defined once.
+ * The line owns focus on a text control (`SPEC.md` §7.4; #179 variant A, #188).
+ *
+ * **A text field is a line at rest, so it is a line when you reach it.** The underline thickens
+ * from 1px to 2px and recolours from `control-edge` to `ink`, in place; the rectangle below steps
+ * aside for it. Two treatments used to fire on every input at once — the recolour *and* the ring
+ * — which is B-36, and the ring was a rectangle drawn around a control that has no rectangle,
+ * which is B-58. Reaching a field no longer appears to change its shape.
+ *
+ * **It sits on `LINE_CLASS`, the string that *is* the line**, so it is written once and reaches
+ * both things standing on that line: the plain field, where the box draws the line itself, and
+ * the prefixed web-address row (#197), where a `<span>` draws it around a scheme and a box. Hence
+ * the two selectors — the line either takes focus or contains what took it. `:has()` rather than
+ * `:focus-within` for the same reason the first is `:focus-visible`: one question about focus,
+ * asked the same way on both, where before the row asked a different one from the input.
+ *
+ * **`:focus-visible`, not `:focus`.** The recolour used to fire on any focus and the ring only on
+ * a keyboard one, so the two disagreed about what focus *is* — which is the root of B-36 rather
+ * than a detail of it. Note what this does **not** cost: `:focus-visible` matches a text input
+ * however it was focused, keyboard or mouse, because typing is what the element is for. So the
+ * field still answers a click, and the swatch beside it still does not.
+ *
+ * **The thickening must not reflow, and the padding is where the pixel comes from.** `py-2` is
+ * `calc(var(--spacing) * 2)`; the second pixel of the line is taken back out of the padding
+ * beneath it, written as the same expression so the two cannot drift. The field's height is set
+ * by its content (45px, above the 44px `tap` floor), so without this every hint, field and
+ * button below a focused line would move by a pixel — and `theme.css`'s own argument is that a
+ * focus style that reflows is a focus style people turn off. Measured in Chromium on the name
+ * step: padding 8px → 7px, border 1px → 2px, the field's own box 45px tall either way, `Continue`
+ * at the same `y` and the document the same height. `controls.test.ts` ties the three numbers
+ * together so `py-2` cannot move without the compensation moving with it.
+ *
+ * **The rectangle is turned transparent rather than off.** `outline-style: none` would leave a
+ * text field with no focus indicator at all in Windows High Contrast, where a 2px border and a
+ * 1px border are both `CanvasText` and the thickening is nearly all the signal there is. A
+ * transparent outline is the one that forced colours paint back in.
+ */
+@utility focus-line {
+  &:focus-visible,
+  &:has(:focus-visible) {
+    border-bottom-width: 2px;
+    border-bottom-color: var(--color-ink);
+    padding-bottom: calc(var(--spacing) * 2 - 1px);
+  }
+
+  /* On whichever box actually took focus: the line itself, or the box standing on it. */
+  &:focus-visible,
+  & :focus-visible {
+    outline-color: transparent;
+  }
+}
+
+/**
+ * One focus ring for the whole tool, defined once — for everything that is not a line.
  *
  * `:focus-visible` rather than `:focus` so a mouse press does not draw it, and an outline rather
  * than a ring utility so it never moves layout — a focus style that reflows is a focus style
  * people turn off.
+ *
+ * **The positive offset is what keeps it legible on a swatch, and that is not a detail.** Laid on
+ * the owner's colour this ring clears 3:1 on **none of the twelve** — from 1.04 on `#7b1fa2` to
+ * 1.66 on `#2e7d32`, worse across the board than the ink `picked` spends, which is why #192 had
+ * to buy that mark a clearing of its own. Focus needs no such purchase, because it is drawn
+ * *outside* the control: the pixels it colours were ground a moment ago and are `notice` now, so
+ * the ratio that governs it is `notice` on the two backdrops the builder paints — **7.95:1** on
+ * the ground and **8.50:1** on the surface — and no brand colour is ever adjacent to it or
+ * underneath it. Sampled out of a real screenshot, the swatch's midline reads
+ * `ground · ring · ground · hairline · fill`. Move the offset negative and the ring lands on the
+ * fill at 1.04; `controls.test.ts` holds it positive and holds the corpus fact that makes that
+ * load-bearing.
+ *
+ * **Which is also how a chosen, focused swatch shows both marks at once** — B-35. Selection is
+ * inside on its own pseudo-element (#192) and focus is outside on `outline`; they share neither
+ * a property nor a pixel, so neither can silence the other.
+ *
+ * **The second selector draws the ring on the thing you can see.** A segmented control puts its
+ * radio in `sr-only` (§7.10's hours step) — so the element that matches `:focus-visible` is a
+ * clipped 1px box, the ring around it is clipped away with it, and the segment a person is
+ * actually looking at gets nothing. Forwarding it to the label is the whole fix, and it lives
+ * here rather than in the component so the ring is still spelled exactly once. Scoped to
+ * `label`, deliberately: an `sr-only` control with no label around it — the two file pickers,
+ * which are driven by a `Button` beside them — has no visible stand-in to move the ring to, and
+ * a `:has()` without the `label` would put a ring around whatever ancestor happened to hold it.
  */
 @layer base {
-  :focus-visible {
+  :focus-visible,
+  label:has(> .sr-only:focus-visible) {
     outline: 2px solid var(--color-notice);
     outline-offset: 2px;
   }

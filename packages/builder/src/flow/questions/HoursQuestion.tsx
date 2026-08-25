@@ -250,6 +250,13 @@ export function HoursQuestion({
                        * the change list offered for that overrun. There is no longer anything to
                        * clip, and an ancestor's clip would eat a focus ring drawn *outside* a
                        * segment — which is exactly where #179 put focus.
+                       *
+                       * **The focus ring is on this label and it takes no class to put it here**
+                       * (#188). The radio below is `sr-only`, so `:focus-visible` matches a
+                       * clipped 1px box and the ring is clipped away with it — the one control in
+                       * the tool with no working focus treatment at all. `theme.css`'s base rule
+                       * forwards the ring to the label that hides its own control, so the ring is
+                       * still spelled once and a future segmented control gets it for free.
                        */
                       className="tap flex cursor-pointer items-center px-3 text-sm has-checked:picked"
                     >

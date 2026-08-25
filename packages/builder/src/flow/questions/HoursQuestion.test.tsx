@@ -207,6 +207,44 @@ describe("copy is the deliberate path beside the implicit one (§7.10)", () => {
   });
 });
 
+/**
+ * The markup the focus ring stands on (#188, and #192's note that this screen had none).
+ *
+ * **This is the one control in the tool whose focus treatment is a fact about its markup.** Every
+ * other control is the element that takes focus; a segment is a `<label>` wrapping an `sr-only`
+ * radio, so the element matching `:focus-visible` is a clipped 1px box and a ring drawn on it is
+ * clipped away with it. `theme.css` forwards the ring with `label:has(> .sr-only:focus-visible)`,
+ * which is only true of the rendered page while three things hold: the radio is `sr-only`, it is
+ * a **direct** child, and the thing wrapping it is a `<label>`.
+ *
+ * **So it is asserted here, on the real question, rather than in the stylesheet's own guards.**
+ * jsdom cannot match `:focus-visible` and paints nothing, so it can never tell whether the ring
+ * *appears* — but the shape the selector depends on is ordinary DOM, and a refactor that moved
+ * the input out of the label or wrapped it one level deeper would silently take the ring away
+ * again. That is exactly the failure #213 is sweeping: a guard that cannot see what it checks.
+ */
+describe("the segment carries the focus ring the radio cannot (#188)", () => {
+  it("hides its radio directly inside the label the ring is forwarded to", () => {
+    open();
+    for (const day of DAYS) {
+      for (const label of ["Open", "Closed", "Not shown"]) {
+        const radio = state(day, label);
+        expect(radio.className, `${day}/${label}`).toContain("sr-only");
+        expect(radio.parentElement?.tagName, `${day}/${label}`).toBe("LABEL");
+      }
+    }
+  });
+
+  it("gives that label no focus class of its own, because the ring is spelled once", () => {
+    open();
+    const label = state("Monday", "Open").parentElement;
+    expect(label?.className).not.toMatch(/\bfocus/);
+    // And it still carries the one selection mark, which is drawn on a pseudo-element (#192) —
+    // so the chosen segment and the reached segment are never competing for `outline`.
+    expect(label?.className).toContain("has-checked:picked");
+  });
+});
+
 describe("what this screen deliberately does not do", () => {
   it("says nothing about hours past midnight", () => {
     // `20:00–02:00` is enterable and renders literally, so a control would only add a name for
