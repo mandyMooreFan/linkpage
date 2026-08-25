@@ -1,6 +1,7 @@
 import { useRef, type JSX, type ReactNode } from "react";
 import { PRESETS, type PresetId } from "../presets.js";
 import { Question } from "./Question.js";
+import { Button } from "../../ui/Button.js";
 
 /**
  * Step one: _"What kind of business is this?"_ `SPEC.md` §7.3, §7.8, §7.9.
@@ -62,11 +63,7 @@ export function PresetQuestion({
           <>
             <p className="m-0 font-sans text-ink-quiet">
               Already have a project file?{" "}
-              <button
-                type="button"
-                className="bg-transparent p-0 font-sans underline underline-offset-4"
-                onClick={() => picker.current?.click()}
-              >
+              <Button weight="inline" onClick={() => picker.current?.click()}>
                 {/*
                  * The upload glyph (#148, walk moment 2): affordance rather than decoration —
                  * it marks the one control on this screen that opens the file picker. Inline
@@ -87,7 +84,7 @@ export function PresetQuestion({
                   />
                 </svg>
                 Open it.
-              </button>
+              </Button>
             </p>
             {/*
              * The picker itself. `.json` rather than a bespoke type because that is what the

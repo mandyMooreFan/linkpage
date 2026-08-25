@@ -20,6 +20,8 @@ import {
   TYPE_LABELS,
   WEEK_START_LABELS,
 } from "./labels.js";
+import { TextInput } from "../ui/TextInput.js";
+import { Button } from "../ui/Button.js";
 
 /**
  * _How it looks_: the six style controls, and the advanced disclosure at their foot.
@@ -194,10 +196,9 @@ function ColourControl({
         <span className="mt-1 block text-sm text-ink-quiet">
           Or type an exact colour, like #c2185b.
         </span>
-        <input
+        <TextInput
           id={groupId}
           type="text"
-          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           value={typed}
           spellCheck={false}
           autoCapitalize="none"
@@ -212,16 +213,15 @@ function ColourControl({
       </label>
 
       {onClear !== undefined && value !== "" && (
-        <button
-          type="button"
-          className="question__escape"
+        <Button
+          weight="quiet"
           onClick={() => {
             setTyped("");
             onClear();
           }}
         >
           Just the one colour
-        </button>
+        </Button>
       )}
     </fieldset>
   );

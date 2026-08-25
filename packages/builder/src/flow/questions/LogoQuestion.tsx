@@ -2,6 +2,7 @@ import type { Logo } from "@linkpage/renderer";
 import { useRef, useState, type JSX } from "react";
 import { browserImageCodec, importLogo, LOGO_ACCEPT, type LogoIntake } from "../../logo/index.js";
 import { Question } from "./Question.js";
+import { Button } from "../../ui/Button.js";
 
 /**
  * The logo step. `SPEC.md` §6.6, §7.9.
@@ -59,14 +60,9 @@ export function LogoQuestion({
       escape={{ label: "We don't have one", onEscape: onSkip }}
       onBack={onBack}
     >
-      <button
-        type="button"
-        className="tap self-start rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base"
-        disabled={busy}
-        onClick={() => picker.current?.click()}
-      >
+      <Button disabled={busy} onClick={() => picker.current?.click()}>
         {logo === null ? "Choose a file" : "Choose a different file"}
-      </button>
+      </Button>
       <input
         ref={picker}
         type="file"
@@ -94,7 +90,7 @@ export function LogoQuestion({
         </p>
       )}
       {logo !== null && message === null && (
-        <p className="question__hint">Have a look at your page to see it.</p>
+        <p className="text-sm text-ink-quiet">Have a look at your page to see it.</p>
       )}
     </Question>
   );

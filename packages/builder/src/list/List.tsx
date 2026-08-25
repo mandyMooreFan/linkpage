@@ -25,6 +25,7 @@ import { LinkButtons } from "./LinkButtons.js";
 import { listRows, type Row, type RowId } from "./rows.js";
 import { StyleStep } from "./StyleStep.js";
 import { Button } from "../ui/Button.js";
+import { TextInput } from "../ui/TextInput.js";
 
 /**
  * The review list: the screen the owner lives on. `SPEC.md` §7.4, §7.1, §7.5–§7.8.
@@ -469,10 +470,9 @@ function LangRow({
           <span className="mt-1 block text-sm text-ink-quiet">
             A language code, like <code>en</code> or <code>fr-CA</code>.
           </span>
-          <input
+          <TextInput
             id={fieldId}
             type="text"
-            className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
             value={value}
             spellCheck={false}
             autoCapitalize="none"

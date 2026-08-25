@@ -101,13 +101,9 @@ export function ReplaceConfirm({
         <Button type="button" weight="secondary" onClick={onOpen}>
           Open the file
         </Button>
-        <button
-          type="button"
-          className="tap rounded-sm bg-transparent px-4 py-2 font-sans text-ink-quiet"
-          onClick={onCancel}
-        >
+        <Button weight="quiet" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
 
       {/* Names the file, because what the owner has to recognise later is a name in a folder. */}

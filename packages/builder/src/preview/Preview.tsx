@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useState, useSyncExternalStore, type JSX } from "react";
 import { pageHtml } from "../page.js";
 import type { Draft } from "../project/index.js";
+import { Button } from "../ui/Button.js";
 
 /**
  * The preview: the exported page itself, in a drawer the owner steps in and out of (§5.2, §7.6).
@@ -86,15 +87,14 @@ export function Preview({ project, onList = false }: PreviewProps): JSX.Element 
             Only you can see this. To share it, download the file and put it online.
           </p>
         )}
-        <button
-          type="button"
-          className="tap rounded-sm border border-rule bg-transparent px-4 py-2 font-sans"
+        <Button
+          className="self-center"
           aria-expanded={open}
           aria-controls={drawerId}
           onClick={() => setChoice(!open)}
         >
           {open ? (onList ? "Edit your page" : "Hide the page") : "See the page"}
-        </button>
+        </Button>
       </div>
       <div
         className="min-h-0 flex-1 justify-center [&:not([hidden])]:flex wide:h-[min(80dvh,46rem)] wide:flex-none"

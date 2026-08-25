@@ -3,6 +3,8 @@ import type { Pick } from "../plan.js";
 import type { Suggestion } from "../presets.js";
 import { TextField } from "../../ui/TextField.js";
 import { Field, Question } from "./Question.js";
+import { TextInput } from "../../ui/TextInput.js";
+import { Button } from "../../ui/Button.js";
 
 /**
  * The link buttons, in two screens. `SPEC.md` §7.3, §2.3.
@@ -107,13 +109,12 @@ export function LinksQuestion({
           {extras.map((pick) => (
             <li key={pick.id}>
               <span className="me-2">{pick.label}</span>
-              <button
-                type="button"
-                className="bg-transparent font-sans underline underline-offset-4"
+              <Button
+                weight="quiet"
                 onClick={() => setExtras(extras.filter((each) => each.id !== pick.id))}
               >
                 Remove
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -126,10 +127,9 @@ export function LinksQuestion({
        */}
       <Field label="Something else" htmlFor={typedId}>
         <span className="flex items-center gap-2">
-          <input
+          <TextInput
             id={typedId}
             type="text"
-            className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
             value={typed}
             placeholder="What would the button say?"
             onChange={(event) => setTyped(event.target.value)}
@@ -141,14 +141,9 @@ export function LinksQuestion({
               addExtra();
             }}
           />
-          <button
-            type="button"
-            className="tap self-start rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base"
-            disabled={typed.trim() === ""}
-            onClick={addExtra}
-          >
+          <Button disabled={typed.trim() === ""} onClick={addExtra}>
             Add
-          </button>
+          </Button>
         </span>
       </Field>
     </Question>

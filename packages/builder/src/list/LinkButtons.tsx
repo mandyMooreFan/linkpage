@@ -3,6 +3,8 @@ import { useState, type JSX } from "react";
 import { Field } from "../flow/questions/Question.js";
 import type { Draft } from "../project/index.js";
 import { moved, setLinks, withoutAt } from "./edits.js";
+import { TextInput } from "../ui/TextInput.js";
+import { Button } from "../ui/Button.js";
 
 /**
  * The link buttons row: arrows, and a marked top slot. `SPEC.md` §7.5, §2.3, §7.6.
@@ -62,7 +64,7 @@ export function LinkButtons({
 
   return (
     <div className="mt-4 flex flex-col items-start gap-4">
-      <p className="question__hint">
+      <p className="text-sm text-ink-quiet">
         People read from the top. The first button is the one most of them will tap.
       </p>
 
@@ -78,18 +80,16 @@ export function LinkButtons({
             )}
 
             <Field label="What it says">
-              <input
+              <TextInput
                 type="text"
-                className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                 value={link.label}
                 onChange={(event) => edit(index, { label: event.target.value })}
               />
             </Field>
 
             <Field label="Where it goes">
-              <input
+              <TextInput
                 type="url"
-                className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                 inputMode="url"
                 value={link.url}
                 spellCheck={false}
@@ -123,14 +123,13 @@ export function LinkButtons({
               >
                 <span aria-hidden="true">↓</span>
               </button>
-              <button
-                type="button"
-                className="bg-transparent font-sans underline underline-offset-4"
+              <Button
+                weight="quiet"
                 aria-label={`Remove ${link.label}`}
                 onClick={() => commit(withoutAt(rows, index))}
               >
                 Remove
-              </button>
+              </Button>
             </div>
           </li>
         ))}
@@ -141,17 +140,11 @@ export function LinkButtons({
        * (§7.1): the pick-list and then "where does it go?", the same two screens as day one. A
        * blank row here would be the blank field the flow exists so that nobody faces one.
        */}
-      <button
-        type="button"
-        className="tap self-start rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base"
-        onClick={onAddAnother}
-      >
-        Add another button
-      </button>
+      <Button onClick={onAddAnother}>Add another button</Button>
 
-      <button type="button" className="question__escape" onClick={onRemoveAll}>
+      <Button weight="quiet" onClick={onRemoveAll}>
         No buttons for now
-      </button>
+      </Button>
     </div>
   );
 }

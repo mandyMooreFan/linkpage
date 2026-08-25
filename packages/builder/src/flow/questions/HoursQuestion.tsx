@@ -5,6 +5,7 @@ import { Field, Question } from "./Question.js";
 import { Button } from "../../ui/Button.js";
 import { TimeBox } from "../../ui/TimeBox.js";
 import { SEEDED_HOURS_PREFERENCES } from "../../project/environment.js";
+import { TextInput } from "../../ui/TextInput.js";
 
 /**
  * Opening hours. `SPEC.md` §2.3, §7.2, §7.3.
@@ -329,12 +330,7 @@ export function HoursQuestion({
       </ul>
 
       <Field label="Anything else about your hours?" hint="Bank holidays, seasonal changes.">
-        <input
-          type="text"
-          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-        />
+        <TextInput type="text" value={note} onChange={(event) => setNote(event.target.value)} />
       </Field>
     </Question>
   );
