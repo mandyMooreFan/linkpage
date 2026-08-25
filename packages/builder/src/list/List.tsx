@@ -631,6 +631,42 @@ function vocabularyKeyOf(tag: string): string | undefined {
 const isListed = (tag: string): boolean => tag !== "" && vocabularyKeyOf(tag) !== undefined;
 
 /**
+ * The menu panel's width, with the px each class buys written beside it (#196, B-53, B-67).
+ *
+ * **A `min-width` here is not a floor — it is the width.** The panel is `absolute` inside a
+ * shrink-wrapped `relative`, so shrink-to-fit resolves against the Menu button's own width and
+ * the content can never push the panel wider than the minimum it was given. At `min-w-64` that
+ * minimum was 256px, and §7.8's fork lives inside it: measured with the ritual at 1440 and at
+ * 390, "Download my work first" came to **224px inside 224px of usable panel**. Not one pixel of
+ * slack: exactly none. It did not wrap in the browser the ritual runs, which is why the finding
+ * reads as intermittent — a fallback font, a longer translation or one more word puts it on two
+ * lines, and §4 says siblings in an action row share a spec.
+ *
+ * So the panel is sized by what it holds — `w-max` — with the minimum kept as a floor for the
+ * menu on its own (its one item is 188px, and a 204px dropdown reads as an accident) and a cap
+ * so the confirmation's sentence still wraps to a readable measure instead of running out to its
+ * own max-content. The cap is clamped to the viewport as well, for a screen narrower than the
+ * §7.6 size we photograph: the list's own gutter is `p-5` a side, which is the 2.5rem below.
+ */
+export const MENU_PANEL = {
+  className: "w-max min-w-64 max-w-[min(20rem,calc(100vw-2.5rem))]",
+  /** `min-w-64` — the panel holding nothing but its one menu item. */
+  floorPx: 256,
+  /** `max-w-[20rem]` — the panel holding §7.8's fork. */
+  capPx: 320,
+  /** Its own gutter and its own hairline, both sides (`p-2` and `border`). */
+  chromePx: 18,
+  /** The confirmation's leading rule and inset (`border-s-2 ps-3`), on one side. */
+  insetPx: 14,
+  /**
+   * The widest control the panel has to hold on one line — "Download my work first", measured
+   * in the ritual at both of §7.6's sizes. Written down because 0px of slack is not a number
+   * anybody would have guessed from the class list.
+   */
+  widestControlPx: 224,
+} as const;
+
+/**
  * The list's menu, which is where Import lives (§7.8).
  *
  * Not the Download sheet: **the sheet is where things leave; import is the one action that can
@@ -687,7 +723,7 @@ function Menu({
       </Button>
       <div
         id={menuId}
-        className="absolute top-[calc(100%+0.25rem)] left-0 z-10 min-w-64 rounded-sm border border-rule bg-surface p-2 shadow-lg"
+        className={`absolute top-[calc(100%+0.25rem)] left-0 z-10 ${MENU_PANEL.className} rounded-sm border border-rule bg-surface p-2 shadow-lg`}
         data-menu-panel
         hidden={!open}
       >

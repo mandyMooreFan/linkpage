@@ -547,6 +547,36 @@ describe("the page fills in beside the question (§7.1, §7.6)", () => {
   });
 });
 
+/**
+ * The bar sits next to the question it describes (#196, finding B-70).
+ *
+ * #148's phone walk composed the flow within the viewport — bar as header, question centred, the
+ * drawer's control as footer — and the first two thirds of that are right and stay. The centring
+ * is the part the design audit came back on: measured at 390, the gap from the bar to the heading
+ * ran **24px on the hours step and 185px on the name step**, because the question floated in
+ * whatever the bar and the drawer left over. The bar is a caption for the question; a caption
+ * that lands a screen-height away from its subject has stopped captioning it.
+ *
+ * So the content is pinned under the bar and the *space* goes to the bottom, where the drawer's
+ * control still sits on the footer edge — which is #148's other two thirds, unchanged. jsdom has
+ * no layout, so what is held here is the rule rather than the pixels; `controls.test.ts` guards
+ * it for every screen and the ritual measures it.
+ */
+describe("the bar is a caption for the question, not a header for the screen (#196)", () => {
+  const body = () => document.querySelector("[data-flow-body]") as HTMLElement;
+
+  it("pins the question under the bar rather than centring it in what is left", () => {
+    harness();
+    expect(body().className).not.toContain("justify-center");
+  });
+
+  it("still lets the space below it grow, so the drawer's control keeps the footer edge", () => {
+    harness();
+    // #148's footer: the column grows, and the question does not grow with it.
+    expect(body().className).toContain("flex-1");
+  });
+});
+
 describe("a screen change is a view transition, chrome held still (§7.11)", () => {
   /** jsdom has no view transitions, which is itself the fallback the language relies on. */
   const host = document as { startViewTransition?: (update: () => void) => unknown };

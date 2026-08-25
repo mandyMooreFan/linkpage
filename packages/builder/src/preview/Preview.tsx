@@ -128,7 +128,24 @@ export function Preview({ project, onList = false, action, onCover }: PreviewPro
       className="group flex flex-col gap-3 font-sans text-ink data-[open=true]:fixed data-[open=true]:inset-0 data-[open=true]:z-20 data-[open=true]:h-dvh data-[open=true]:gap-0 data-[open=true]:bg-surface wide:data-[open=true]:static wide:data-[open=true]:h-auto wide:data-[open=true]:gap-3 wide:data-[open=true]:bg-transparent"
       data-open={open}
     >
-      <div className="flex flex-wrap items-center justify-end gap-3 group-data-[open=true]:border-b group-data-[open=true]:border-rule group-data-[open=true]:px-3 group-data-[open=true]:py-2 wide:group-data-[open=true]:border-0 wide:group-data-[open=true]:p-0">
+      {/*
+       * **The row starts where the screen starts** (#196, B-54). This was `justify-end`, and it
+       * was the only right-aligned thing in the builder: mid-flow the row holds one control, on
+       * a screen whose heading, fields, Continue, escape and Back all share one left margin —
+       * §6's "alignment consistent per context", broken by the one element that had no reason
+       * to differ. On a laptop it was aligned to nothing at all, since the row is the column's
+       * full 32rem and the page frame inside it is 27.5rem, centred.
+       *
+       * **Nothing about #186's placement moves with it.** The sentence keeps `mr-auto`, so it
+       * absorbs the free space and the two controls still finish the line wherever there is room
+       * for one; where there is not, they now sit under the *start* of the sentence that names
+       * them, which is the reading order that paragraph was put there for. Download is still
+       * last in the row.
+       */}
+      <div
+        className="flex flex-wrap items-center justify-start gap-3 group-data-[open=true]:border-b group-data-[open=true]:border-rule group-data-[open=true]:px-3 group-data-[open=true]:py-2 wide:group-data-[open=true]:border-0 wide:group-data-[open=true]:p-0"
+        data-drawer-header
+      >
         {/*
          * #169: landing on the page (§7.6) reads like a hosted page, and it is not one yet.
          * Said here, in the header beside the one control, because this is the exact moment

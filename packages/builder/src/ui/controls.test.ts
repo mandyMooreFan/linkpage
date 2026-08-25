@@ -13,6 +13,7 @@ import {
 import { WEIGHT } from "./Button.js";
 import { CHECKBOX_CLASS } from "./Checkbox.js";
 import { LADDER } from "./ladder.js";
+import { MENU_PANEL } from "../list/List.js";
 import { ROW_BUTTON, ROW_OPEN, ROW_PADDING, ROW_STACK_PADDING } from "./row.js";
 import { BRAND_SWATCHES } from "../flow/index.js";
 
@@ -102,6 +103,17 @@ const BACKDROPS = ["ground", "surface"] as const;
 
 /** A warm cast: the red channel leads and the blue trails. */
 const isWarm = ({ r, b }: Rgb): boolean => r > b;
+
+/**
+ * Every quoted run in a file, which is where a class list lives.
+ *
+ * Deliberately not "every `className=`": the interesting ones are assembled from template
+ * literals and shared constants, and a rule that only reads the attribute misses them. Over-
+ * matching is harmless here — the rules below fire only on a string holding *two* utilities at
+ * once, and no ordinary string does.
+ */
+const classLists = (text: string): string[] =>
+  [...text.matchAll(/["'`]([^"'`]*)["'`]/g)].map((match) => match[1] ?? "");
 
 describe("the one text input", () => {
   it("is the only place the underlined-field recipe is written", () => {
@@ -548,6 +560,78 @@ describe("the one picked state", () => {
     for (const [path, text] of swatches) {
       expect(code(text), path).toContain("aria-pressed:picked");
     }
+  });
+});
+
+/**
+ * The narrow container, and the one alignment (design change 9; B-53, B-54, B-67, B-70).
+ *
+ * **All three of these guard a layout rule that has no rendered form in jsdom**, so they read
+ * the sources the way the guards above do. §7.4 refuses a standing visual-regression suite, and
+ * the pixels themselves are the ritual's job — what a test can hold is that the *rule* is still
+ * written down: nothing is right-aligned, nothing floats down the middle of a screen, and the
+ * one panel that cannot grow to fit its contents has been given a size that can.
+ */
+describe("one alignment on every screen (B-54)", () => {
+  it("right-aligns nothing — the shared left margin is the only alignment", () => {
+    // "See the page" was the single `justify-end` in the builder, on a screen where the
+    // heading, the fields, Continue, the escape and Back all start at the same left margin.
+    // The two-ended bar is a different device and keeps its own class (`justify-between`).
+    const offenders = everySource()
+      .filter(([, text]) => text.includes("justify-end"))
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  it("centres nothing down the length of a screen (B-70)", () => {
+    // The bar describes the question, so it has to sit next to it. Centring the question in
+    // whatever the bar left over put them 24px apart on the hours step and 185px apart on the
+    // name step — the same screen, at the same width, reading as two unrelated objects.
+    //
+    // Only a *column* is in scope: `wide:justify-center` on a row centres the two columns in
+    // the viewport, and the drawer centres the page frame across its own width. Both are the
+    // cross-screen axis and neither is what floats.
+    const unprefixed = (token: string): RegExp => new RegExp(String.raw`(?:^|\s)${token}(?:\s|$)`);
+    const offenders = everySource().flatMap(([path, text]) =>
+      classLists(text)
+        .filter(
+          (list) => unprefixed("flex-col").test(list) && unprefixed("justify-center").test(list),
+        )
+        .map(() => path),
+    );
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe("the menu gives its buttons room (B-53, B-67)", () => {
+  /**
+   * The panel is `absolute` inside a shrink-wrapped `relative`, so shrink-to-fit resolves
+   * against the Menu button's own width and the content can never push the panel wider. A
+   * `min-width` in that position is not a floor, it *is* the width — which is why "Download my
+   * work first" had **0px** of slack inside it, measured with the ritual at both of §7.6's
+   * sizes. Not one pixel: exactly none.
+   */
+  it("caps the panel wider than it floors it, so the content can ask for the difference", () => {
+    expect(MENU_PANEL.capPx).toBeGreaterThan(MENU_PANEL.floorPx);
+    expect(MENU_PANEL.className).toContain("w-max");
+  });
+
+  it("clears the widest control it has to hold, with room left over", () => {
+    const room = (width: number): number => width - MENU_PANEL.chromePx - MENU_PANEL.insetPx;
+
+    // What was wrong: the floor left the widest control nothing at all.
+    expect(room(MENU_PANEL.floorPx)).toBe(MENU_PANEL.widestControlPx);
+
+    // What is right: room enough that a fallback font, a longer translation or one more word
+    // does not put the label on two lines again.
+    expect(room(MENU_PANEL.capPx)).toBeGreaterThan(MENU_PANEL.widestControlPx);
+  });
+
+  it("is the only place the panel's width is written", () => {
+    const offenders = others("/List.tsx")
+      .filter(([, text]) => text.includes(MENU_PANEL.className))
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
   });
 });
 

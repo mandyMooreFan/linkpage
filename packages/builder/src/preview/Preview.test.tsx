@@ -225,7 +225,7 @@ describe("what the screen hands the drawer to carry (#186)", () => {
 
     // In the header, beside the drawer's own control and the sentence that names it — not
     // somewhere under the page.
-    const header = document.querySelector("[data-open] > div") as HTMLElement;
+    const header = document.querySelector("[data-drawer-header]") as HTMLElement;
     expect(header.contains(carried())).toBe(true);
     expect(header.textContent).toContain("download the file and put it online");
   });
@@ -338,5 +338,44 @@ describe("the landing says it is not live yet (#169)", () => {
     viewport.set(true);
     mount(<Preview project={POPULATED} />);
     expect(notice()).toBeNull();
+  });
+});
+
+/**
+ * The control starts where everything else starts (#196, finding B-54).
+ *
+ * Mid-flow this row holds one thing, and it was the only right-aligned element in the builder —
+ * on a screen whose heading, fields, Continue, escape and Back all share one left margin. On a
+ * laptop it was aligned to nothing at all: the row is the 32rem column's width and the page
+ * frame inside it is 27.5rem, centred, so the button's right edge and the page's right edge were
+ * 36px apart. `justify-start` is the alignment the rest of the screen already uses.
+ *
+ * On the list the row is a different shape and does not move: the sentence takes `mr-auto`, so
+ * it absorbs the free space and the controls stay where #186 put them wherever there is room for
+ * one line. Where there is not, they now sit under the *start* of the sentence that names them.
+ */
+describe("the drawer's control shares the screen's margin (#196)", () => {
+  const header = (): HTMLElement => document.querySelector("[data-drawer-header]") as HTMLElement;
+
+  it("starts its row rather than ending it, at either size", () => {
+    viewport.set(false);
+    mount(<Preview project={POPULATED} />);
+    expect(header().className).toContain("justify-start");
+    expect(header().className).not.toContain("justify-end");
+
+    cleanup();
+    viewport.set(true);
+    mount(<Preview project={POPULATED} />);
+    expect(header().className).toContain("justify-start");
+  });
+
+  it("still puts the screen's own action last in the row (#186)", () => {
+    viewport.set(false);
+    mount(<Preview project={POPULATED} onList action={<button type="button">Download</button>} />);
+
+    // The alignment moved; the order did not. Download is still the last thing in the row,
+    // directly under the sentence that names it.
+    const buttons = [...header().querySelectorAll("button")].map((each) => each.textContent);
+    expect(buttons).toEqual(["Edit your page", "Download"]);
   });
 });
