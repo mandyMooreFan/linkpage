@@ -2,6 +2,7 @@ import type { Clock } from "@linkpage/renderer";
 import { useEffect, useId, useState, type JSX } from "react";
 import { useJudged } from "../flow/questions/Question.js";
 import { displayTime, parseTime } from "./time.js";
+import { TextInput } from "./TextInput.js";
 
 /**
  * One time, typed rather than picked (`SPEC.md` §7.10).
@@ -86,9 +87,8 @@ export function TimeBox({
 
   return (
     <span className="flex w-full flex-col">
-      <input
+      <TextInput
         type="text"
-        className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
         aria-label={label}
         {...(message === undefined ? {} : { "aria-describedby": messageId })}
         value={text}

@@ -8,6 +8,8 @@ import {
 import { useId, useState, type JSX } from "react";
 import { TextField } from "../../ui/TextField.js";
 import { Field, Question } from "./Question.js";
+import { TextArea, TextInput } from "../../ui/TextInput.js";
+import { Button } from "../../ui/Button.js";
 
 /**
  * Contact, address and social — the three optional sections that are ordinary forms.
@@ -105,12 +107,7 @@ export function AddressQuestion({
       onBack={onBack}
     >
       <Field label="Address">
-        <textarea
-          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
-          rows={4}
-          value={lines}
-          onChange={(event) => setLines(event.target.value)}
-        />
+        <TextArea rows={4} value={lines} onChange={(event) => setLines(event.target.value)} />
       </Field>
       {/*
        * A link out rather than an embedded map: the export may reference nothing outside itself
@@ -118,9 +115,8 @@ export function AddressQuestion({
        * are you" that a visitor can act on.
        */}
       <Field label="A link to directions" hint="Optional. From your maps app's share button.">
-        <input
+        <TextInput
           type="url"
-          className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
           inputMode="url"
           value={directionsUrl}
           spellCheck={false}
@@ -187,9 +183,8 @@ export function SocialQuestion({
           // Positional keys: a row is identified by where it is, and rows are only appended.
           <li key={index} className="flex flex-col gap-2 border-b border-rule py-2">
             <Field label="Where">
-              <input
+              <TextInput
                 type="text"
-                className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                 list={listId}
                 value={row.platform}
                 spellCheck={false}
@@ -198,9 +193,8 @@ export function SocialQuestion({
               />
             </Field>
             <Field label="Your page there">
-              <input
+              <TextInput
                 type="url"
-                className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                 inputMode="url"
                 value={row.url}
                 spellCheck={false}
@@ -213,13 +207,7 @@ export function SocialQuestion({
         ))}
       </ul>
 
-      <button
-        type="button"
-        className="tap self-start rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base"
-        onClick={() => setRows([...rows, { platform: "", url: "" }])}
-      >
-        Add another
-      </button>
+      <Button onClick={() => setRows([...rows, { platform: "", url: "" }])}>Add another</Button>
     </Question>
   );
 }

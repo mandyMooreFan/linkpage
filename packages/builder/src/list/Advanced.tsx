@@ -2,6 +2,7 @@ import { useId, useState, type JSX } from "react";
 import type { Draft } from "../project/index.js";
 import { formatRatio, readout, ROLE_LABELS } from "./contrast.js";
 import { setAdvancedEnabled, setOverride } from "./edits.js";
+import { TextInput } from "../ui/TextInput.js";
 
 /**
  * The advanced tier, at the foot of _How it looks_. `SPEC.md` §3.4, §3.3, §7.4.
@@ -56,7 +57,7 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
       </button>
 
       <div id={panelId} hidden={!open} className="flex flex-col gap-4">
-        <p className="question__hint">
+        <p className="text-sm text-ink-quiet">
           The colours above are picked so they always read well together. Set your own here and that
           stops being true — the numbers at the bottom are how you check.
         </p>
@@ -73,14 +74,13 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
 
         <ul className="m-0 flex list-none flex-col gap-3 p-0">
           {ROLE_LABELS.map(([role, label]) => (
-            <li key={role} className="field">
-              <label className="field__label" htmlFor={`${panelId}-${role}`}>
+            <li key={role} className="flex flex-col">
+              <label className="block text-base font-medium" htmlFor={`${panelId}-${role}`}>
                 {label}
               </label>
-              <input
+              <TextInput
                 id={`${panelId}-${role}`}
                 type="text"
-                className="tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg focus:border-ink"
                 spellCheck={false}
                 autoCapitalize="none"
                 // The derived colour, so an empty box reads as "whatever the derivation says"
@@ -111,10 +111,12 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
          * gives the numbers above a scale; saying it *about* a particular reading would be the
          * verdict §3.4 rules out.
          */}
-        <p className="question__hint">Text is usually asked to reach 4.5:1, and larger text 3:1.</p>
+        <p className="text-sm text-ink-quiet">
+          Text is usually asked to reach 4.5:1, and larger text 3:1.
+        </p>
 
         {brandSteppedBack && (
-          <p className="question__hint">
+          <p className="text-sm text-ink-quiet">
             Your colour is too close to the page background to fill a button, so the buttons use a
             stronger version of it. Your colour itself is unchanged.
           </p>
