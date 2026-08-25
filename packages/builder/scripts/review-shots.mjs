@@ -39,13 +39,41 @@
  * **It drives by `data-*` hooks and roles, never by utility classes.** §7.4: "Utilities are
  * styling and may change with the design; a hook is a contract and does not." A script that
  * reviews design changes must not break when the design changes.
+ *
+ * ## What this owes a reviewer, and what it does not
+ *
+ * **One picture of every screen the tool can put on the glass, at both of §7.6's sizes, without
+ * anyone having to know a flag.** That is the whole rule, and it is what three tickets in one
+ * wave found this script failing at from three directions: only the first review-list row was
+ * ever opened, so #189's pair of list escapes could be evidenced with a source guard and never
+ * with a picture; the default page set had no `floatingCard` + `dark`, which is precisely the
+ * pairing carrying the failure #184 fixed; and the replace confirmation could not be reached at
+ * all, because §7.8 only shows it after a file comes back from an OS picker and the walk never
+ * opened one — so #200's before and after were identical and contained no picture of the surface
+ * it changed. A fourth arrived while this was being written: #194 gave the exported page a hover
+ * state, which **no resting screen can show** — so that ticket did not run the ritual at all,
+ * because a before/after pair of resting screens comes back identical, which since #208 is
+ * indistinguishable from a run that photographed the wrong server. All four are now walked.
+ *
+ * **What it does not owe is every combination of everything.** Screens multiply by size, rows,
+ * shape, type pairing, mode and now interaction state, and a run nobody opens is as useless as a
+ * run that missed the screen. So the crossing is deliberate and uneven: **screens are crossed
+ * with size** (§7.4 asks for both), **the exported page is crossed with shape and mode** (the two
+ * axes that decide what colour lands on what — see `variants.mjs`), **one link button is hovered
+ * once per mode**, and **nothing is crossed with anything else**.
+ *
+ * **Every cut is printed at the end of the run and written into `README.txt` beside the
+ * pictures**, because a silent cap reads as "covered everything" when it did not — which is the
+ * mistake the old default variant set made, quietly, for as long as it stood.
  */
 
 import { chromium } from "@playwright/test";
 
 import { portFor } from "./port.mjs";
+import { DEFAULT_VARIANTS, MODES, parseVariant, SHAPES, TYPES } from "./variants.mjs";
 import { execFileSync, spawn } from "node:child_process";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -63,17 +91,16 @@ const SIZES = [
 ];
 
 /**
- * The four style combinations the design audit captured, kept as the default set so a later run
- * can be laid beside it. `--variant shape-type-mode` overrides this with a single one — the audit
- * found a contrast failure in a combination nobody had ever rendered, which is the whole reason
- * this takes an argument instead of a fixed list.
+ * The one size the exported page is photographed at.
+ *
+ * **Not a cap on coverage — a duplicate removed.** The renderer has no width media query at all
+ * and its column is `min(100%, 25rem)` centred, so a 1440-wide capture is the identical column
+ * with more whitespace either side. §7.6 makes exactly that argument in dropping the "see it on
+ * a laptop" preview control, and §5.2 makes the preview *be* the export, so it holds here too.
+ * The bytes are written to `pages/*.html` regardless, so anyone who wants the wide surround is
+ * one double-click from it.
  */
-const DEFAULT_VARIANTS = [
-  "centred-classic-light",
-  "colourBlock-modern-dark",
-  "floatingCard-friendly-light",
-  "ruledLeft-classic-dark",
-];
+const PAGE_SIZE = "mobile";
 
 /**
  * One answer per wizard step, keyed by the question's own heading.
@@ -119,6 +146,7 @@ if (has("help")) {
       "    --out <dir>         where to write (default: review-shots/)",
       "    --only builder|page capture just one half",
       "    --variant <combo>   one page combination, e.g. floatingCard-friendly-dark",
+      "                        (the default set is every shape in both modes)",
       "    --port <n>          override the port (default: derived from the label, so",
       "                        concurrent runs cannot photograph each other)",
       "    --keep-server       leave the preview server up when finished",
@@ -162,8 +190,33 @@ const outRoot = resolve(ROOT, flag("out", "review-shots"), label);
 const only = flag("only");
 const variants = flag("variant") ? [flag("variant")] : DEFAULT_VARIANTS;
 
+/**
+ * The variants a link button is hovered on: one per mode, on a shape whose buttons are filled.
+ * See `hoverShot` for why one per mode and why never `colourBlock`.
+ */
+const hovered = MODES.map((mode) =>
+  variants.find((combo) => {
+    const parsed = parseVariant(combo);
+    return parsed !== null && parsed.mode === mode && parsed.shape !== "colourBlock";
+  }),
+).filter((combo) => combo !== undefined);
+
 const log = (...m) => process.stdout.write(`${m.join(" ")}\n`);
 let shots = 0;
+
+/**
+ * What this run deliberately did not photograph.
+ *
+ * **A cap nobody is told about reads as complete coverage.** The set of screens is bigger than
+ * any run should be, so this script makes choices — and every one of them is recorded here,
+ * printed when the run finishes and written into `README.txt` beside the pictures, where it is
+ * still there when somebody opens the folder a week later.
+ */
+const omissions = [];
+/** Recorded once, however many sizes the walk hits it at. */
+const omit = (what, why) => {
+  if (!omissions.some((noted) => noted.what === what)) omissions.push({ what, why });
+};
 
 /** Whether anything at all is answering on this run's origin. */
 async function answering() {
@@ -230,11 +283,20 @@ async function settle(page) {
   await page.waitForTimeout(400);
 }
 
-async function shoot(page, size, name) {
+/**
+ * One picture. `of` narrows it to a single element rather than the viewport.
+ *
+ * **An element shot captures the whole element, past the fold if it has to.** That is the point
+ * of it: a row's editor is taller than a phone screen, and a viewport shot of one cuts the
+ * bottom off — which for the review list means cutting off the escape at the foot of the row,
+ * the very thing #189 could not photograph and this widening exists to reach.
+ */
+async function shoot(page, size, name, of) {
   const file = join(outRoot, size.dir, `${name}.png`);
   await mkdir(join(outRoot, size.dir), { recursive: true });
   await settle(page);
-  await page.screenshot({ path: file, fullPage: false });
+  if (of) await of.screenshot({ path: file });
+  else await page.screenshot({ path: file, fullPage: false });
   shots += 1;
   log(`  ${size.dir}/${name}.png`);
 }
@@ -353,6 +415,15 @@ async function walkFlow(context, size, capture) {
 
     const needsContinue = await answer(page, spec);
     if (capture && spec.kind !== "skip") await shoot(page, size, `${name}-filled`);
+    // A declined question is a tick-on on the list rather than a row (§7.1), so there is no row
+    // screen for it and there cannot be. Said out loud rather than left as a gap in the numbers.
+    if (spec.kind === "skip") {
+      omit(
+        `a list row for “${title}”`,
+        "this walk declines it, and a declined topic is a tick-on rather than a row — the" +
+          " question itself is photographed in the flow above",
+      );
+    }
 
     if (needsContinue) {
       const escape = page.locator("[data-escape]");
@@ -371,7 +442,7 @@ async function walkFlow(context, size, capture) {
   return page;
 }
 
-/** The screens that are not the wizard: the list, an opened row, the sheet, the menu. */
+/** The screens that are not the wizard: the list, its rows, the sheet, the menu, the import fork. */
 async function listScreens(page, size) {
   if (!(await page.locator('[data-screen="list"]').count())) {
     log("  ! never reached the review list — skipping the list screens.");
@@ -387,17 +458,13 @@ async function listScreens(page, size) {
     await shoot(page, size, "51-list-rows");
   }
 
-  const row = page.locator("[data-row] button").first();
-  if (await row.count()) {
-    await row.click();
-    await shoot(page, size, "52-list-row-open");
-    await row.click();
-  }
+  await rowScreens(page, size);
+  await top(page);
 
   const download = page.getByRole("button", { name: /^Download$/ });
   if (await download.count()) {
     await download.first().click();
-    await shoot(page, size, "53-download-sheet");
+    await shoot(page, size, "60-download-sheet");
     const close = page.getByRole("button", { name: /^Close$/ });
     if (await close.count()) await close.first().click();
   }
@@ -405,9 +472,145 @@ async function listScreens(page, size) {
   const menu = page.locator("[data-menu] button, button[data-menu]").first();
   if (await menu.count()) {
     await menu.click();
-    await shoot(page, size, "54-menu");
+    await shoot(page, size, "61-menu");
+    await importScreens(page, size);
     await page.keyboard.press("Escape");
   }
+}
+
+/** Put the list back at the top, so the next screen is photographed from where it starts. */
+async function top(page) {
+  await page.evaluate(() => window.scrollTo(0, 0));
+}
+
+/**
+ * **Every row, opened.** §7.4, and the first of the three misses this widening exists for.
+ *
+ * The walk used to open `[data-row] button` *first* and stop — so the business name was the only
+ * row anybody ever saw, and every question the list re-asks (the hours, the link buttons and
+ * their editor, the language picker, the six style controls) was behind a row nothing pressed.
+ * #189 moved two escapes that live in exactly that blind spot and could evidence the change only
+ * with a source guard.
+ *
+ * **Named by the row's own id, numbered by its place in the list** — the id is the contract
+ * `rows.ts` publishes and the number is what keeps a folder listing in reading order. A row that
+ * appears or moves therefore shows up as a renamed file rather than as a silently different
+ * picture.
+ *
+ * **Only one row is open at a time**, which is the list's own rule (§7.4) rather than something
+ * arranged here: opening the next one closes the last.
+ *
+ * **The picture is of the row, not of the viewport.** An open row is routinely taller than a
+ * phone screen, and the first thing a viewport shot loses off the bottom is the escape at the
+ * foot of the question — which is exactly the screen #189 wanted and could not get. What this
+ * gives up is *how much of a long row fits on one screen*; that is a real question and it is
+ * answered by `51-list-rows` and by the flow's own shots of the same questions.
+ */
+async function rowScreens(page, size) {
+  const rows = page.locator("[data-row]");
+  const count = await rows.count();
+  if (count === 0) {
+    log("  ! the list has no rows — skipping the row screens.");
+    return;
+  }
+
+  for (let index = 0; index < count; index += 1) {
+    const row = rows.nth(index);
+    const id = (await row.getAttribute("data-row")) ?? String(index);
+    const header = row.locator("button").first();
+    const name = `52-${String(index + 1).padStart(2, "0")}-${slug(id)}`;
+
+    await header.click();
+    await row.evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
+    await shoot(page, size, name, row);
+
+    // §7.4 puts the advanced disclosure and its contrast readout at the foot of the style row.
+    // It is a surface with a design of its own — a switch, a set of colour boxes and a readout —
+    // and no other screen shows it, so it is worth the one extra press it costs.
+    const advanced = row.locator("[data-advanced] button").first();
+    if (await advanced.count()) {
+      await advanced.click();
+      await row.evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
+      await shoot(page, size, `${name}-advanced`, row);
+      await advanced.click();
+    }
+
+    await header.click();
+  }
+}
+
+/**
+ * **The import fork: §7.9's refusal and §7.8's replace confirmation.** The third of the misses.
+ *
+ * §7.8 shows the confirmation only once a valid file has come back from an OS file picker, and
+ * nothing in the walk ever opened one — so the surface was unreachable, and #200's before and
+ * after were byte-identical with no picture of the thing it rebalanced. It got its pair out of a
+ * throwaway script instead, which is the failure mode this ritual exists to remove.
+ *
+ * **`setInputFiles` on the picker's own input is the way in.** The control is the menu item and
+ * the input is what it reaches through (`ProjectPicker`), so handing the file to the input is
+ * the same event the OS dialog would have produced — no stub, no seam in the app, and the
+ * picker is named by its accessible name rather than by anything about how it is styled.
+ *
+ * **Two files, in the order that leaves nothing behind.** A file the tool refuses first (§7.9's
+ * message, in the menu's own surface with the project intact behind it), then the real one,
+ * which clears the message and raises the confirmation. Then Cancel: the picked file is dropped
+ * and nothing anywhere changed, which is what lets this run in the middle of a walk.
+ *
+ * **The incoming file is the project's own bytes.** `store.text()` is what Download writes and
+ * what the store holds, so this is a real file the tool itself produced — a hand-written fixture
+ * here could drift from the schema and start being refused, which would silently turn the
+ * confirmation shot back into a refusal shot. §7.8's sentence is about the *outgoing* project
+ * either way.
+ */
+async function importScreens(page, size) {
+  const picker = page.locator('input[type="file"][aria-label="Open a project file"]');
+  if (!(await picker.count())) {
+    log("  ! no project picker on the list — skipping the import screens.");
+    return;
+  }
+
+  const bytes = await page.evaluate(() => localStorage.getItem("linkpage.project"));
+  if (bytes === null) {
+    log("  ! no project in storage — skipping the import screens.");
+    return;
+  }
+
+  const dir = await mkdtemp(join(tmpdir(), "review-shots-"));
+  const refused = join(dir, "index.html");
+  const real = join(dir, "ada-and-sons-bakers.linkpage.json");
+  await writeFile(refused, "<!doctype html>\n<p>not a project file</p>\n", "utf8");
+  await writeFile(real, bytes, "utf8");
+
+  try {
+    // The menu opens itself when it has something to say, so these do not depend on it being
+    // left open — but it is, and that is the screen being photographed.
+    await picker.setInputFiles(refused);
+    await page.locator("[data-refusal]").first().waitFor({ timeout: 5_000 });
+    await shoot(page, size, "62-menu-file-refused");
+
+    await picker.setInputFiles(real);
+    await page.locator("[data-replace]").first().waitFor({ timeout: 5_000 });
+    await shoot(page, size, "63-menu-replace-confirm");
+
+    const cancel = page.locator("[data-replace]").getByRole("button", { name: /^Cancel$/ });
+    if (await cancel.count()) await cancel.first().click();
+  } catch (error) {
+    // A ritual that dies here has thrown away every screen after it, and this is the newest and
+    // most fragile part of the walk. Say which screen went missing and carry on.
+    log(`  ! the import fork did not come up (${error.message.split("\n")[0]}) — skipping it.`);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+
+  omit(
+    "the confirmation's “Download my work first” branch",
+    "pressing it writes a file, and this walk touches nothing outside its own output folder",
+  );
+  omit(
+    "§7.9's refusal on the first screen (under the quiet line)",
+    "the same message, in the other of its two places; reaching it needs a second walk from empty",
+  );
 }
 
 /**
@@ -416,6 +619,9 @@ async function listScreens(page, size) {
  * The style is patched straight into the stored project and the page reloaded, so every variant
  * is the same content under a different chrome — which is the comparison a reviewer wants. The
  * bytes come out of the preview's `srcdoc`, which §5.2 makes the export itself.
+ *
+ * **The set is every shape in both modes** — see `variants.mjs` for why that crossing and not a
+ * bigger one, and for the hole the set this replaced had in it. **At one size**, per `PAGE_SIZE`.
  */
 async function pageVariants(context, size, browser) {
   const page = await context.newPage();
@@ -462,10 +668,92 @@ async function pageVariants(context, size, browser) {
       path: join(outRoot, size.dir, "pages", `${combo}.png`),
       fullPage: true,
     });
-    await shot.close();
     shots += 1;
     log(`  ${size.dir}/pages/${combo}.png`);
+
+    await hoverShot(shot, size, combo);
+    await shot.close();
   }
+}
+
+/**
+ * **One hovered link button.** The page's `:hover`/`:active` rule, which no resting screen shows.
+ *
+ * [#194](https://github.com/mandyMooreFan/linkpage/issues/194) gave the exported page a hover
+ * state and could not run this ritual over it at all: a walk of resting screens produced two
+ * identical sets, which since [#208](https://github.com/mandyMooreFan/linkpage/issues/208) is
+ * indistinguishable from a run that photographed the wrong server. Same failure, fourth
+ * direction — so it gets an instrument.
+ *
+ * **One button, one variant per mode, and no state machine.** The rule is
+ * `.lp-link:hover,.lp-link:active` — one declaration block — so a hovered button is a picture of
+ * the pressed state too, and the second and third link buttons are the first one again. **The
+ * mode is the axis that matters**, for #184's reason: the hover fill is derived, the derivation
+ * runs against the mode's backdrops, and a dark-mode fill already stepped back to 3:1 has almost
+ * no step left. So it is taken once in each mode.
+ *
+ * **Never on `colourBlock`**, which draws its buttons as outlines with page ink on them: the
+ * hover rule sets fill *and* ink together precisely so that shape does not end up with page ink
+ * on a filled button, and a hover shot there would be a picture of the exception rather than of
+ * the rule.
+ */
+async function hoverShot(shot, size, combo) {
+  if (!hovered.includes(combo)) return;
+
+  const first = ANSWERS["Which of these do you have?"]?.labels?.[0];
+  const link =
+    first === undefined
+      ? shot.getByRole("link").first()
+      : shot.getByRole("link", { name: first, exact: false }).first();
+  if (!(await link.count())) {
+    log(`  ! ${combo}: no link button on the page — skipping the hover shot.`);
+    return;
+  }
+
+  await link.hover();
+  await shot.waitForTimeout(300);
+  await shot.screenshot({
+    path: join(outRoot, size.dir, "pages", `${combo}-hover.png`),
+    fullPage: true,
+  });
+  shots += 1;
+  log(`  ${size.dir}/pages/${combo}-hover.png`);
+}
+
+/**
+ * What was taken, and what was not.
+ *
+ * **Printed and also written into the folder.** The run's stdout is gone by the time somebody
+ * opens the pictures — and the whole reason this exists is that a cap nobody can see reads as
+ * complete coverage, which is how the missing `floatingCard` + `dark` sat there unnoticed
+ * through the ticket that most needed it.
+ */
+async function report() {
+  const ledger = [
+    "Deliberately not photographed:",
+    ...omissions.flatMap(({ what, why }) => [`  · ${what}`, `      ${why}`]),
+  ];
+
+  log("");
+  log(`· ${shots} shots → ${outRoot}`);
+  log("");
+  for (const line of ledger) log(`  ${line}`);
+  log("");
+
+  await mkdir(outRoot, { recursive: true });
+  await writeFile(
+    join(outRoot, "README.txt"),
+    [
+      `review-shots — ${label}`,
+      `${shots} shots, ${new Date().toISOString()}`,
+      "",
+      ...ledger,
+      "",
+      "Nothing here asserts anything about what the pictures look like (SPEC.md §7.4).",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
 }
 
 async function main() {
@@ -477,6 +765,8 @@ async function main() {
     browser = await chromium.launch();
 
     for (const size of SIZES) {
+      // `--only page` has no reason to walk the flow twice: the pages are taken at one size.
+      if (only === "page" && size.dir !== PAGE_SIZE) continue;
       log(`· ${size.dir}`);
       const context = await browser.newContext({
         viewport: size.viewport,
@@ -492,13 +782,43 @@ async function main() {
       if (!capture) log("  · walking the flow to build a project (not photographing it)");
       const page = await walkFlow(context, size, capture);
       if (capture) await listScreens(page, size);
-      if (only !== "builder") await pageVariants(context, size, browser);
+      if (only !== "builder" && size.dir === PAGE_SIZE) await pageVariants(context, size, browser);
       await context.close();
     }
 
-    log("");
-    log(`· ${shots} shots → ${outRoot}`);
-    log("");
+    if (only !== "page") {
+      omit(
+        "how much of a long row editor fits on one phone screen",
+        "the row shots are of the row rather than of the viewport, so nothing is cut off the" +
+          " bottom — 51-list-rows and the flow's own shots are where the fold shows",
+      );
+    }
+
+    if (only !== "builder") {
+      omit(
+        "the hover state on every button but the first, and on colourBlock",
+        "`.lp-link:hover,.lp-link:active` is one rule, so one hovered button is the pressed" +
+          " state too; it is taken once per mode because the fill is derived per mode (#184)",
+      );
+      omit(
+        `the exported page at ${SIZES.filter((size) => size.dir !== PAGE_SIZE)
+          .map((size) => size.viewport.width)
+          .join(" and ")}px wide`,
+        "the renderer has no width media query and its column is min(100%, 25rem) centred, so a" +
+          " wide capture is the same column with more air (§7.6) — pages/*.html if you want it",
+      );
+      const combinations = SHAPES.length * TYPES.length * MODES.length;
+      if (variants.length < combinations) {
+        omit(
+          `${combinations - variants.length} of the ${combinations} style combinations`,
+          `the ${variants.length} taken cover every shape in both modes; the rest vary only the` +
+            " type pairing, which is token-valued (§6.1) — `--variant <combo>` reaches any of them",
+        );
+      }
+    }
+
+    await report();
+
     log("  Run this on the trunk too, then put the two folders side by side:");
     // Not `git switch main`: the trunk is usually checked out by another worktree, which
     // refuses the switch, and the point of the derived port is that both runs can be up at
