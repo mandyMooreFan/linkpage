@@ -42,6 +42,8 @@
  */
 
 import { chromium } from "@playwright/test";
+
+import { portFor } from "./port.mjs";
 import { execFileSync, spawn } from "node:child_process";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -53,9 +55,6 @@ const BUILDER = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const ROOT = resolve(fileURLToPath(new URL("../../../", import.meta.url)));
 
 const HOST = "127.0.0.1";
-const PORT = 4318; // not 4173 — the e2e owns that one, so both can run at once
-const ORIGIN = `http://${HOST}:${PORT}`;
-const APP = `${ORIGIN}/linkpage/`;
 
 /** §7.6's two sizes, matching the design audit's baseline so old sets stay comparable. */
 const SIZES = [
@@ -120,6 +119,8 @@ if (has("help")) {
       "    --out <dir>         where to write (default: review-shots/)",
       "    --only builder|page capture just one half",
       "    --variant <combo>   one page combination, e.g. floatingCard-friendly-dark",
+      "    --port <n>          override the port (default: derived from the label, so",
+      "                        concurrent runs cannot photograph each other)",
       "    --keep-server       leave the preview server up when finished",
       "    --help              this",
       "",
@@ -130,18 +131,32 @@ if (has("help")) {
   process.exit(0);
 }
 
+const git = (...a) => execFileSync("git", a, { cwd: ROOT }).toString().trim();
+
 const label =
   flag("label") ??
   (() => {
     try {
-      return execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: ROOT })
-        .toString()
-        .trim()
-        .replace(/[^\w.-]+/g, "-");
+      const branch = git("rev-parse", "--abbrev-ref", "HEAD");
+      // A detached checkout answers "HEAD", which is not a name: it labels every detached
+      // run identically, so two of them would share an output folder *and* a port. The
+      // short sha is the thing that actually distinguishes them — and a trunk run taken
+      // for comparison is usually detached, which is exactly when you want to know which
+      // commit you photographed.
+      const name = branch === "HEAD" ? git("rev-parse", "--short", "HEAD") : branch;
+      return name.replace(/[^\w.-]+/g, "-");
     } catch {
       return "run";
     }
   })();
+
+/**
+ * This run's own port. See `port.mjs` for why it is derived from the label rather than
+ * pinned, and why a `--port` flag on its own would not have been enough.
+ */
+const PORT = Number(flag("port")) || portFor(label);
+const ORIGIN = `http://${HOST}:${PORT}`;
+const APP = `${ORIGIN}/linkpage/`;
 
 const outRoot = resolve(ROOT, flag("out", "review-shots"), label);
 const only = flag("only");
@@ -150,12 +165,38 @@ const variants = flag("variant") ? [flag("variant")] : DEFAULT_VARIANTS;
 const log = (...m) => process.stdout.write(`${m.join(" ")}\n`);
 let shots = 0;
 
-/** Build the app and serve it the way Pages does — under `/linkpage/`, from `dist`. */
+/** Whether anything at all is answering on this run's origin. */
+async function answering() {
+  try {
+    return (await fetch(APP)).ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Build the app and serve it the way Pages does — under `/linkpage/`, from `dist`.
+ *
+ * **Both checks below exist to make one specific failure loud.** A screenshot of the wrong
+ * branch is indistinguishable from a screenshot of the right one, so this is the only place
+ * that can tell the difference, and it has to refuse rather than carry on. See `portFor`.
+ */
 async function serve() {
+  // Before building anything: if the origin already answers, it is another run — or a stray
+  // server a killed one left behind, which `--keep-server` makes easy to do. Continuing
+  // would photograph *its* build under *our* label.
+  if (await answering()) {
+    throw new Error(
+      `something is already serving ${ORIGIN}.\n` +
+        `  This run would have photographed it instead of your own build.\n` +
+        `  Stop it, or pass --port <n>.`,
+    );
+  }
+
   log("· building the builder");
   execFileSync("pnpm", ["exec", "vite", "build"], { cwd: BUILDER, stdio: "inherit" });
 
-  log("· serving it");
+  log(`· serving it on ${ORIGIN}`);
   const server = spawn(
     "pnpm",
     ["exec", "vite", "preview", "--host", HOST, "--port", String(PORT), "--strictPort"],
@@ -164,12 +205,17 @@ async function serve() {
 
   const deadline = Date.now() + 60_000;
   for (;;) {
-    try {
-      const res = await fetch(APP);
-      if (res.ok) break;
-    } catch {
-      /* not up yet */
+    // The server exiting is the signal, because `stdio: "ignore"` means it is the only one
+    // we get. `--strictPort` makes vite exit rather than quietly move to another port, and
+    // without this check the loop simply keeps polling and then succeeds the moment
+    // *anyone* answers — which is precisely how a run ends up photographing a neighbour.
+    if (server.exitCode !== null) {
+      throw new Error(
+        `the preview server exited (code ${server.exitCode}) before it came up on ${APP}.\n` +
+          `  Most likely ${ORIGIN} was taken — pass --port <n>.`,
+      );
     }
+    if (await answering()) break;
     if (Date.now() > deadline) {
       server.kill();
       throw new Error(`the preview server never came up on ${APP}`);
@@ -454,7 +500,12 @@ async function main() {
     log(`· ${shots} shots → ${outRoot}`);
     log("");
     log("  Run this on the trunk too, then put the two folders side by side:");
-    log(`    git switch main && pnpm shots`);
+    // Not `git switch main`: the trunk is usually checked out by another worktree, which
+    // refuses the switch, and the point of the derived port is that both runs can be up at
+    // once anyway. A throwaway worktree gets its own label from the short sha it lands on.
+    log(
+      `    git worktree add ../linkpage-trunk origin/main && (cd ../linkpage-trunk && pnpm install && pnpm shots)`,
+    );
     log("");
   } finally {
     if (browser) await browser.close();
