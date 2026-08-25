@@ -55,6 +55,31 @@ function editing(
   return { seen, latest: (): Draft | undefined => seen[seen.length - 1] };
 }
 
+/**
+ * A window with room for the page beside the list.
+ *
+ * jsdom has no `matchMedia` at all, which the preview reads as the narrow layout — the phone,
+ * and the size every test here otherwise wants. One test needs the other size, and it needs it
+ * to be visibly a stub rather than an ambient default, so this goes in and comes straight back
+ * out again. The drawer's own two-size behaviour is `Preview.test.tsx`'s.
+ */
+function laptop(): { restore: () => void } {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: () => ({
+      matches: true,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }),
+  });
+  return {
+    restore: () => {
+      Reflect.deleteProperty(window, "matchMedia");
+    },
+  };
+}
+
 const rowIds = (): string[] =>
   [...document.querySelectorAll("[data-row]")].map((row) => row.getAttribute("data-row") ?? "");
 
@@ -289,6 +314,69 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Menu" }));
     fireEvent.click(screen.getByRole("button", { name: "Open a project file…" }));
     expect(onImport).toHaveBeenCalled();
+  });
+
+  /**
+   * #186: the phone hid the button it told you to press.
+   *
+   * On the list the drawer defaults open (§7.6, #147) and on a phone it is an opaque
+   * `fixed inset-0` surface — so the first screen after a run carried *"To share it, download the
+   * file and put it online"* while the Download it names sat underneath it, with an outline
+   * button as the only control on screen. The landing itself is deliberate and stays; what moves
+   * is the button.
+   *
+   * jsdom has no `matchMedia`, which the drawer reads as "no room beside the question" — the
+   * phone, and the case this is about. The laptop is stubbed in explicitly below.
+   */
+  describe("the page-first landing keeps the button it names (#186)", () => {
+    const downloads = () => screen.getAllByRole("button", { name: "Download" });
+    const drawer = () => document.querySelector("[data-open]") as HTMLElement;
+
+    it("carries Download onto the page the phone lands on, and presses it", () => {
+      const onDownload = vi.fn();
+      editing(POPULATED, { onDownload });
+
+      const [button, ...rest] = downloads();
+      // Exactly one, and it is on the surface the owner can actually see. Two copies with one
+      // hidden by a media query would be read out twice on the size that needs it least.
+      expect(rest).toEqual([]);
+      expect(drawer().contains(button!)).toBe(true);
+      expect(drawer().textContent).toContain("download the file and put it online");
+
+      fireEvent.click(button!);
+      expect(onDownload).toHaveBeenCalled();
+    });
+
+    it("hands it back to the bar as soon as the page is put away", () => {
+      editing(POPULATED, { onDownload: () => {} });
+
+      fireEvent.click(screen.getByRole("button", { name: "Edit your page" }));
+
+      const [button, ...rest] = downloads();
+      expect(rest).toEqual([]);
+      // §7.4's place for it, and where the arrival line points: back in the bar above the rows.
+      expect(drawer().contains(button!)).toBe(false);
+    });
+
+    it("says it is unavailable in the drawer too, until there is a sheet behind it", () => {
+      editing(POPULATED);
+
+      const [button] = downloads();
+      expect(drawer().contains(button!)).toBe(true);
+      expect(button).toHaveProperty("disabled", true);
+    });
+
+    it("leaves the bar alone where the page has room to sit beside it", () => {
+      const roomy = laptop();
+      editing(POPULATED, { onDownload: () => {} });
+
+      const [button, ...rest] = downloads();
+      expect(rest).toEqual([]);
+      // The drawer is open here too — it just is not covering anything, so nothing moves.
+      expect(screen.getByRole("button", { name: "Edit your page" })).toBeTruthy();
+      expect(drawer().contains(button!)).toBe(false);
+      roomy.restore();
+    });
   });
 
   it("gives §7.8's confirmation and §7.9's message the menu's own surface", () => {
