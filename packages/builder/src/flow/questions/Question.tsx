@@ -24,6 +24,14 @@ import { useEffect, useRef } from "react";
  * to each screen is what makes "always-present" checkable: a question that forgets it has to
  * forget a prop, and `flow.test.tsx` walks every step asserting one is there.
  *
+ * **The escape is a `secondary`, not a `quiet`** (#189). It is a real branch of the flow — "we
+ * don't have set hours" is an answer, and the project it produces is as finished as the one
+ * Continue produces — so §4's secondary recipe is what it is owed: the hairline outline, and the
+ * radius, padding and type it already shares with `primary`, differing from it only in fill.
+ * `quiet` gave it none of those, so a branch read as a footnote and, worse, read as *the same
+ * kind of thing* as `Back` one line below it, which is genuinely tertiary. `Back` stays `quiet`
+ * for exactly that reason: the two now differ because they differ.
+ *
  * The two questions without an escape are the two the page cannot be built without — the
  * business name (§2.3) and the brand colour (§3.1). §4.6 is explicit that these are *collected*
  * rather than defaulted, so declining one would have to invent an answer, and inventing is the
@@ -177,7 +185,7 @@ export function Question({
             )}
 
             {escape !== undefined && (
-              <Button weight="quiet" data-escape onClick={escape.onEscape}>
+              <Button weight="secondary" data-escape onClick={escape.onEscape}>
                 {escape.label}
               </Button>
             )}

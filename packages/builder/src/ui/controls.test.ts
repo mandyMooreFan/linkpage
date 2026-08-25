@@ -106,6 +106,74 @@ describe("the one button", () => {
   });
 });
 
+/**
+ * Every escape is the same button. `SPEC.md` §7.2, §7.4; design change 2 (#189).
+ *
+ * An escape is a **branch**, not a footnote: "we don't have set hours" is an answer, and the
+ * project it produces is as finished as the one `Continue` produces. §4's secondary recipe is
+ * what that is owed — a hairline outline with the radius, padding and type it already shares
+ * with `primary`, differing from it only in fill. `quiet` gave it none of those, and gave it
+ * the *same* treatment as `Back` sitting one line below, so a screen offered three actions in
+ * two weights and paired the wrong two together.
+ *
+ * **The rule is held on `data-escape` rather than on the copy**, because the copy is eight
+ * different sentences by design — §7.2 wants the owner's own words, never "skip" — and a guard
+ * that matched on them would go red the day someone improved one. The hook is a contract
+ * (§7.4); the sentences are not. It is also the handle `flow.test.tsx` and the deployed smoke
+ * already steer by, so marking the list's two escapes with it makes them the same species to
+ * every reader, test and script that asks.
+ *
+ * Deliberately **not** guarded here: `Back`, which stays `quiet` because it genuinely is
+ * tertiary, and the language row's "Or type a code", which discloses a second way to answer the
+ * question rather than declining it. Neither carries the hook, and neither should.
+ */
+describe("the escape", () => {
+  /**
+   * Arrow functions put a `>` inside the props, so the tag cannot be matched naively. Blanking
+   * them first is enough: nothing else in these call sites writes one.
+   */
+  const buttonTags = (text: string): string[] =>
+    [...text.replaceAll("=>", "==").matchAll(/<Button\b[^>]*>/g)].map(([tag]) => tag);
+
+  const escapeTags = (): [string, string][] =>
+    Object.entries(sources)
+      .filter(([path]) => !path.includes(".test."))
+      .flatMap(([path, text]) =>
+        buttonTags(code(text))
+          .filter((tag) => tag.includes("data-escape"))
+          .map((tag): [string, string] => [path, tag]),
+      );
+
+  it("wears the outlined weight everywhere one is written", () => {
+    const offenders = escapeTags()
+      .filter(([, tag]) => !tag.includes('weight="secondary"'))
+      .map(([path]) => path);
+    expect(offenders, "an escape is a branch of the flow, so it takes §4's secondary").toEqual([]);
+  });
+
+  it("is written in more than one place, so the rule above cannot pass by finding none", () => {
+    // The shell writes the flow's eight (`Question.tsx`), and the review list writes its own two.
+    expect(escapeTags().length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("is not the same object as Back, which is the defect that started this", () => {
+    // The two differ in the way §4 says they should: the branch has a boundary, the navigation
+    // control has none. Same size, same type — the weight is carried by the outline and the fill.
+    expect(WEIGHT.secondary).toContain("border");
+    expect(WEIGHT.quiet).not.toContain("border");
+    expect(WEIGHT.secondary).not.toBe(WEIGHT.quiet);
+  });
+
+  it("differs from Continue only in fill", () => {
+    expect(WEIGHT.primary).toContain("bg-ink");
+    expect(WEIGHT.secondary).toContain("bg-transparent");
+    for (const shared of ["rounded-sm", "px-4", "py-2", "text-base", "tap"]) {
+      expect(WEIGHT.secondary, `secondary must share ${shared} with primary`).toContain(shared);
+      expect(WEIGHT.primary, `primary must share ${shared} with secondary`).toContain(shared);
+    }
+  });
+});
+
 describe("the pre-Tailwind stylesheets", () => {
   /**
    * `theme.css` is the builder's only stylesheet and defines none of these. An element carrying

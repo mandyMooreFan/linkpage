@@ -142,7 +142,11 @@ export function LinkButtons({
        */}
       <Button onClick={onAddAnother}>Add another button</Button>
 
-      <Button weight="quiet" onClick={onRemoveAll}>
+      {/*
+       * The same escape the flow's link step offers, so it wears the same weight (#189): a real
+       * branch, `secondary`, marked with the hook that says so.
+       */}
+      <Button weight="secondary" data-escape onClick={onRemoveAll}>
         No buttons for now
       </Button>
     </div>
