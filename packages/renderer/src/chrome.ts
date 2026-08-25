@@ -3,8 +3,8 @@
  * pairing and the corner-softness slider (`SPEC.md` §3.1).
  *
  * **Shapes and type pairings carry structure only, never a palette** (§3.2). Nothing in this
- * file names a colour. A shape selects among the ten roles `derivePalette` already produced —
- * ink on a filled block, a rule drawn in the button fill — and a pairing selects a font stack
+ * file names a colour. A shape selects among the eleven roles `derivePalette` already produced
+ * — ink on a filled block, a rule drawn in the button fill — and a pairing selects a font stack
  * and a weight. Neither may re-derive a colour, and neither may invent one, because a shape
  * that shipped its own palette would put the owner's brand colour in second place on their own
  * page.

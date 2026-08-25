@@ -5,6 +5,7 @@ import {
   parseHex,
   pickInk,
   rgbToOklch,
+  stepToward,
   toContrast,
   toHex,
   withChroma,
@@ -44,6 +45,19 @@ const INK_ON_FILL = 4.5;
  */
 const FILL_ON_BACKDROP = 3;
 
+/**
+ * How far the fill moves when a pointer is on the button, in OKLCh lightness: **one ramp step**.
+ *
+ * A hover is a shade of the same colour, not a second colour, so the number is a step along a
+ * ramp rather than a contrast target — 0.07 is about the distance between two adjacent shades
+ * of one hue in a perceptually-spaced palette (Tailwind's `indigo-600` → `indigo-500` is 0.074
+ * apart in OKLCh lightness).
+ *
+ * **It is a wish, not a promise.** `derivePalette` gives back as much of it as the readability
+ * guarantee can afford, which for some brands is much less — see the note there.
+ */
+const HOVER_STEP = 0.07;
+
 /** Used only when `style.brand` is missing or unparseable. See `derivePalette`. */
 const FALLBACK_BRAND: Rgb = { r: 0x39, g: 0x3b, b: 0x3f };
 
@@ -62,7 +76,14 @@ export interface Palette {
   brand: string;
   /** The filled-button colour: `brand`, or a stepped-back variant of it. */
   buttonFill: string;
-  /** Text on `buttonFill`. */
+  /**
+   * `buttonFill` one ramp step deeper, for the button under a pointer or a press.
+   *
+   * A second fill rather than a decoration of the first, so it carries the first one's whole
+   * guarantee: 3:1 on either backdrop, and `buttonInk` still at 4.5:1 on it.
+   */
+  buttonFillHover: string;
+  /** Text on `buttonFill` — **and on `buttonFillHover`**, which is what bounds the step. */
   buttonInk: string;
   /** The secondary colour, exactly as given; falls back to `brand` when absent. */
   accent: string;
@@ -183,6 +204,32 @@ export function derivePalette(style: Style | null | undefined): Palette {
   // white, which always clears AA on any fill.
   const buttonInk = pickInk(buttonFill, [ground, ink], INK_ON_FILL);
 
+  /**
+   * The button under a pointer: one ramp step from the fill **toward the ink**, and no further
+   * than the guarantee leaves room for.
+   *
+   * The direction is the design. On paper a pressed thing goes *deeper*, and deeper is toward
+   * the page's one ink — dark on a light page, light on a dark one — so the same sentence
+   * describes both modes and no second rule is needed for either.
+   *
+   * **The step is a wish and the two targets are the promise.** They pull opposite ways: the
+   * hovered button is still a button, so it still needs `FILL_ON_BACKDROP` against both
+   * backdrops, and it still carries the *same* ink, so that ink still needs `INK_ON_FILL` on
+   * it. Moving toward the ink usually buys the first and always spends the second. For most
+   * brands there is room for the whole step; for a fill that has already been stepped back to
+   * exactly 3:1 in dark mode there is almost none, and the honest answer is a shorter step
+   * rather than a broken guarantee. `stylesheet.ts` knows this — the hover rule underlines the
+   * label as well, so the state is visible on the pages where this step nearly vanishes.
+   */
+  const buttonFillHover = stepToward(
+    buttonFill,
+    ink,
+    HOVER_STEP,
+    (candidate) =>
+      backdrops.every((backdrop) => contrastRatio(candidate, backdrop) >= FILL_ON_BACKDROP) &&
+      contrastRatio(buttonInk, candidate) >= INK_ON_FILL,
+  );
+
   // The accent as *text* on the ground — the quieter role a stepped-back brand takes up.
   const accentInk = toContrast(accent, backdrops, MUTED_ON_BACKDROP, away);
 
@@ -194,6 +241,7 @@ export function derivePalette(style: Style | null | undefined): Palette {
     rule: toHex(rule),
     brand: toHex(brand),
     buttonFill: toHex(buttonFill),
+    buttonFillHover: toHex(buttonFillHover),
     buttonInk: toHex(buttonInk),
     accent: toHex(accent),
     accentInk: toHex(accentInk),
@@ -237,6 +285,7 @@ const OVERRIDABLE: OverridableRole[] = [
   "rule",
   "brand",
   "buttonFill",
+  "buttonFillHover",
   "buttonInk",
   "accent",
   "accentInk",

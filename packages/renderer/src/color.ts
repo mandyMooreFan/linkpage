@@ -281,6 +281,47 @@ export function toContrast(
 }
 
 /**
+ * The furthest version of `color` — same hue, same chroma — within `distance` of it in the
+ * direction of `toward`, that still satisfies `holds`.
+ *
+ * **`toContrast`'s opposite number.** That one seeks a minimum and stops the instant it clears
+ * it; this one wants to *move* a colour a set distance and asks how much of that distance is
+ * available. Which is the shape of a hover state: a ramp step is a look rather than a
+ * threshold, and the thresholds are what it must not spend.
+ *
+ * `toward` names the **direction only, not the destination** — a step of `distance` can land
+ * past it, and for a fill already sitting almost on the ink that is the point: stopping at the
+ * ink would make the step vanish exactly where the two colours are hardest to tell apart.
+ *
+ * `holds` must be **monotone along the segment** — true up to some point and false after it —
+ * which is what makes the bisection below meaningful. Every predicate this file's callers pass
+ * is a contrast floor against a colour on one side or the other, and contrast is monotone in
+ * lightness, so a run of them is an interval. `holds(color)` itself is the caller's promise: if
+ * it is false, nothing in the direction of travel can fix it and `color` comes back unmoved.
+ */
+export function stepToward(
+  color: Rgb,
+  toward: Rgb,
+  distance: number,
+  holds: (candidate: Rgb) => boolean,
+): Rgb {
+  const from = rgbToOklch(color).l;
+  const direction = rgbToOklch(toward).l >= from ? 1 : -1;
+  const at = (step: number): Rgb => withLightness(color, from + direction * step);
+
+  if (holds(at(distance))) return at(distance);
+
+  let lo = 0;
+  let hi = distance;
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2;
+    if (holds(at(mid))) lo = mid;
+    else hi = mid;
+  }
+  return at(lo);
+}
+
+/**
  * The first candidate that clears `min` contrast against `on`, preferring earlier entries;
  * failing that, whichever of black or white does best.
  *
