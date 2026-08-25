@@ -61,6 +61,12 @@ import { TextInput } from "../ui/TextInput.js";
  * whether the drawer has room to sit open beside the list, which is a decision `list.css` and
  * `preview.css` make with the same media query.
  *
+ * **Download goes where the screen is** (#186). §7.4 puts Download in the bar, and that is where
+ * it lives — except on a phone with the page up, where the bar is underneath an opaque drawer
+ * that defaults open and the bar is not the screen any more. There it travels into the drawer's
+ * header, next to the line that tells the owner to press it. It is one button that is in one
+ * place at a time, not two copies with one hidden.
+ *
  * **Download and Import are entry points here and behaviours elsewhere** — `download/` owns the
  * sheet (§7.7) and `open/` the import mechanics (§7.8). Both arrive as optional handlers: this
  * screen settles *where* they are, which is what §7.4 and §7.8 actually specify, and neither is
@@ -121,6 +127,34 @@ export function List({
   const [open, setOpen] = useState<RowId | null>(null);
   const { rows, uncovered } = listRows(draft);
 
+  /**
+   * Whether the preview drawer is over this screen rather than beside it (#186).
+   *
+   * On a phone the drawer is `fixed inset-0` and opaque, and on the list it defaults open — so
+   * the first screen after a run carried *"To share it, download the file and put it online"*
+   * over a Download the owner could not see or reach. The drawer reports the state (it is the
+   * only thing that knows both its own open state and whether there was room beside the list);
+   * this screen decides what to do about it, which is to hand its primary action to the surface
+   * that is actually on screen.
+   */
+  const [covered, setCovered] = useState(false);
+
+  /**
+   * §7.7's sheet is #35's. The button is where §7.4 puts it and says what it does; it is
+   * unavailable rather than inert until there is a sheet behind it, because a control that
+   * answers a press with nothing is worse than one that says it is not ready.
+   *
+   * **Written once and placed twice, never rendered twice.** `covered` decides which of the two
+   * places it is in, so there is exactly one Download on the screen and exactly one in the
+   * accessibility tree — a second copy hidden by a media query would be read out by a screen
+   * reader on the size that needs it least.
+   */
+  const download = (
+    <Button type="button" weight="primary" disabled={onDownload === undefined} onClick={onDownload}>
+      Download
+    </Button>
+  );
+
   const close = (): void => setOpen(null);
 
   /** Commit an answer and collapse the row: the question is finished with. */
@@ -148,20 +182,9 @@ export function List({
       <div className="mx-auto w-full max-w-lg flex-1 wide:mx-0 wide:flex-1">
         <div className="flex items-center justify-between gap-2">
           <Menu onImport={onImport} confirm={importConfirm} error={importError} />
-          {/*
-           * §7.7's sheet is #35's. The button is where §7.4 puts it and says what it does; it
-           * is unavailable rather than inert until there is a sheet behind it, because a
-           * control that answers a press with nothing is worse than one that says it is not
-           * ready.
-           */}
-          <Button
-            type="button"
-            weight="primary"
-            disabled={onDownload === undefined}
-            onClick={onDownload}
-          >
-            Download
-          </Button>
+          {/* In the bar whenever the bar is the screen — which is every width but a phone with
+              the page up, where it travels into the drawer's header instead. */}
+          {!covered && download}
         </div>
 
         {/*
@@ -224,7 +247,12 @@ export function List({
       </div>
 
       <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
-        <Preview project={draft} onList />
+        <Preview
+          project={draft}
+          onList
+          onCover={setCovered}
+          action={covered ? download : undefined}
+        />
       </div>
     </main>
   );

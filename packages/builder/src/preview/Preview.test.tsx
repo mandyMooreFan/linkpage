@@ -182,10 +182,78 @@ describe("stepping in and out", () => {
   });
 });
 
+describe("what the screen hands the drawer to carry (#186)", () => {
+  const carried = () => screen.queryByRole("button", { name: "Download" });
+
+  it("says when it has gone over the screen, and when it has come off it", () => {
+    const covering: boolean[] = [];
+    viewport.set(false);
+    mount(<Preview project={POPULATED} onList onCover={(next) => covering.push(next)} />);
+
+    // A phone, on the list: open by default, and there is no room beside the question — so the
+    // drawer *is* the screen and whatever was behind it is not on screen any more.
+    expect(covering.at(-1)).toBe(true);
+
+    fireEvent.click(toggle()); // "Edit your page" — the list is back.
+    expect(covering.at(-1)).toBe(false);
+  });
+
+  it("is beside the question rather than over it wherever there is room", () => {
+    const covering: boolean[] = [];
+    viewport.set(true);
+    mount(<Preview project={POPULATED} onList onCover={(next) => covering.push(next)} />);
+
+    // Open, and the page is sitting next to the list rather than on top of it. Nothing is
+    // covered, so the list keeps its own primary action where §7.4 puts it.
+    expect(toggle().getAttribute("aria-expanded")).toBe("true");
+    expect(covering.at(-1)).toBe(false);
+  });
+
+  it("follows the window across the breakpoint", () => {
+    const covering: boolean[] = [];
+    viewport.set(true);
+    mount(<Preview project={POPULATED} onList onCover={(next) => covering.push(next)} />);
+    expect(covering.at(-1)).toBe(false);
+
+    viewport.resize(false);
+    expect(covering.at(-1)).toBe(true);
+  });
+
+  it("carries the action in the header while the page is up", () => {
+    viewport.set(false);
+    mount(<Preview project={POPULATED} onList action={<button type="button">Download</button>} />);
+
+    // In the header, beside the drawer's own control and the sentence that names it — not
+    // somewhere under the page.
+    const header = document.querySelector("[data-open] > div") as HTMLElement;
+    expect(header.contains(carried())).toBe(true);
+    expect(header.textContent).toContain("download the file and put it online");
+  });
+
+  it("carries nothing once the page is put away", () => {
+    viewport.set(false);
+    mount(
+      <Preview
+        project={POPULATED}
+        onList
+        action={<button type="button">Download</button>}
+        onCover={() => {}}
+      />,
+    );
+    expect(carried()).not.toBeNull();
+
+    // A closed drawer has covered nothing and is owed nothing: the screen behind it can show
+    // its own action again, and two copies of it would be one too many.
+    fireEvent.click(screen.getByRole("button", { name: "Edit your page" }));
+    expect(carried()).toBeNull();
+  });
+});
+
 describe("one design, not two", () => {
   it("offers one control at either size — there is no laptop toggle", () => {
     // §7.6: a "see it on a laptop" control would show the identical page with more whitespace.
-    // The frame is phone-shaped and that is the only shape there is.
+    // The frame is phone-shaped and that is the only shape there is. Counted with no `action`
+    // supplied, because a carried control is the *screen's* and this is about the drawer's own.
     for (const roomy of [false, true]) {
       viewport = installViewport();
       viewport.set(roomy);
