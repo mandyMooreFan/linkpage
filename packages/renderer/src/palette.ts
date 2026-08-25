@@ -25,17 +25,24 @@ import {
  * against a corpus that includes the awkward cases.
  */
 
+/**
+ * The targets, and what they are measured against.
+ *
+ * **Every one of these holds against each of the page's backdrops, not just the ground** —
+ * see `BACKDROPS` in `derivePalette`. The constants used to be named `…_ON_GROUND`, and the
+ * name was not innocent: it is what made "derive against the ground" look finished.
+ */
 /** Body text. AA needs 4.5; 7 is AAA and costs nothing to hit against a near-white ground. */
-const INK_ON_GROUND = 7;
+const INK_ON_BACKDROP = 7;
 /** Taglines and notes. Still body text, so still AA. */
-const MUTED_ON_GROUND = 4.5;
-/** Text on a filled button. */
+const MUTED_ON_BACKDROP = 4.5;
+/** Text on a filled button. The button is its own backdrop, so this one really is singular. */
 const INK_ON_FILL = 4.5;
 /**
  * A filled button against the page. WCAG 2.2 SC 1.4.11 (non-text contrast) asks 3:1 for the
  * parts of a control that identify it — this is the target the step-back rule enforces.
  */
-const FILL_ON_GROUND = 3;
+const FILL_ON_BACKDROP = 3;
 
 /** Used only when `style.brand` is missing or unparseable. See `derivePalette`. */
 const FALLBACK_BRAND: Rgb = { r: 0x39, g: 0x3b, b: 0x3f };
@@ -126,18 +133,35 @@ export function derivePalette(style: Style | null | undefined): Palette {
 
   const { ground, surface, away } = groundFor(brand, mode);
 
+  /**
+   * The backdrops a derived colour can land on — **both of them, always**.
+   *
+   * Three of the four shapes draw the page on `ground` and lift sections onto `surface`
+   * panels. `floatingCard` inverts it: `.lp-page` takes `--lp-surface` and its panels go
+   * transparent, so on that shape `surface` *is* the page and nothing sits on `ground` at
+   * all. The shape is picked after the colours are derived and cannot be seen from here, so
+   * every role has to survive either.
+   *
+   * Deriving against `ground` alone shipped a live SC 1.4.11 failure: `toContrast` stops the
+   * instant it clears its target, so a fill that landed exactly on 3:1 against a dark ground
+   * had no headroom for a `surface` half a step lighter and drew at 2.87:1 on the card.
+   * Roles that overshoot their seed (`ink`, `inkMuted`) never noticed; roles that are pushed
+   * to the line (`buttonFill`, `accentInk`) failed for most brands in dark mode.
+   *
+   * Light mode is unaffected by construction: there `surface` is a shade *lighter* than
+   * `ground`, so a darkening move that clears the ground has already cleared the card.
+   */
+  const backdrops = [ground, surface];
+
   // Text. Start from a strongly-contrasting neutral carrying a trace of the brand hue, then
   // push it until it clears the target — starting close means the push is usually a no-op.
   const inkSeed = withChroma(withLightness(brand, mode === "dark" ? 0.96 : 0.24), 0.02);
-  const ink = toContrast(inkSeed, ground, INK_ON_GROUND, away);
+  const ink = toContrast(inkSeed, backdrops, INK_ON_BACKDROP, away);
 
-  // Muted text moves back *toward* the ground, so it reads as quieter — but only as far as
+  // Muted text moves back *toward* the page, so it reads as quieter — but only as far as
   // AA allows. It is still body text; "muted" is never a licence to fail.
   const mutedSeed = withLightness(ink, rgbToOklch(ink).l + (mode === "dark" ? -0.16 : 0.16));
-  const inkMuted =
-    contrastRatio(mutedSeed, ground) >= MUTED_ON_GROUND
-      ? mutedSeed
-      : toContrast(mutedSeed, ground, MUTED_ON_GROUND, away);
+  const inkMuted = toContrast(mutedSeed, backdrops, MUTED_ON_BACKDROP, away);
 
   // Hairlines are decorative and deliberately not held to 3:1. What makes a section
   // identifiable is `surface` differing from `ground`, not the line around it; a border at
@@ -148,15 +172,19 @@ export function derivePalette(style: Style | null | undefined): Palette {
   // it can also carry a filled button, which needs it to be *identifiable* against the page.
   // A pale yellow on a near-white ground cannot, so the fill moves until it can — and the
   // brand keeps its exact value, still used for accent text.
-  const brandCarriesFill = contrastRatio(brand, ground) >= FILL_ON_GROUND;
-  const buttonFill = brandCarriesFill ? brand : toContrast(brand, ground, FILL_ON_GROUND, away);
+  const brandCarriesFill = backdrops.every(
+    (backdrop) => contrastRatio(brand, backdrop) >= FILL_ON_BACKDROP,
+  );
+  const buttonFill = brandCarriesFill
+    ? brand
+    : toContrast(brand, backdrops, FILL_ON_BACKDROP, away);
 
   // Prefer the page's own extremes so the button belongs to the page; fall back to black or
   // white, which always clears AA on any fill.
   const buttonInk = pickInk(buttonFill, [ground, ink], INK_ON_FILL);
 
   // The accent as *text* on the ground — the quieter role a stepped-back brand takes up.
-  const accentInk = toContrast(accent, ground, MUTED_ON_GROUND, away);
+  const accentInk = toContrast(accent, backdrops, MUTED_ON_BACKDROP, away);
 
   const derived: Palette = {
     ground: toHex(ground),

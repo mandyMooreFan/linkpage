@@ -92,12 +92,12 @@ describe("OKLCh", () => {
 describe("toContrast", () => {
   it("returns the colour untouched when it already clears the target", () => {
     const pink = parseHex("#c2185b") as Rgb;
-    expect(toContrast(pink, WHITE, 3, "darker")).toEqual(pink);
+    expect(toContrast(pink, [WHITE], 3, "darker")).toEqual(pink);
   });
 
   it("moves only as far as needed, and lands at or above the target", () => {
     const pale = parseHex("#fff59d") as Rgb;
-    const fixed = toContrast(pale, WHITE, 3, "darker");
+    const fixed = toContrast(pale, [WHITE], 3, "darker");
     expect(contrastRatio(fixed, WHITE)).toBeGreaterThanOrEqual(3);
     // "Only as far as needed": one step lighter would fall short.
     const lighter = withLightness(fixed, rgbToOklch(fixed).l + 0.02);
@@ -107,14 +107,35 @@ describe("toContrast", () => {
   it("respects the direction it was given rather than flipping to the easy side", () => {
     // Black asked to go darker against black cannot succeed. Returning the endpoint keeps
     // the caller in charge; silently going lighter would change the design.
-    const result = toContrast(BLACK, BLACK, 4.5, "darker");
+    const result = toContrast(BLACK, [BLACK], 4.5, "darker");
     expect(contrastRatio(result, BLACK)).toBeLessThan(4.5);
   });
 
   it("works in both directions", () => {
     const navy = parseHex("#0d1b3e") as Rgb;
-    expect(contrastRatio(toContrast(navy, BLACK, 3, "lighter"), BLACK)).toBeGreaterThanOrEqual(3);
-    expect(contrastRatio(toContrast(navy, WHITE, 3, "darker"), WHITE)).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(toContrast(navy, [BLACK], 3, "lighter"), BLACK)).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(toContrast(navy, [WHITE], 3, "darker"), WHITE)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("clears every backdrop it is given, not just the first", () => {
+    // The whole reason `against` is a list. `#1a1a1a` and `#2b2b2b` are a ground and the
+    // panel that sits on it; a colour pushed only far enough for the darker one still fails
+    // on the lighter one, which is precisely how the page's fill shipped below 3:1.
+    const ground = parseHex("#1a1a1a") as Rgb;
+    const panel = parseHex("#2b2b2b") as Rgb;
+    const brand = parseHex("#00695c") as Rgb;
+
+    const groundOnly = toContrast(brand, [ground], 3, "lighter");
+    expect(contrastRatio(groundOnly, panel)).toBeLessThan(3); // the bug, reproduced
+
+    const both = toContrast(brand, [ground, panel], 3, "lighter");
+    expect(contrastRatio(both, ground)).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(both, panel)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("constrains nothing when given no backdrops", () => {
+    const pale = parseHex("#fff59d") as Rgb;
+    expect(toContrast(pale, [], 3, "darker")).toEqual(pale);
   });
 });
 
