@@ -118,8 +118,13 @@ export function TextArea({ className, ...rest }: TextAreaProps): JSX.Element {
  * **Clicking the prefix focuses the box.** The line used to be the input edge to edge, so
  * anywhere on it took focus; without this, the leading centimetre of every web-address field
  * would quietly stop working.
+ *
+ * **No gap between the two**, which was tried in the review shots and looked wrong: a space
+ * turns one address into a label and a value, and the point of the prefix is that the line reads
+ * as **the address the project is about to store**, character for character. The colour is what
+ * separates the part the field supplies from the part the owner typed, and it is enough.
  */
-export const URL_ROW_CLASS = `${LINE_CLASS} flex items-center gap-1 focus-within:border-ink`;
+export const URL_ROW_CLASS = `${LINE_CLASS} flex items-center focus-within:border-ink`;
 
 /** Quiet, and not selectable — it is the field's own furniture, not part of the answer. */
 export const URL_PREFIX_CLASS = "shrink-0 select-none text-ink-quiet";
