@@ -717,22 +717,23 @@ describe("the rule and the control edge", () => {
  * **1.16:1** and invisible: you could see how far you had come, not how far was left. Half of
  * why is that the track was a **cool** grey sitting on a warm ground.
  *
- * **Both boundaries cannot reach 3:1 at once, and the test below proves it rather than saying
- * it.** Contrast composes along the two steps ground → track → fill, so a track at 3:1 under a
- * fill at 3:1 needs the fill itself to clear **9:1** on the ground. `--color-progress` is at
- * 5.88, and it is not this item's to move: §7.4 scopes the exception and the change list asks
- * only for the track. So the boundary that carries the state takes the 3:1 — it is the one you
- * read a proportion off — and the track goes as dark as that allows, which is where it is.
+ * **The two boundaries were in competition until the fill moved (#222).** Contrast composes
+ * along the two steps ground → track → fill, so a track at 3:1 under a fill at 3:1 needs the
+ * fill itself to clear **9:1** on the ground. At `#4f46e5` it was 5.88, so #185 could only buy
+ * one edge: it held the one carrying the state — the fill against the track, the one you read a
+ * proportion off — and left the track as dark as that allowed, 1.82, with `fill/ground < 9`
+ * asserted as the arithmetic pinning why it stopped there. The owner has since darkened §7.4's
+ * exception colour to indigo-800, which is what that guard was holding the door open for, so it
+ * is replaced below by the pair of 3:1s rather than deleted.
  */
 describe("the progress bar's two boundaries", () => {
   it("reads the state off the fill against the track, at 3:1", () => {
     expect(between("progress", "progress-track")).toBeGreaterThanOrEqual(3);
   });
 
-  it("shows how much is left: the track is visible on the ground", () => {
-    // 1.16 before. The ceiling is 1.96, where the fill's own boundary would land exactly on 3:1
-    // with no headroom — this sits under it deliberately, which is the whole trade below.
-    expect(between("progress-track", "ground")).toBeGreaterThanOrEqual(1.8);
+  it("shows how much is left: the track clears 3:1 on the ground", () => {
+    // 1.16 before #185, 1.82 after it, 3.08 now — the half of B-26 that took two tickets.
+    expect(between("progress-track", "ground")).toBeGreaterThanOrEqual(3);
   });
 
   it("is warm now, like everything else on the ground", () => {
@@ -740,13 +741,33 @@ describe("the progress bar's two boundaries", () => {
   });
 
   /**
-   * The arithmetic, as an assertion: while the fill is under 9:1 on the ground, no track colour
-   * exists that puts both boundaries at 3:1, so the track's ceiling is set by the fill. The day
-   * someone darkens `--color-progress` past 9:1 this goes red, which is exactly the day the
-   * track should be revisited.
+   * The arithmetic that used to say *stop here*, now saying *this is why both fit*. A contrast
+   * ratio is the same two luminances at every step, so with the track's luminance between the
+   * other two it composes by multiplication **exactly**: the fill's reading on the ground *is*
+   * the product of the bar's two boundaries. That identity is where 9 comes from — 3 × 3 — and
+   * it is what makes the two assertions above satisfiable together rather than a pair someone
+   * hopes will hold. Lighten §7.4's exception colour back under 9 and no track colour answers
+   * both again, which is the corner #185 was in.
    */
-  it("says why the track stops where it does", () => {
-    expect(between("progress", "ground")).toBeLessThan(9);
+  it("has the headroom that lets both boundaries clear at once", () => {
+    expect(between("progress", "ground")).toBeCloseTo(
+      between("progress", "progress-track") * between("progress-track", "ground"),
+      6,
+    );
+    expect(between("progress", "ground")).toBeGreaterThanOrEqual(9);
+  });
+
+  /**
+   * §7.4 grants the bar *one* exception, and an exception that leaks stops being one. The
+   * docblock on the tokens has always said nothing else may borrow them for decoration; this is
+   * that sentence with teeth, and it is what keeps a change to the tool's second colour a
+   * change to the progress bar and to nothing else.
+   */
+  it("is the only thing spending §7.4's exception colour", () => {
+    const offenders = others("/ProgressBar.tsx")
+      .filter(([, text]) => text.includes("progress-track") || /\bbg-progress\b/.test(text))
+      .map(([path]) => path);
+    expect(offenders, "paper is not up for discussion outside the bar").toEqual([]);
   });
 });
 
