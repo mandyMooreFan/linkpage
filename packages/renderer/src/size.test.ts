@@ -63,10 +63,12 @@ const CHROME_BUDGET = 30 * 1024;
  * A tripwire under the line, so that *approaching* the budget fails rather than only breaching
  * it.
  *
- * The worst realistic page measures about **24 KB** today, roughly 15 KB of which is vendored
- * SVG — the icon set, not the stylesheet, is what fills this budget. That leaves about 6 KB,
- * which is around thirty more glyphs, and the failure worth catching is not an owner with a
- * long page but a change that quietly spends that headroom.
+ * The worst realistic page measures **25.67 KB** today — `MAXIMAL` in Thai, which is the case
+ * the `TRANSLATED` suite below actually asserts and not the English one usually quoted —
+ * roughly 15 KB of which is vendored SVG, so the icon set rather than the stylesheet is what
+ * fills this budget. **That leaves 0.33 KB, not the ~6 KB this note used to claim**, and the
+ * failure worth catching is not an owner with a long page but a change that quietly spends the
+ * rest. §6.5 carries the table of where it went; keep the two in step.
  *
  * 26 KB is deliberately a number someone has to come and move rather than one that drifts. If
  * a glyph earns its place under §2.4's growth rule and pushes past it, raising this is the

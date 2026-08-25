@@ -1132,12 +1132,34 @@ binary. The file is bigger than the image it contains; the page is not slower.
 failure for this user — refusing would strand an owner from their own page.
 
 **The number that actually governs is not in the table above, and belongs beside it.** CI's chrome
-tripwire is **26 KB**. The largest fixture's chrome measured **24.04 KB** before §6.9 and measures
-**24.75 KB** after it, so the real headroom is **1.25 KB**, not the ~25 KB the 30 KB line implies. About
-15 KB of that total is vendored SVG: **the icon set, not the stylesheet, is what fills this budget**,
-which is why §2.4's membership rule and this number are the same conversation. A spec whose numbers are both looser than the test's is a spec that invites the next
-contributor to spend headroom that is not there, which is exactly what happened once. **The next
-presentation idea is the one that breaks the build**, and it should learn that here rather than in CI.
+tripwire is **26 KB**, and the measurement that has to clear it is not the one usually quoted: the size
+test renders the largest fixture in **every language in the table**, and Thai is the widest — three
+bytes to a character where English spends one. So the governing figure is `MAXIMAL` in Thai, and the
+history is:
+
+|                                       | largest fixture (`MAXIMAL`) | worst language (`MAXIMAL` in `th`) | headroom under 26 KB |
+| ------------------------------------- | --------------------------- | ---------------------------------- | -------------------- |
+| before §6.9                           | 24.04 KB                    | —                                  | —                    |
+| §6.9, as costed in this section       | 24.75 KB                    | —                                  | 1.25 KB claimed      |
+| with §6.9 and the hover state shipped | 25.03 KB                    | 25.12 KB                           | 0.86 KB              |
+| after the spacing and type ladders    | **25.58 KB**                | **25.67 KB**                       | **0.33 KB**          |
+
+Two corrections are recorded in that table rather than smoothed over. **24.75 KB was never re-measured
+after §6.9 finished landing**, so the 1.25 KB it claimed was a third more headroom than existed; and the
+number quoted has always been the English fixture, which is not the assertion CI actually makes. About
+15 KB of the total is vendored SVG:
+**the icon set, not the stylesheet, is what fills this budget**, which is why §2.4's membership rule and
+this number are the same conversation.
+
+**A third of a kilobyte is what is left, and it is not a lot.** The ladders bought naming rather than
+pixels — **566 B**, spent on saying what the page's twenty-odd loose lengths meant — so the next idea
+should expect to argue about the price rather than to discover it afterwards. §6.9 already recorded that
+a glyph is never as cheap as its drawing; a token block is never as cheap as the value it names either,
+because it is paid once in the declaration and again at every use. A spec whose numbers are both looser
+than the test's is a spec that invites the next contributor to spend headroom that is not there, which is
+exactly what happened twice. **The next presentation idea is the one that breaks the build**, and it
+should learn that here rather than in CI — and where it earns its place, moving the 26 KB tripwire in a
+diff that says why is the right answer, not silence.
 
 ### 6.6 Images and logos
 
@@ -1267,11 +1289,13 @@ page declares `<html dir>` from the same tag.
 Three further decisions about how the page presents itself, priced against §6.5's real headroom. §6.2
 holds the fourth — centring a short page — because that one is about the column.
 
-**Together they spend 726 B and leave 1.25 KB.** That is **171 B more than the 555 B the decision was
+**Together they spend 726 B.** That is **171 B more than the 555 B the decision was
 costed at**, and the difference is worth recording rather than smoothing over: the estimate was taken on
 a prototype, and a glyph carries `glyphSvg`'s full `<svg>` wrapper — the viewBox, the paint attributes,
 `aria-hidden` and `focusable` — before any path data. **A glyph is never as cheap as its drawing.**
-Anyone costing the next one should price the wrapper first.
+Anyone costing the next one should price the wrapper first. What this section left behind was a headroom
+figure it never re-measured; **§6.5's table is the live one**, and this paragraph is the spend, not the
+balance.
 
 **The address underlines its street line only.** The whole block stays the directions link; the underline
 moves to the first line, at `text-underline-offset:0.18em` and `text-decoration-thickness:1px`. Today all

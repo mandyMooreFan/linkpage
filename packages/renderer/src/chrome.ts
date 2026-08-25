@@ -227,6 +227,12 @@ export function typeTokens(pairing: TypePairing): string[] {
  * `var(--lp-ink)` and `var(--lp-rule)` are roles the palette already filled in, and `none`,
  * `0` and `inherit` are the rest of the vocabulary.
  *
+ * **Nor does any entry name a length.** Spacing comes from `stylesheet.ts`'s ladder for the
+ * same reason colour comes from the palette: a shape writing its own number is retuning the
+ * page's rhythm, and the point of a named ladder is that doing so has to look like a decision.
+ * `floatingCard` used to hold a bare `gap:1.25rem`, which is how it tightened the page gap by
+ * 0.5rem without that ever appearing on a list of what the shape does.
+ *
  * **None of them touches the column.** §6.2's `min(100%, 25rem)` is load-bearing for §5.2 and
  * §7.6 — a wider column would reflow the buttons and change the size the logo renders at, so a
  * desktop visitor would see a page the owner never previewed. A shape lays out *within* the
@@ -246,7 +252,7 @@ const SHAPE_RULES: Record<Shape, string> = {
    * fill's own ink keeps §3.3's guarantee true inside a shape that moved the text.
    */
   colourBlock: `
-.lp-header{padding:1.75rem 1.25rem;border-radius:var(--lp-radius);background:var(--lp-fill);color:var(--lp-fill-ink)}
+.lp-header{padding:var(--lp-space-7) var(--lp-space-5);border-radius:var(--lp-radius);background:var(--lp-fill);color:var(--lp-fill-ink)}
 .lp-header .lp-tagline{color:inherit}
 .lp-link{background:none;border-color:var(--lp-fill);color:var(--lp-ink)}`,
 
@@ -254,10 +260,19 @@ const SHAPE_RULES: Record<Shape, string> = {
    * The whole column lifts onto one surface, and the sections inside stop being boxes — a card
    * of cards is a page with a border drawn round every paragraph. They are divided by the
    * hairline instead, which is the same rule doing less work.
+   *
+   * **So the hairline gets the page's own gap, on both sides of it.** This shape used to
+   * restate `.lp-page{gap:1.25rem}` and pad the panel to match, which tightened the space
+   * around a divider at the exact moment that divider stopped being a box and became the only
+   * thing separating two sections — less help for a line doing more work. The gap override is
+   * gone, so the page keeps `--lp-space-7` here as everywhere else, and the panel's top padding
+   * is the same rung, which puts the hairline midway between the block above and the block
+   * below. §1 buys separation with space before it buys it with a heavier line, and a heavier
+   * line is the alternative that was not taken.
    */
   floatingCard: `
-.lp-page{gap:1.25rem;padding:1.75rem 1.25rem;border:1px solid var(--lp-rule);border-radius:calc(var(--lp-radius) + 0.5rem);background:var(--lp-surface)}
-.lp-panel{padding:1.25rem 0 0;border:0;border-top:1px solid var(--lp-rule);border-radius:0;background:none}`,
+.lp-page{padding:var(--lp-space-7) var(--lp-space-5);border:1px solid var(--lp-rule);border-radius:calc(var(--lp-radius) + 0.5rem);background:var(--lp-surface)}
+.lp-panel{padding:var(--lp-space-7) 0 0;border:0;border-top:1px solid var(--lp-rule);border-radius:0;background:none}`,
 
   /**
    * Everything hangs off one axis on the left, marked by a rule in the button fill.
@@ -267,12 +282,17 @@ const SHAPE_RULES: Record<Shape, string> = {
    * fill clears 3:1 against the ground where the hairline deliberately does not.
    *
    * Logical properties throughout, so the axis follows the page's writing direction rather
-   * than pinning itself to the left of a page whose `lang` reads right to left.
+   * than pinning itself to the left of a page whose `lang` reads right to left. **The panel's
+   * padding was the one place that was not**: `padding:0.125rem 0 0.125rem 0.875rem` is the
+   * four-value shorthand, whose fourth value is `padding-left` — so on an Arabic page the axis
+   * moved to the right edge and the text stayed pushed off the left one. Written as a block
+   * pair plus `padding-inline-start` it follows the rule it sits beside. Found while putting
+   * the lengths on the ladder, which is the sort of thing naming them is for.
    */
   ruledLeft: `
-.lp-header{align-items:flex-start;padding-inline-start:0.875rem;border-inline-start:3px solid var(--lp-fill);text-align:start}
+.lp-header{align-items:flex-start;padding-inline-start:var(--lp-space-4);border-inline-start:3px solid var(--lp-fill);text-align:start}
 .lp-link{justify-content:flex-start}
-.lp-panel{padding:0.125rem 0 0.125rem 0.875rem;border:0;border-inline-start:3px solid var(--lp-fill);border-radius:0;background:none}
+.lp-panel{padding:var(--lp-space-1) 0;padding-inline-start:var(--lp-space-4);border:0;border-inline-start:3px solid var(--lp-fill);border-radius:0;background:none}
 .lp-social{justify-content:flex-start}`,
 };
 
