@@ -5,6 +5,7 @@ import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FileDownload } from "../download/index.js";
 import { readProjectFile, type Refusal } from "../project/index.js";
+import { WEIGHT } from "../ui/Button.js";
 import { ProjectPicker } from "./ProjectPicker.js";
 import { RefusalNotice } from "./RefusalNotice.js";
 import { ReplaceConfirm } from "./ReplaceConfirm.js";
@@ -65,6 +66,37 @@ describe("naming what would go (§7.8)", () => {
     expect(labels).toEqual(["Download my work first", "Open the file", "Cancel"]);
     // The OS picker has just closed, so focus lands on the branch that loses nothing.
     expect(document.activeElement?.textContent).toBe("Download my work first");
+  });
+
+  /**
+   * The fork's weighting, and the guarantee it is easy to think it broke.
+   *
+   * The design audit found the escape wearing the solid fill while _Open the file_ — the errand
+   * the owner arrived on — was merely outlined, and `Cancel` written by hand in a fourth weight
+   * nobody had named. The fix is a swap, and the thing worth holding in a test is that **the swap
+   * did not move the keyboard**: focus order and visual weight are separate decisions, so the
+   * safe-focus argument survives it. That argument lives in a docblock, which cannot fail; this
+   * can.
+   *
+   * Weights are compared against `WEIGHT` rather than against a spelled-out class string, for
+   * `controls.test.ts`'s reason — a second copy of the recipe is exactly what the component layer
+   * exists to prevent, and a test is not exempt from that.
+   */
+  it("puts the fill on the errand and the keyboard on the escape", () => {
+    mount(
+      <ReplaceConfirm name="Ada" outgoing={outgoing()} onOpen={() => {}} onCancel={() => {}} />,
+    );
+    const button = (name: string): HTMLElement => screen.getByRole("button", { name });
+
+    // The one filled thing here is the replacement, because that is what the owner came to do.
+    expect(button("Open the file").className).toBe(WEIGHT.primary);
+    // The escape is a real branch of the fork, not a footnote — a hairline outline, same box.
+    expect(button("Download my work first").className).toBe(WEIGHT.secondary);
+    // And the third choice routes through a named weight rather than a hand-written string.
+    expect(button("Cancel").className).toBe(WEIGHT.quiet);
+
+    // Independent of all of that: an unaimed press still cannot be the one that replaces.
+    expect(document.activeElement).toBe(button("Download my work first"));
   });
 
   it("writes the outgoing project on the escape, and does not open anything", () => {
