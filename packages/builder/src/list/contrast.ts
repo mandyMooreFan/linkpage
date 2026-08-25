@@ -20,8 +20,8 @@ import type { DraftStyle } from "../project/index.js";
  * The reason is §3.3. Readability is guaranteed **by a constrained colour field rather than by
  * warnings**, so an owner is never told off for a colour — and opening the advanced panel is
  * the acknowledgement that the guarantee no longer applies (§3.4), not permission to start
- * telling them off. Somebody who has gone past the constrained field and is setting ten colours
- * by hand is asking a factual question, and the honest answer is a number.
+ * telling them off. Somebody who has gone past the constrained field and is setting eleven
+ * colours by hand is asking a factual question, and the honest answer is a number.
  *
  * `brandSteppedBack` comes out alongside for the same reason: it is a fact about what the
  * derivation did with a colour that could not carry a filled button (§3.3), stated once, in
@@ -65,9 +65,9 @@ export interface Readout {
 export type Role = Exclude<keyof Palette, "brandSteppedBack">;
 
 /**
- * The ten roles the advanced tier can override (§3.4), in the words an owner would use.
+ * The eleven roles the advanced tier can override (§3.4), in the words an owner would use.
  *
- * The same ten `derivePalette` lays overrides over — anything else typed into the object is
+ * The same eleven `derivePalette` lays overrides over — anything else typed into the object is
  * preserved in the file (§4.5) but has no role to play, so the panel offers exactly these.
  */
 export const ROLE_LABELS: readonly (readonly [role: Role, label: string])[] = [
@@ -78,6 +78,7 @@ export const ROLE_LABELS: readonly (readonly [role: Role, label: string])[] = [
   ["rule", "Hairlines"],
   ["brand", "Your colour"],
   ["buttonFill", "Button background"],
+  ["buttonFillHover", "Button background when pointed at"],
   ["buttonInk", "Button text"],
   ["accent", "Second colour"],
   ["accentInk", "Second colour as text"],

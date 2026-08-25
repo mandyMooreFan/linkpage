@@ -12,13 +12,13 @@ import { LADDER } from "../ui/ladder.js";
  *
  * **Last, and that is the argument for where it sits.** §7.4: putting it at the foot of the
  * step means the owner has met the six controls before they meet the exit from them. Somebody
- * who scrolls past shape, type and corners and only then finds a panel of ten hex boxes has
+ * who scrolls past shape, type and corners and only then finds a panel of eleven hex boxes has
  * already been offered the thing that would have solved their problem.
  *
  * **Collapsed, and opening it is the acknowledgement.** The readability guarantee is "by
  * default", not "always" (§3.4): it holds because the colour field above is constrained (§3.3),
- * and hand-setting ten colours steps outside that field. So the panel says so, once, in plain
- * words — and then stops talking about it.
+ * and hand-setting eleven colours steps outside that field. So the panel says so, once, in
+ * plain words — and then stops talking about it.
  *
  * **It reports contrast and nothing else.** No refusal, no auto-correction, no export gate. The
  * numbers are stated and the owner decides; nothing here disables Download, rewrites a colour,

@@ -17,8 +17,8 @@
  * square. **This applies to the shapes too**: a shape lays out *within* the column, and
  * `box-sizing: border-box` below is what lets `floatingCard` pad inwards without moving it.
  *
- * **Every colour comes from the palette** (§3.2). Nothing here picks one, and the ten roles are
- * emitted as custom properties on `:root` so the rules below name a role rather than a value.
+ * **Every colour comes from the palette** (§3.2). Nothing here picks one, and the eleven roles
+ * are emitted as custom properties on `:root` so the rules below name a role rather than a value.
  * The shapes and pairings in `chrome.ts` do the same — they select among these roles and never
  * re-derive or invent one.
  *
@@ -45,9 +45,9 @@ const COLUMN = "min(100%, 25rem)";
  * The colour roles, as CSS custom properties, plus the structural tokens the shapes and
  * pairings resolve to.
  *
- * All ten colour roles are emitted, including the two the default layout does not currently
+ * All eleven colour roles are emitted, including the two the default layout does not currently
  * name, because this block is the page's colour contract: a shape selects among these roles
- * (§3.2) and must never have to re-derive one. Ten declarations of a seven-character hex is a
+ * (§3.2) and must never have to re-derive one. Eleven declarations of a seven-character hex is a
  * rounding error against §6.5's 30 KB chrome budget.
  *
  * The structural tokens after them are where three of the six controls (§3.1) land in full:
@@ -63,6 +63,7 @@ function tokens(palette: Palette, chrome: Chrome): string {
     `--lp-rule:${palette.rule}`,
     `--lp-brand:${palette.brand}`,
     `--lp-fill:${palette.buttonFill}`,
+    `--lp-fill-hover:${palette.buttonFillHover}`,
     `--lp-fill-ink:${palette.buttonInk}`,
     `--lp-accent:${palette.accent}`,
     `--lp-accent-text:${palette.accentInk}`,
@@ -83,6 +84,16 @@ function tokens(palette: Palette, chrome: Chrome): string {
  * transparent border so `colourBlock` can turn a filled button into an outlined one without
  * the button changing height, and `*{box-sizing:border-box}` is what keeps `floatingCard`'s
  * padding inside the column instead of adding to it.
+ *
+ * **The hover rule is one rule and it is here rather than in a shape**, for the same reason
+ * the focus rule is: a state that four shapes each had to remember is a state one of them
+ * forgets. It sets the fill *and* the ink together because `colourBlock` draws the buttons as
+ * outlines with page ink on them — a hover that set only the background would put `--lp-ink`
+ * on a filled button, which is the one pairing §3.3 does not cover. `:active` shares it so a
+ * touch is answered as well as a pointer, and the label underlines because the fill's step is
+ * bounded by the guarantee (see `palette.ts`) and on some brands there is barely any of it
+ * left: the underline costs no contrast, is the same instrument the address line already
+ * uses, and it is what makes the state visible on those pages.
  */
 const BASE = `
 *,*::before,*::after{box-sizing:border-box}
@@ -98,7 +109,8 @@ a:focus-visible{outline:2px solid var(--lp-accent-text);outline-offset:3px}
 .lp-name{margin:0;font-family:var(--lp-font-head);font-size:1.625rem;font-weight:var(--lp-head-weight);line-height:1.2;letter-spacing:var(--lp-head-track)}
 .lp-tagline{margin:0;color:var(--lp-ink-muted)}
 .lp-links{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.625rem}
-.lp-link{display:flex;align-items:center;justify-content:center;gap:0.5rem;min-height:3rem;padding:0.75rem 1rem;border:1px solid transparent;border-radius:var(--lp-radius);background:var(--lp-fill);color:var(--lp-fill-ink);font-weight:600;text-decoration:none;overflow-wrap:anywhere}
+.lp-link{display:flex;align-items:center;justify-content:center;gap:0.5rem;min-height:3rem;padding:0.75rem 1rem;border:1px solid transparent;border-radius:var(--lp-radius);background:var(--lp-fill);color:var(--lp-fill-ink);font-weight:600;text-decoration:none;overflow-wrap:anywhere;transition:background-color 0.12s,border-color 0.12s}
+.lp-link:hover,.lp-link:active{background:var(--lp-fill-hover);border-color:var(--lp-fill-hover);color:var(--lp-fill-ink);text-decoration:underline;text-underline-offset:0.18em;text-decoration-thickness:1px}
 .lp-panel{margin:0;padding:1rem 1.125rem;border:1px solid var(--lp-rule);border-radius:var(--lp-radius);background:var(--lp-surface)}
 .lp-hours{display:grid;grid-template-columns:auto 1fr;gap:0.5rem 1rem;margin:0;font-variant-numeric:tabular-nums}
 .lp-day{margin:0;color:var(--lp-ink-muted)}

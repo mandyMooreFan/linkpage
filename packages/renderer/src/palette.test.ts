@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { contrastRatio, parseHex, type Rgb } from "./color.js";
+import { contrastRatio, parseHex, rgbToOklch, withLightness, type Rgb } from "./color.js";
 import { derivePalette, type Palette } from "./palette.js";
 import { stylesheet } from "./stylesheet.js";
-import { resolveChrome } from "./chrome.js";
-import type { Mode, Style } from "./project.js";
+import { resolveChrome, SHAPES } from "./chrome.js";
+import type { Mode, Shape, Style } from "./project.js";
 
 const styleWith = (brand: string, mode: Mode, extra: Partial<Style> = {}): Style => ({
   brand,
@@ -92,6 +92,20 @@ describe("the readability guarantee holds for every brand colour, in both modes"
           for (const [where, backdrop] of backdrops(p)) {
             expect(ratio(p.buttonFill, backdrop), where).toBeGreaterThanOrEqual(3);
           }
+        });
+
+        it("the hovered button is still a button on every backdrop (SC 1.4.11)", () => {
+          // The hover fill is a second fill, not a decoration of the first, so it carries the
+          // first one's whole guarantee: a pointer visitor is looking at the same button.
+          for (const [where, backdrop] of backdrops(p)) {
+            expect(ratio(p.buttonFillHover, backdrop), where).toBeGreaterThanOrEqual(3);
+          }
+        });
+
+        it("button text clears AA on the hovered button too", () => {
+          // One ink serves both states, so the step the fill takes on hover is bounded by
+          // what that ink can survive. This is the assertion that bounds it.
+          expect(ratio(p.buttonInk, p.buttonFillHover)).toBeGreaterThanOrEqual(4.5);
         });
 
         it("accent text clears AA on every backdrop", () => {
@@ -204,6 +218,100 @@ describe("the backdrop a colour is drawn on is not always the ground", () => {
         ratio(p.buttonFill, p.surface),
       );
     }
+  });
+});
+
+describe("the hover fill", () => {
+  /** One ramp step, the number `palette.ts` spends on hover, restated so a change is visible. */
+  const STEP = 0.07;
+  const lightness = (hex: string): number => rgbToOklch(rgb(hex)).l;
+
+  it("moves toward the ink rather than away from it, for every brand in both modes", () => {
+    // The direction is the whole design: on paper the hovered button goes *deeper*, and
+    // "deeper" is toward the one ink, which is dark on a light page and light on a dark one.
+    for (const mode of MODES) {
+      for (const [name, hex] of BRANDS) {
+        const p = derivePalette(styleWith(hex, mode));
+        const label = `${name} (${hex}), ${mode}`;
+        const from = lightness(p.buttonFill);
+        const towards = lightness(p.ink) - from;
+        const moved = lightness(p.buttonFillHover) - from;
+        expect(Math.sign(moved) === Math.sign(towards) || moved === 0, label).toBe(true);
+      }
+    }
+  });
+
+  it("takes the whole step where the guarantee leaves room for it", () => {
+    // A strong pink on a light page: the button text is the near-white ground, so darkening
+    // the fill improves both readings at once and nothing holds the step back.
+    const p = derivePalette(styleWith("#c2185b", "light"));
+    expect(lightness(p.buttonFillHover)).toBeCloseTo(lightness(p.buttonFill) - STEP, 2);
+  });
+
+  it("takes a shorter step where the guarantee needs the room", () => {
+    // The pinch, and it is real rather than theoretical. In dark mode a stepped-back fill
+    // sits at exactly 3:1 against the card and carries near-white text at 4.94:1, so it has
+    // nowhere to go: darker breaks the button, lighter breaks its text. The step shortens to
+    // whatever is left — which is why the stylesheet does not let the fill carry the hover
+    // state alone (see "the hover state reaches the page" below).
+    const p = derivePalette(styleWith("#c2185b", "dark"));
+    const wanted = withLightness(rgb(p.buttonFill), lightness(p.buttonFill) + STEP);
+
+    expect(contrastRatio(rgb(p.buttonInk), wanted)).toBeLessThan(4.5); // the full step fails
+    expect(ratio(p.buttonInk, p.buttonFillHover)).toBeGreaterThanOrEqual(4.5); // the taken one
+    expect(lightness(p.buttonFillHover)).toBeGreaterThan(lightness(p.buttonFill));
+    expect(lightness(p.buttonFillHover)).toBeLessThan(lightness(p.buttonFill) + STEP);
+  });
+
+  it("keeps the fill's hue and chroma, so hover is a shade rather than a colour", () => {
+    const p = derivePalette(styleWith("#c2185b", "light"));
+    const fill = rgbToOklch(rgb(p.buttonFill));
+    const hover = rgbToOklch(rgb(p.buttonFillHover));
+    expect(hover.h).toBeCloseTo(fill.h, 0);
+    expect(hover.c).toBeCloseTo(fill.c, 1);
+  });
+
+  it("is a role like any other, so the advanced tier can reach it", () => {
+    const p = derivePalette(
+      styleWith("#c2185b", "light", {
+        advanced: { enabled: true, colors: { buttonFillHover: "#123456" } },
+      }),
+    );
+    expect(p.buttonFillHover).toBe("#123456");
+  });
+});
+
+describe("the hover state reaches the page", () => {
+  const sheet = (shape: Shape): string =>
+    stylesheet(derivePalette(styleWith("#c2185b", "light")), resolveChrome({ shape }));
+
+  it("emits the derived role under its own property", () => {
+    const p = derivePalette(styleWith("#c2185b", "light"));
+    expect(sheet("centred")).toContain(`--lp-fill-hover:${p.buttonFillHover}`);
+  });
+
+  it("carries the button's own ink with the hover fill, under every shape", () => {
+    // `colourBlock` draws the link buttons as outlines with `--lp-ink` on the page, so a
+    // hover rule that set only the background would put page ink on a filled button — the
+    // one pairing §3.3 does not cover. The rule sets both, and it is one rule, so no shape
+    // can arrive at half of it.
+    for (const shape of SHAPES) {
+      const rule = /\.lp-link:hover[^{]*\{([^}]*)\}/.exec(sheet(shape))?.[1] ?? "";
+      expect(rule, shape).toContain("background:var(--lp-fill-hover)");
+      expect(rule, shape).toContain("color:var(--lp-fill-ink)");
+    }
+  });
+
+  it("does not leave the fill alone with the job", () => {
+    // Where the guarantee shortens the step to almost nothing (see "the hover fill" above),
+    // a fill-only hover would be a state the visitor cannot see. The label underlines too,
+    // which costs no contrast and is the same instrument the address line already uses.
+    const rule = /\.lp-link:hover[^{]*\{([^}]*)\}/.exec(sheet("centred"))?.[1] ?? "";
+    expect(rule).toContain("text-decoration:underline");
+  });
+
+  it("gives a pressed button the same state, so a touch is answered too", () => {
+    expect(sheet("centred")).toMatch(/\.lp-link:hover,\.lp-link:active\{/);
   });
 });
 

@@ -6,6 +6,7 @@ import {
   pickInk,
   relativeLuminance,
   rgbToOklch,
+  stepToward,
   toContrast,
   toHex,
   withLightness,
@@ -136,6 +137,56 @@ describe("toContrast", () => {
   it("constrains nothing when given no backdrops", () => {
     const pale = parseHex("#fff59d") as Rgb;
     expect(toContrast(pale, [], 3, "darker")).toEqual(pale);
+  });
+});
+
+describe("stepToward", () => {
+  const always = (): boolean => true;
+  const teal = parseHex("#00695c") as Rgb;
+
+  it("takes the whole step when nothing is in the way", () => {
+    const stepped = stepToward(teal, BLACK, 0.07, always);
+    expect(rgbToOklch(stepped).l).toBeCloseTo(rgbToOklch(teal).l - 0.07, 2);
+  });
+
+  it("reads the second colour as a direction, not a destination", () => {
+    // A step can land past it, which is the point: a fill sitting almost on the ink would
+    // otherwise get a step of nearly nothing exactly where one is hardest to see.
+    const justDarker = withLightness(teal, rgbToOklch(teal).l - 0.02);
+    const stepped = stepToward(teal, justDarker, 0.07, always);
+    expect(rgbToOklch(stepped).l).toBeLessThan(rgbToOklch(justDarker).l);
+  });
+
+  it("shortens the step to the last point that holds", () => {
+    // Darken a teal, but never past 8:1 against white. The answer is the boundary rather
+    // than the wish, and it is on the legal side of it.
+    const holds = (candidate: Rgb): boolean => contrastRatio(candidate, WHITE) <= 8;
+    const stepped = stepToward(teal, BLACK, 0.2, holds);
+    expect(contrastRatio(stepped, WHITE)).toBeLessThanOrEqual(8);
+    const further = withLightness(stepped, rgbToOklch(stepped).l - 0.01);
+    expect(contrastRatio(further, WHITE)).toBeGreaterThan(8);
+  });
+
+  it("goes the other way when the direction is the other way", () => {
+    expect(rgbToOklch(stepToward(teal, WHITE, 0.07, always)).l).toBeCloseTo(
+      rgbToOklch(teal).l + 0.07,
+      2,
+    );
+  });
+
+  it("stays put when the colour it was given does not hold", () => {
+    // The caller's promise is that `color` holds. When it does not, nothing further along
+    // can rescue it, so the honest answer is the colour it came in with.
+    const stepped = stepToward(teal, BLACK, 0.07, () => false);
+    expect(toHex(stepped)).toBe(toHex(teal));
+  });
+
+  it("keeps hue and chroma, so a step is a shade rather than a colour", () => {
+    const before = rgbToOklch(teal);
+    const after = rgbToOklch(stepToward(teal, BLACK, 0.07, always));
+    // Within a degree or so: the step is exact in OKLCh and then quantised to 8-bit channels.
+    expect(Math.abs(after.h - before.h)).toBeLessThan(2);
+    expect(after.c).toBeCloseTo(before.c, 1);
   });
 });
 

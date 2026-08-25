@@ -64,7 +64,7 @@ describe("what the numbers are", () => {
     const { palette } = readout(POPULATED.style);
     const roles = ROLE_LABELS.map(([role]) => role);
 
-    expect(roles).toHaveLength(10);
+    expect(roles).toHaveLength(11);
     expect([...roles].sort()).toEqual(
       Object.keys(palette)
         .filter((key) => key !== "brandSteppedBack")
