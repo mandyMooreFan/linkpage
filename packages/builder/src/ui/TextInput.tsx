@@ -8,6 +8,11 @@ import type { InputHTMLAttributes, JSX, Ref, TextareaHTMLAttributes } from "reac
  * focus rather than moving anything — a control that reflows when you reach it is a control that
  * feels broken on a phone.
  *
+ * **Which is why the line is drawn in `control-edge` rather than in `rule`** (item 1.2, B-23 and
+ * B-64). If the underline *is* the control, it is the part of it that a person has to be able to
+ * find, and SC 1.4.11 asks 3:1 of that. Sharing the row-divider colour put it at 1.31:1: an empty
+ * field read as a gap with a faint line under it. `theme.css` carries the split and the numbers.
+ *
  * **This is the only place the recipe is written**, which is §7.4's rule about controls being
  * components rather than repeated strings. It had stopped being true: the string existed in
  * thirteen places, and this component — the one that owned the placeholder colour — had no call
@@ -23,7 +28,7 @@ import type { InputHTMLAttributes, JSX, Ref, TextareaHTMLAttributes } from "reac
 
 /** The one recipe. Exported so `controls.test.ts` can assert on it rather than re-spell it. */
 export const INPUT_CLASS =
-  "tap w-full border-0 border-b border-rule bg-transparent px-0 py-2 font-sans text-lg " +
+  "tap w-full border-0 border-b border-control-edge bg-transparent px-0 py-2 font-sans text-lg " +
   "placeholder:text-ink-quiet focus:border-ink";
 
 export interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {

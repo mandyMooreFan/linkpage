@@ -33,16 +33,55 @@
   --color-rule: #e2d9cb;
   --color-ground: #faf7f2;
   --color-surface: #ffffff;
+
+  /**
+   * The fifth: the hairline that **is** a control, as opposed to the one *between* two things.
+   *
+   * Paper gives a text field no fill and no box, so its underline is the field's whole
+   * perceivable extent — which makes it the part of a control that identifies it, and
+   * [SC 1.4.11](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html) asks 3:1 of
+   * that against the colour beside it. `rule` is **1.31:1** on the ground, so an empty field read
+   * as a gap with a faint line under it rather than as somewhere to type (B-23, B-64).
+   *
+   * **One token could not answer both jobs**, which is why this is a split rather than a
+   * darkening. A row divider is decoration, not an interactive component's boundary, so 1.4.11
+   * does not bind it and §1 wants it barely there; the field's line has to be seen. Held at one
+   * value the pair could only be wrong one way, and it was wrong the way that matters.
+   *
+   * `#948d83` is the same warm hue blended toward the ink — the first step that reaches 3:1 on
+   * the ground (**3.07:1**, and 3.28 on the surface) while keeping the cast that makes it paper's
+   * line rather than a browser's. It stays a hairline; it just becomes visible.
+   * `controls.test.ts` holds both halves: this over 3:1 on every backdrop the builder paints, and
+   * `rule` still under it, since the moment the separator is darkened too there is one value
+   * again and the argument above has been abandoned rather than decided.
+   */
+  --color-control-edge: #948d83;
   /* The one place the tool shows a colour of its own: a focus ring and a live message. */
   --color-notice: #8a2d1b;
 
-  /*
+  /**
    * §7.4's one deliberate exception to paper (#139): the progress bar's standard vocabulary —
    * a grey track and a coloured fill. Scoped to §7.2's bar and its topic list; nothing else
    * may borrow these for decoration.
+   *
+   * **The track was not delivering the half it was bought for.** At `#e5e7eb` it sat at
+   * **1.16:1** on the ground and simply was not there: the owner could see how far they had come
+   * and not how far was left (B-26). Half of why is that it was a **cool** grey borrowed from a
+   * framework's palette, sitting on a warm ground — the one place in the tool where a colour
+   * disagreed with the paper around it.
+   *
+   * **Both of the bar's boundaries cannot clear 3:1 at once.** Contrast composes along
+   * ground → track → fill, so a track at 3:1 carrying a fill at 3:1 needs the fill itself over
+   * **9:1** on the ground; this one is at 5.88. So the boundary that carries the state — the
+   * fill against the track, the edge you read a proportion off — keeps the 3:1, and the track
+   * goes as dark as that allows. `#c1b9ac` is `rule` blended toward the ink until it stops:
+   * **1.82:1** on the ground against 1.16 before, with the fill still at **3.23:1** on it. Both
+   * numbers are asserted in `controls.test.ts`, along with the arithmetic that says why the
+   * track stops there — so the day the fill is darkened past 9:1, the test that pins this
+   * trade-off goes red and the track can be taken the rest of the way.
    */
   --color-progress: #4f46e5;
-  --color-progress-track: #e5e7eb;
+  --color-progress-track: #c1b9ac;
 
   /**
    * §7.6's single width, which `flow.css` and `preview.css` used to agree on by hand. One token

@@ -1,4 +1,6 @@
-import { contrastRatio, parseHex } from "@linkpage/renderer";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { contrastRatio, parseHex, type Rgb } from "@linkpage/renderer";
 import { describe, expect, it } from "vitest";
 import { INPUT_CLASS, TEXTAREA_CLASS } from "./TextInput.js";
 import { WEIGHT } from "./Button.js";
@@ -24,6 +26,15 @@ import { ROW_BUTTON, ROW_OPEN, ROW_PADDING, ROW_STACK_PADDING } from "./row.js";
  * colours were only ever checked by eye, and the design audit found the underline that *is* a
  * text field sitting at 1.31:1. A ratio either clears the line or it does not, so it belongs in
  * a test rather than in a review comment.
+ *
+ * **So the tokens are read out of `theme.css`, not copied into this file.** A ratio asserted
+ * against a hex re-typed here is a test of the copy: the stylesheet is the only place these
+ * values exist, so it is the only honest thing to measure. The lesson is `palette.test.ts`'s
+ * (#184) — that suite asserted the generated page's roles against one backdrop while the page
+ * drew them on two, and the tests mirrored the derivation's gap exactly, which is how a live
+ * failure shipped and stayed shipped. **Name the backdrop, and check every backdrop the thing is
+ * drawn on.** In the builder there are two: `ground` is every screen, `surface` is the preview
+ * sheet, the drawer at narrow widths and the menu panel.
  */
 
 /** Comments describe these strings constantly. Only code counts. */
@@ -42,14 +53,70 @@ const others = (owner: string): [string, string][] =>
     .filter(([path]) => !path.includes(".test.") && !path.endsWith(owner))
     .map(([path, text]) => [path, code(text)]);
 
+/** Every source, tests aside — for rules that hold everywhere rather than everywhere-but-one. */
+const everySource = (): [string, string][] =>
+  Object.entries(sources)
+    .filter(([path]) => !path.includes(".test."))
+    .map(([path, text]) => [path, code(text)]);
+
+/**
+ * `theme.css`, off the disk rather than through `import.meta.glob`.
+ *
+ * The glob above is how the rest of this file reads the builder, but it cannot read the
+ * stylesheet: vitest stubs CSS modules to an empty string unless the suite opts into processing
+ * them, and `?raw` is stubbed with them. That failure is silent — every ratio below would be
+ * measured against a file with no tokens in it and the suite would go green on nothing, which is
+ * the exact way a guarantee rots that this file exists to prevent. Hence `readFileSync`, and the
+ * assertion that it found something.
+ */
+const theme = code(readFileSync(fileURLToPath(new URL("../theme.css", import.meta.url)), "utf8"));
+
+/** One `@theme` token, by the name `theme.css` gives it. */
+const token = (name: string): Rgb => {
+  const declared = new RegExp(`--color-${name}:\\s*(#[0-9a-fA-F]{3,8})\\s*;`).exec(theme)?.[1];
+  const rgb = parseHex(declared);
+  if (rgb === null) throw new Error(`theme.css declares no --color-${name}`);
+  return rgb;
+};
+
+/** Contrast between two tokens, written the way the stylesheet names them. */
+const between = (a: string, b: string): number => contrastRatio(token(a), token(b));
+
+/**
+ * The two backdrops the builder paints, worst case first.
+ *
+ * `ground` is every screen; `surface` is the preview sheet, the drawer covering a phone and the
+ * menu panel. `surface` is the lighter of the two, so a token dark enough for the ground has
+ * cleared the sheet as well — but that is a fact to assert rather than one to assume, which is
+ * the whole of #184's lesson.
+ */
+const BACKDROPS = ["ground", "surface"] as const;
+
+/** A warm cast: the red channel leads and the blue trails. */
+const isWarm = ({ r, b }: Rgb): boolean => r > b;
+
 describe("the one text input", () => {
   it("is the only place the underlined-field recipe is written", () => {
     // The distinguishing part of the recipe: a bottom rule and nothing else, at input size.
-    const recipe = "border-0 border-b border-rule";
+    const recipe = "border-0 border-b border-control-edge";
     const offenders = others("./TextInput.tsx")
       .filter(([, text]) => text.includes(recipe))
       .map(([path]) => path);
     expect(offenders).toEqual([]);
+  });
+
+  /**
+   * The underline **is** the control (item 1.2, findings B-23 and B-64).
+   *
+   * Paper gives a field no fill, no box and no other boundary, so the hairline under it is the
+   * field's entire perceivable extent — which makes it exactly what SC 1.4.11 means by the part
+   * of a control that identifies it, at 3:1 against the adjacent colour. Drawn in `rule` it was
+   * **1.31:1**, under half of that, and an empty field read as a gap with a faint line beneath
+   * it rather than as somewhere to type.
+   */
+  it("draws its underline in the control-boundary colour, not the decorative rule", () => {
+    expect(INPUT_CLASS).toContain("border-control-edge");
+    expect(INPUT_CLASS, "the rule is for separators now").not.toMatch(/\bborder-rule\b/);
   });
 
   it("carries the placeholder colour, so every field actually gets one", () => {
@@ -64,11 +131,9 @@ describe("the one text input", () => {
    */
   it("sets a placeholder that clears the body contrast threshold", () => {
     expect(INPUT_CLASS).not.toMatch(/placeholder:text-ink-quiet\//);
-    const quiet = parseHex("#6b6257"); // --color-ink-quiet
-    const ground = parseHex("#faf7f2"); // --color-ground
-    expect(quiet).not.toBeNull();
-    expect(ground).not.toBeNull();
-    expect(contrastRatio(quiet!, ground!)).toBeGreaterThanOrEqual(4.5);
+    for (const backdrop of BACKDROPS) {
+      expect(between("ink-quiet", backdrop), `on ${backdrop}`).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });
 
@@ -311,5 +376,158 @@ describe("the pre-Tailwind stylesheets", () => {
         dead.filter((name) => code(text).includes(name)).map((name) => `${path}: ${name}`),
       );
     expect(offenders).toEqual([]);
+  });
+});
+
+/**
+ * The hairline, split by job (item 1.2, findings B-23 and B-64).
+ *
+ * One token was doing two jobs at one value: the line **between** two rows, and the line that
+ * **is** a text field. Only the second is an interactive-component boundary, so only the second
+ * is bound by SC 1.4.11's 3:1 — a row divider is decoration, and paper wants it to stay a
+ * hairline you barely notice. Held at one value the pair could only be wrong one way or the
+ * other, and it was wrong the way that matters: the field's own edge sat at 1.31:1.
+ *
+ * So `rule` keeps the decorative job at the value it always had, and `control-edge` is the new
+ * one, blended from the same warm hue toward the ink until it reaches the line.
+ */
+describe("the rule and the control edge", () => {
+  it("is measuring the real stylesheet, not an empty string", () => {
+    expect(theme).toContain("@theme");
+  });
+
+  it("are two tokens, because they answer to two different rules", () => {
+    expect(token("control-edge")).not.toEqual(token("rule"));
+  });
+
+  it("puts the control edge over 3:1 on every backdrop the builder paints", () => {
+    for (const backdrop of BACKDROPS) {
+      expect(between("control-edge", backdrop), `on ${backdrop}`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  /**
+   * Ground is the darker of the two backdrops, so it is the one that decides. Asserted rather
+   * than assumed: it is the ordering the loop above leans on, and #184 shipped a WCAG failure
+   * precisely by assuming which backdrop was the worst case.
+   */
+  it("is checked against the worse of the two, and knows which that is", () => {
+    expect(between("control-edge", "ground")).toBeLessThan(between("control-edge", "surface"));
+  });
+
+  it("keeps the warm cast, so the field's line still belongs to paper", () => {
+    expect(isWarm(token("control-edge"))).toBe(true);
+  });
+
+  /**
+   * The split only buys anything while the decorative half stays decorative. If `rule` is ever
+   * darkened to 3:1 there are two tokens for one value again, and the argument above — that a
+   * row divider is not bound by 1.4.11 — has quietly been abandoned rather than decided.
+   */
+  it("leaves the rule where it is: a separator, not a boundary", () => {
+    expect(between("rule", "ground")).toBeLessThan(3);
+  });
+
+  it("spends the control edge on the control's own edge and nothing else", () => {
+    const offenders = others("./TextInput.tsx")
+      .filter(([, text]) => text.includes("control-edge"))
+      .map(([path]) => path);
+    expect(offenders, "a separator takes `rule`; this token is a control's boundary").toEqual([]);
+  });
+});
+
+/**
+ * §7.4's one deliberate exception, delivered whole (item 1.7, finding B-26).
+ *
+ * The bar was bought for the standard pattern's own vocabulary — *a grey track with a coloured
+ * fill* — and drew two boundaries to say it: the fill against the track, which is how much is
+ * done, and the track against the ground, which is how much there is. The second was at
+ * **1.16:1** and invisible: you could see how far you had come, not how far was left. Half of
+ * why is that the track was a **cool** grey sitting on a warm ground.
+ *
+ * **Both boundaries cannot reach 3:1 at once, and the test below proves it rather than saying
+ * it.** Contrast composes along the two steps ground → track → fill, so a track at 3:1 under a
+ * fill at 3:1 needs the fill itself to clear **9:1** on the ground. `--color-progress` is at
+ * 5.88, and it is not this item's to move: §7.4 scopes the exception and the change list asks
+ * only for the track. So the boundary that carries the state takes the 3:1 — it is the one you
+ * read a proportion off — and the track goes as dark as that allows, which is where it is.
+ */
+describe("the progress bar's two boundaries", () => {
+  it("reads the state off the fill against the track, at 3:1", () => {
+    expect(between("progress", "progress-track")).toBeGreaterThanOrEqual(3);
+  });
+
+  it("shows how much is left: the track is visible on the ground", () => {
+    // 1.16 before. The ceiling is 1.96, where the fill's own boundary would land exactly on 3:1
+    // with no headroom — this sits under it deliberately, which is the whole trade below.
+    expect(between("progress-track", "ground")).toBeGreaterThanOrEqual(1.8);
+  });
+
+  it("is warm now, like everything else on the ground", () => {
+    expect(isWarm(token("progress-track"))).toBe(true);
+  });
+
+  /**
+   * The arithmetic, as an assertion: while the fill is under 9:1 on the ground, no track colour
+   * exists that puts both boundaries at 3:1, so the track's ceiling is set by the fill. The day
+   * someone darkens `--color-progress` past 9:1 this goes red, which is exactly the day the
+   * track should be revisited.
+   */
+  it("says why the track stops where it does", () => {
+    expect(between("progress", "ground")).toBeLessThan(9);
+  });
+});
+
+/**
+ * One way of saying *unavailable* (item 1.8, finding B-25).
+ *
+ * The reorder arrows said it in `rule` — 1.31:1, so they did not read as unavailable, they
+ * vanished — while the button weights and the menu's disabled item said it in `ink-quiet`. The
+ * settled vocabulary is `disabled:text-ink-quiet disabled:border-rule`: the text steps back to
+ * the quiet ink and the boundary stays a hairline.
+ *
+ * **The allowance is read off `WEIGHT` rather than re-spelled here**, so the component layer
+ * stays the definition of what a disabled control looks like and a hand-written control can
+ * only borrow from it.
+ */
+describe("one disabled vocabulary", () => {
+  const disabledIn = (text: string): string[] => [
+    ...new Set([...text.matchAll(/disabled:[a-z0-9/.-]+/g)].map(([hit]) => hit)),
+  ];
+
+  const allowed = new Set(Object.values(WEIGHT).flatMap(disabledIn));
+
+  it("is the one the weights already spend", () => {
+    expect([...allowed].sort()).toEqual([
+      "disabled:bg-rule",
+      "disabled:border-rule",
+      "disabled:cursor-default",
+      "disabled:text-ink-quiet",
+    ]);
+  });
+
+  it("is the only one written anywhere in the builder", () => {
+    const offenders = everySource()
+      .flatMap(([path, text]) => disabledIn(text).map((hit) => `${path}: ${hit}`))
+      .filter((hit) => !allowed.has(hit.split(": ")[1] ?? ""));
+    expect(offenders, "`disabled:text-rule` is how the arrows disappeared").toEqual([]);
+  });
+
+  it("is worn by the arrows, which is where the defect was", () => {
+    const arrows = everySource().find(([path]) => path.endsWith("list/LinkButtons.tsx"))?.[1] ?? "";
+    expect(arrows).toContain("disabled:text-ink-quiet");
+    expect(arrows).toContain("disabled:border-rule");
+  });
+
+  /**
+   * WCAG exempts an inactive control from the contrast minimum, so this is not that: the item
+   * asks for a control that **reads as unavailable** rather than one that is gone, and a colour
+   * nobody can find is not a state. `ink-quiet` clears the non-text line with room to spare on
+   * both backdrops, which is what makes it legible as *off* rather than absent.
+   */
+  it("says it in a colour you can still see", () => {
+    for (const backdrop of BACKDROPS) {
+      expect(between("ink-quiet", backdrop), `on ${backdrop}`).toBeGreaterThanOrEqual(3);
+    }
   });
 });
