@@ -187,7 +187,9 @@ function ColourControl({
           <li key={swatch.hex}>
             <button
               type="button"
-              className="size-12 rounded-full border border-rule aria-pressed:outline-2 aria-pressed:outline-offset-2 aria-pressed:outline-ink"
+              // Pixel-identical to the flow's grid (#192) — one list of colours with two callers
+              // has to be one control with two callers.
+              className="size-12 rounded-full border border-rule aria-pressed:picked"
               data-swatch
               style={{ background: swatch.hex }}
               aria-label={swatch.name}

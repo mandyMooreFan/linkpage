@@ -7,6 +7,7 @@ import { WEIGHT } from "./Button.js";
 import { CHECKBOX_CLASS } from "./Checkbox.js";
 import { LADDER } from "./ladder.js";
 import { ROW_BUTTON, ROW_OPEN, ROW_PADDING, ROW_STACK_PADDING } from "./row.js";
+import { BRAND_SWATCHES } from "../flow/index.js";
 
 /**
  * The control layer holds, and the two colours it spends.
@@ -360,6 +361,133 @@ describe("the one hairline-separated row", () => {
     expect(ROW_OPEN.bottomPx).toBeGreaterThan(LADDER.betweenSections.px);
     expect(ROW_OPEN.topPx).toBeGreaterThanOrEqual(LADDER.betweenFields.px);
     expect(ROW_OPEN.bottomPx).toBeGreaterThan(ROW_OPEN.topPx);
+  });
+});
+
+/**
+ * One way of showing a picked option. `SPEC.md` §7.4, §6; design change 5 (#192).
+ *
+ * Five treatments used to say *this one*: a ring on the colour swatches, a border plus a
+ * bracket-valued inset shadow on the preset rows, a solid ink fill on the hours segments, bold
+ * text on the language list, and the same outline again on the style swatches — six sites, no two
+ * of which agreed, and a seventh carrying the preset recipe's pressed classes on a button that is
+ * never pressed. **A sixth treatment is exactly the kind of thing that arrives one file at a
+ * time**, so the rule is guarded by reading the sources rather than by care: every selection
+ * variant in the builder resolves to `picked`, and `picked` is written once, in `theme.css`.
+ *
+ * **Selection is inside; focus is outside** (#179's decision, variant A) — and the assertion that
+ * actually protects that is the one about the *property*. B-35's swatch drew selection and focus
+ * as the same `outline` in two colours, and moving selection's offset inside does not fix it: a
+ * utility beats `@layer base`, so the picked outline still replaces the focus outline on the one
+ * control that is both, and the ring still vanishes silently. `picked` therefore draws on its own
+ * pseudo-element and touches the control's `outline` not at all, which leaves focus free to be
+ * whatever #188 decides. **If a later hand moves the mark back onto `outline`, this goes red**,
+ * which is the whole point — the failure it is guarding against is invisible in every test that
+ * only renders a chosen control, because it only appears when the control is also focused.
+ */
+describe("the one picked state", () => {
+  /** Every `aria-pressed:` / `has-checked:` utility written anywhere in the builder. */
+  const marks = (): [string, string][] =>
+    Object.entries(sources)
+      .filter(([path]) => !path.includes(".test."))
+      .flatMap(([path, text]) =>
+        [...code(text).matchAll(/\b(?:aria-pressed|has-checked):([^\s"'`]+)/g)].map(
+          (match): [string, string] => [path, match[1] ?? ""],
+        ),
+      );
+
+  it("is the only treatment any selection variant resolves to", () => {
+    const offenders = marks()
+      .filter(([, token]) => token !== "picked")
+      .map(([path, token]) => `${path}: ${token}`);
+    expect(offenders).toEqual([]);
+  });
+
+  it("is carried by every control that shows a choice", () => {
+    const bare = [...new Set(marks().map(([path]) => path))].filter(
+      (path) => !/(?:aria-pressed|has-checked):picked\b/.test(code(sources[path]!)),
+    );
+    expect(
+      bare,
+      "a selection variant that does not reach for `picked` is a sixth treatment",
+    ).toEqual([]);
+  });
+
+  it("is written in more than one place, so the rules above cannot pass by finding none", () => {
+    // The two swatch grids, the preset rows, the hours segments, the language list.
+    const sites = marks().filter(([, token]) => token === "picked");
+    expect(sites.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("is defined once, in the one stylesheet", () => {
+    expect([...theme.matchAll(/@utility picked\b/g)]).toHaveLength(1);
+  });
+
+  /** The `@utility picked { … }` block, braces balanced one level deep for the `&::after`. */
+  const pickedRule = (): string =>
+    /@utility picked \{(?:[^{}]|\{[^{}]*\})*\}/.exec(theme)?.[0] ?? "";
+
+  it("marks the inside", () => {
+    expect(pickedRule(), "the mark is drawn within the control's own bounds").toMatch(
+      /inset:\s*\d/,
+    );
+  });
+
+  it("leaves the control's own outline alone, so focus can have it", () => {
+    const body = pickedRule().replace(/&::after \{[^{}]*\}/, "");
+    expect(body, "a picked control must not set an outline of its own").not.toMatch(/outline/);
+    expect(pickedRule(), "the mark needs a box of its own to be drawn on").toContain("&::after");
+  });
+
+  it("keeps focus outside, on the property it has always owned", () => {
+    const focus = /:focus-visible \{[^}]*\}/.exec(theme)?.[0] ?? "";
+    expect(focus, "focus is drawn outside the control").toMatch(/outline-offset:\s*\d/);
+    expect(focus).not.toMatch(/outline-offset:\s*-/);
+  });
+
+  it("builds no faux border out of a bracket-valued shadow", () => {
+    const offenders = Object.entries(sources)
+      .filter(([path]) => !path.includes(".test."))
+      .filter(([, text]) => code(text).includes("shadow-["))
+      .map(([path]) => path);
+    expect(offenders, "paper is not elevated, and one border is enough").toEqual([]);
+  });
+
+  /**
+   * SC 1.4.11 asks the same 3:1 of a state indicator that it asks of a focus ring, and the mark is
+   * ink. Against the ground it clears comfortably; laid straight onto the owner's colour it does
+   * not, on most of the twelve — `#c2185b` sits at 2.88 and `#4527a0` at 1.64. **That is what the
+   * ring of ground around the mark is for**, and it is the reason the same mark can be used on a
+   * filled swatch and on a bare row without one of them being a special case.
+   */
+  it("draws its mark against the ground, never straight onto a brand colour", () => {
+    const ink = parseHex("#1f1b16"); // --color-ink
+    const ground = parseHex("#faf7f2"); // --color-ground
+    expect(ink).not.toBeNull();
+    expect(ground).not.toBeNull();
+    expect(contrastRatio(ink!, ground!)).toBeGreaterThanOrEqual(3);
+    expect(pickedRule(), "the mark carries its own clearing").toMatch(
+      /outline:\s*\d+px solid var\(--color-ground\)/,
+    );
+
+    const legibleOnTheColour = BRAND_SWATCHES.filter((swatch) => {
+      const hex = parseHex(swatch.hex);
+      return hex !== null && contrastRatio(ink!, hex) >= 3;
+    });
+    expect(
+      legibleOnTheColour.length,
+      "if this ever reaches twelve the clearing is free to go — until then it is load-bearing",
+    ).toBeLessThan(BRAND_SWATCHES.length);
+  });
+
+  it("reaches both swatch grids, which are one field with two callers", () => {
+    const swatches = Object.entries(sources)
+      .filter(([path]) => !path.includes(".test."))
+      .filter(([, text]) => code(text).includes("data-swatch"));
+    expect(swatches, "the flow's grid and the list's").toHaveLength(2);
+    for (const [path, text] of swatches) {
+      expect(code(text), path).toContain("aria-pressed:picked");
+    }
   });
 });
 

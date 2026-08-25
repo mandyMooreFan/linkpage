@@ -246,7 +246,14 @@ export function List({
                 <li key={topic}>
                   <button
                     type="button"
-                    className="tap flex w-full flex-col gap-0.5 rounded-sm border border-rule bg-transparent px-4 py-3 text-start font-sans aria-pressed:border-ink aria-pressed:shadow-[inset_0_0_0_1px_var(--color-ink)]"
+                    /*
+                     * The preset row's box, and **not** its picked state: nothing here is ever
+                     * chosen — pressing one hands the topic to the flow and the row leaves this
+                     * list. It carried the preset recipe's `aria-pressed:` classes anyway, on a
+                     * button with no `aria-pressed` to fire them, so a sixth copy of the treatment
+                     * sat in the source styling nothing at all (#192).
+                     */
+                    className="tap flex w-full flex-col gap-0.5 rounded-sm border border-rule bg-transparent px-4 py-3 text-start font-sans"
                     onClick={() => onAdd(topic)}
                   >
                     <span className="font-medium">{TOPIC_LABELS[topic]}</span>
@@ -517,7 +524,21 @@ function LangRow({
             <li key={choice.tag}>
               <button
                 type="button"
-                className={`${ROW_BUTTON} aria-pressed:font-medium`}
+                /*
+                 * The chosen language takes the one `picked` mark rather than going bold (#192).
+                 * Bold said "chosen" nowhere else in the tool, and on a list whose whole job is to
+                 * show each language *in its own language* it changed the specimen it was pointing
+                 * at — the sample line is the answer, and setting it in a second weight misreports
+                 * it. §2 keeps the builder to two weights, and this was a third meaning for one.
+                 *
+                 * **`px-3` is the room the mark needs, and it is this row's alone** rather than
+                 * `ROW_BUTTON`'s: the picker is the only row in the family that is ever chosen,
+                 * and B-43's spec is about what separates rows and how much padding sits inside
+                 * them vertically, which this does not touch. Without it the ring would be ruled
+                 * straight through the first letter of the name. The hairlines are `ROW_LIST`'s
+                 * and still run the full width, so only the text moves.
+                 */
+                className={`${ROW_BUTTON} px-3 aria-pressed:picked`}
                 lang={choice.tag}
                 aria-pressed={vocabularyKeyOf(value) === choice.tag}
                 onClick={() => {
