@@ -122,7 +122,11 @@ export function PresetQuestion({
           <li key={preset.id}>
             <button
               type="button"
-              className="tap flex w-full flex-col gap-0.5 rounded-sm border border-rule bg-transparent px-4 py-3 text-start font-sans aria-pressed:border-ink aria-pressed:shadow-[inset_0_0_0_1px_var(--color-ink)]"
+              // The row's hairline stays the row's hairline whether or not it is chosen; `picked`
+              // draws the choice inside it (#192). What was here recoloured the border *and* laid
+              // a bracket-valued inset shadow over it — one faux border built twice, with the
+              // arbitrary value unexplained.
+              className="tap flex w-full flex-col gap-0.5 rounded-sm border border-rule bg-transparent px-4 py-3 text-start font-sans aria-pressed:picked"
               aria-pressed={chosen === preset.id}
               onClick={() => onChoose(preset.id)}
             >

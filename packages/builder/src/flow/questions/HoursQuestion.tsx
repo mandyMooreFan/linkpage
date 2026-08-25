@@ -233,7 +233,25 @@ export function HoursQuestion({
                   {MODES.map(({ mode, label }) => (
                     <label
                       key={mode}
-                      className="tap flex cursor-pointer items-center px-3 text-sm has-checked:bg-ink has-checked:text-ground"
+                      /*
+                       * The chosen segment takes `theme.css`'s one `picked` mark (#192) — the same
+                       * inset ink ring the swatches and the preset rows take.
+                       *
+                       * **It used to be a solid ink fill**, which cost twice. It made every day's
+                       * untouched default — all seven start on "Not shown" — the strongest object
+                       * on a screen whose one real action, `Continue`, sits disabled and pale
+                       * beneath them (§4, §6; design change 3, which is why this fill moves here
+                       * rather than there). And being a square fill inside a `rounded-sm`
+                       * container, it overran the container's own corners at either end of the
+                       * row. A mark drawn inside the segment cannot: it follows the radius and
+                       * stops 4px short of the edge, so nothing needs clipping.
+                       *
+                       * **Deliberately no `overflow-hidden` on the group**, which is the other fix
+                       * the change list offered for that overrun. There is no longer anything to
+                       * clip, and an ancestor's clip would eat a focus ring drawn *outside* a
+                       * segment — which is exactly where #179 put focus.
+                       */
+                      className="tap flex cursor-pointer items-center px-3 text-sm has-checked:picked"
                     >
                       <input
                         type="radio"
