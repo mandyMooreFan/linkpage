@@ -237,7 +237,7 @@ export function withChroma(rgb: Rgb, chroma: number): Rgb {
 
 /**
  * The nearest version of `color` — same hue, same chroma — that reaches `target` contrast
- * against `against`, moving only in `direction`.
+ * against **every** backdrop in `against`, moving only in `direction`.
  *
  * Binary search on perceptual lightness rather than a formula, because contrast is not
  * monotonic in anything convenient and forty iterations of bisection is both exact enough
@@ -245,10 +245,17 @@ export function withChroma(rgb: Rgb, chroma: number): Rgb {
  * asked to go darker against black), the endpoint is returned — the caller decides what to
  * do about it, since silently flipping direction would change the design rather than
  * satisfy it.
+ *
+ * **`against` is a list because a colour is rarely drawn on exactly one thing**, and the
+ * single-backdrop version of this function was how a live WCAG failure shipped: the page's
+ * roles were pushed until they cleared the ground, then drawn on a panel half a step lighter
+ * with nothing left over, because the search stops the instant it clears. The type now makes
+ * the caller say which backdrops it means. An empty list constrains nothing and returns
+ * `color` untouched, which is the honest answer to "clear this against no backdrops".
  */
 export function toContrast(
   color: Rgb,
-  against: Rgb,
+  against: readonly Rgb[],
   target: number,
   direction: "darker" | "lighter",
 ): Rgb {
@@ -257,14 +264,17 @@ export function toContrast(
   const end = direction === "darker" ? 0 : 1;
 
   const at = (l: number): Rgb => oklchToRgb({ l, c, h });
-  if (contrastRatio(color, against) >= target) return color;
-  if (contrastRatio(at(end), against) < target) return at(end);
+  const clears = (candidate: Rgb): boolean =>
+    against.every((backdrop) => contrastRatio(candidate, backdrop) >= target);
+
+  if (clears(color)) return color;
+  if (!clears(at(end))) return at(end);
 
   let lo = start;
   let hi = end;
   for (let i = 0; i < 40; i++) {
     const mid = (lo + hi) / 2;
-    if (contrastRatio(at(mid), against) >= target) hi = mid;
+    if (clears(at(mid))) hi = mid;
     else lo = mid;
   }
   return at(hi);

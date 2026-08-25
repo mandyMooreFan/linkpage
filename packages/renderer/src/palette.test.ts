@@ -46,35 +46,58 @@ const BRANDS: [name: string, hex: string][] = [
 
 const MODES: Mode[] = ["light", "dark"];
 
+/**
+ * The backdrops a role is actually drawn on.
+ *
+ * Three of the four shapes draw the page on `ground` and lift sections onto `surface`
+ * panels. `floatingCard` inverts that: the whole column moves onto `surface` and its panels
+ * go transparent, so on that shape `surface` *is* the page and nothing is drawn on `ground`
+ * at all.
+ *
+ * **A guarantee that names one backdrop is not a guarantee.** These tests used to assert
+ * against `p.ground` alone, which mirrored the derivation's own gap exactly — which is how a
+ * live SC 1.4.11 failure shipped and stayed shipped. Every role is checked against both.
+ */
+const backdrops = (p: Palette): [where: string, colour: string][] => [
+  ["on the ground", p.ground],
+  ["on a floating card", p.surface],
+];
+
 describe("the readability guarantee holds for every brand colour, in both modes", () => {
   for (const mode of MODES) {
     for (const [name, hex] of BRANDS) {
       describe(`${name} (${hex}), ${mode}`, () => {
         const p: Palette = derivePalette(styleWith(hex, mode));
 
-        it("body text clears AAA on the ground", () => {
-          expect(ratio(p.ink, p.ground)).toBeGreaterThanOrEqual(7);
+        it("body text clears AAA on every backdrop", () => {
+          for (const [where, backdrop] of backdrops(p)) {
+            expect(ratio(p.ink, backdrop), where).toBeGreaterThanOrEqual(7);
+          }
         });
 
-        it("body text clears AA on a panel", () => {
-          expect(ratio(p.ink, p.surface)).toBeGreaterThanOrEqual(4.5);
-        });
-
-        it("muted text is quieter than body text but still clears AA", () => {
-          expect(ratio(p.inkMuted, p.ground)).toBeGreaterThanOrEqual(4.5);
-          expect(ratio(p.inkMuted, p.ground)).toBeLessThanOrEqual(ratio(p.ink, p.ground));
+        it("muted text is quieter than body text but still clears AA everywhere", () => {
+          for (const [where, backdrop] of backdrops(p)) {
+            expect(ratio(p.inkMuted, backdrop), where).toBeGreaterThanOrEqual(4.5);
+            expect(ratio(p.inkMuted, backdrop), where).toBeLessThanOrEqual(ratio(p.ink, backdrop));
+          }
         });
 
         it("button text clears AA on the button", () => {
+          // The one role whose backdrop is neither of the two: text on a fill sits on the
+          // fill.
           expect(ratio(p.buttonInk, p.buttonFill)).toBeGreaterThanOrEqual(4.5);
         });
 
-        it("the button is identifiable against the page (SC 1.4.11)", () => {
-          expect(ratio(p.buttonFill, p.ground)).toBeGreaterThanOrEqual(3);
+        it("the button is identifiable against every backdrop (SC 1.4.11)", () => {
+          for (const [where, backdrop] of backdrops(p)) {
+            expect(ratio(p.buttonFill, backdrop), where).toBeGreaterThanOrEqual(3);
+          }
         });
 
-        it("accent text clears AA on the ground", () => {
-          expect(ratio(p.accentInk, p.ground)).toBeGreaterThanOrEqual(4.5);
+        it("accent text clears AA on every backdrop", () => {
+          for (const [where, backdrop] of backdrops(p)) {
+            expect(ratio(p.accentInk, backdrop), where).toBeGreaterThanOrEqual(4.5);
+          }
         });
 
         it("every role is a valid hex", () => {
@@ -104,6 +127,7 @@ describe("the step-back rule", () => {
     expect(p.brand).toBe("#fff59d"); // honoured exactly
     expect(p.buttonFill).not.toBe("#fff59d"); // but not asked to carry the button
     expect(ratio(p.buttonFill, p.ground)).toBeGreaterThanOrEqual(3);
+    expect(ratio(p.buttonFill, p.surface)).toBeGreaterThanOrEqual(3);
   });
 
   it("steps a too-dark brand back on a dark ground", () => {
@@ -111,6 +135,7 @@ describe("the step-back rule", () => {
     expect(p.brandSteppedBack).toBe(true);
     expect(p.brand).toBe("#0d1b3e");
     expect(ratio(p.buttonFill, p.ground)).toBeGreaterThanOrEqual(3);
+    expect(ratio(p.buttonFill, p.surface)).toBeGreaterThanOrEqual(3);
   });
 
   it("keeps the stepped-back brand's hue rather than replacing the colour", () => {
@@ -131,7 +156,9 @@ describe("the step-back rule", () => {
         const label = `${name} (${hex}), ${mode}`;
         if (p.brandSteppedBack) {
           expect(p.buttonFill, label).not.toBe(p.brand);
-          expect(ratio(p.buttonFill, p.ground), label).toBeGreaterThanOrEqual(3);
+          for (const [where, backdrop] of backdrops(p)) {
+            expect(ratio(p.buttonFill, backdrop), `${label} ${where}`).toBeGreaterThanOrEqual(3);
+          }
         } else {
           expect(p.buttonFill, label).toBe(p.brand);
         }
@@ -146,6 +173,37 @@ describe("the step-back rule", () => {
     // owner is told nothing either way; the page simply works in both.
     expect(derivePalette(styleWith("#00695c", "light")).brandSteppedBack).toBe(false);
     expect(derivePalette(styleWith("#00695c", "dark")).brandSteppedBack).toBe(true);
+  });
+});
+
+describe("the backdrop a colour is drawn on is not always the ground", () => {
+  // The failure this suite was rewritten for. `floatingCard` sets
+  // `.lp-page{background:var(--lp-surface)}` and makes its panels transparent, so on that
+  // shape every brand-carried role is drawn on `surface`. In dark mode `surface` is
+  // *lighter* than `ground`, and `toContrast` stops the instant it clears its target — so a
+  // fill that landed exactly on 3:1 against the ground had nothing left, and shipped at
+  // 2.87:1 on the card. Both roles below were live WCAG failures in released code.
+
+  it("keeps a mid teal's button identifiable on a dark floating card", () => {
+    const p = derivePalette(styleWith("#00695c", "dark"));
+    expect(ratio(p.buttonFill, p.surface)).toBeGreaterThanOrEqual(3); // shipped at 2.67
+  });
+
+  it("keeps a strong pink's accent text readable on a dark floating card", () => {
+    const p = derivePalette(styleWith("#c2185b", "dark"));
+    expect(ratio(p.accentInk, p.surface)).toBeGreaterThanOrEqual(4.5); // shipped at 4.02
+  });
+
+  it("changes nothing in light mode, where the ground is already the worse backdrop", () => {
+    // `surface` is a touch *lighter* than `ground` in light mode, so a darkening move that
+    // clears the ground clears the card too. Widening the derivation must not cost the
+    // light-mode pages anything, and this is what says so.
+    for (const [, hex] of BRANDS) {
+      const p = derivePalette(styleWith(hex, "light"));
+      expect(ratio(p.buttonFill, p.ground), hex).toBeLessThanOrEqual(
+        ratio(p.buttonFill, p.surface),
+      );
+    }
   });
 });
 
