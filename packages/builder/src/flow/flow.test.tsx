@@ -368,6 +368,23 @@ describe("link buttons seed as a pick-list, never as pre-created rows (§7.3)", 
     ]);
   });
 
+  it("writes the scheme on the line, so a pasted bare domain is still an address (#197)", () => {
+    const flow = toTheLinkStep();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Book a table" }));
+    fireEvent.click(submit() as Element);
+
+    // What an owner actually pastes: what they copied, without the scheme. The line already
+    // reads `https://` in front of it, and the stored answer says the same thing.
+    type(/Web address/, "ada.example/book");
+    expect(document.querySelector("[data-url-scheme]")?.textContent).toBe("https://");
+    fireEvent.click(submit() as Element);
+
+    expect((flow.latest() as Draft).links).toEqual([
+      { label: "Book a table", url: "https://ada.example/book", icon: "calendar" },
+    ]);
+  });
+
   it("takes a button the owner named, and gives it no glyph", () => {
     const flow = toTheLinkStep("other");
 

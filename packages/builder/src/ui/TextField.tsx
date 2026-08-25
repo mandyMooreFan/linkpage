@@ -1,6 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import { Field, useJudged } from "../flow/questions/Question.js";
-import { TextInput } from "./TextInput.js";
+import { TextInput, UrlInput } from "./TextInput.js";
+import { splitWebAddress, typedWebAddress } from "./webAddress.js";
 
 /**
  * The one text input, as a component (§7.4's component layer, #142).
@@ -59,6 +60,50 @@ function JudgedText(
   return (
     <Field label={props.label} hint={props.hint} message={message}>
       {plainInput(props)}
+    </Field>
+  );
+}
+
+/**
+ * The one web-address field (design change 10, finding B-55).
+ *
+ * All four of them — the link button's destination in the flow and again in the review list, the
+ * directions link, and a social account — are this, so the scheme is written on the line once
+ * rather than as a placeholder four times. **The value it hands back is the whole address**,
+ * scheme and all, exactly as `project.json` has always held it; `webAddress.ts` is where the
+ * split between the line and the box lives, and why.
+ *
+ * **`onCommit` rather than an `onBlur` passthrough**, because a passthrough would be a trap: the
+ * `event.target.value` a caller reached for is the *box*, which no longer holds the address. The
+ * review list's mend (§7.9 decision 4) is the one caller that needs the moment the owner leaves
+ * the box, and what it needs is the value, so that is what it is given.
+ */
+export interface UrlFieldProps {
+  readonly label: string;
+  readonly hint?: ReactNode;
+  /** The whole address, scheme included — what the project stores. */
+  readonly value: string;
+  readonly onValueChange: (next: string) => void;
+  /** Leaving the box, with the whole address. The review list mends here; nothing else uses it. */
+  readonly onCommit?: (value: string) => void;
+}
+
+export function UrlField({
+  label,
+  hint,
+  value,
+  onValueChange,
+  onCommit,
+}: UrlFieldProps): JSX.Element {
+  const { scheme, rest } = splitWebAddress(value);
+  return (
+    <Field label={label} hint={hint}>
+      <UrlInput
+        scheme={scheme}
+        value={rest}
+        onChange={(event) => onValueChange(typedWebAddress(value, event.target.value))}
+        onBlur={onCommit === undefined ? undefined : () => onCommit(value)}
+      />
     </Field>
   );
 }

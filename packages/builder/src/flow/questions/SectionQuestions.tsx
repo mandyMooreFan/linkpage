@@ -6,7 +6,7 @@ import {
   type SocialLink,
 } from "@linkpage/renderer";
 import { useId, useState, type JSX } from "react";
-import { TextField } from "../../ui/TextField.js";
+import { TextField, UrlField } from "../../ui/TextField.js";
 import { Field, Question } from "./Question.js";
 import { TextArea, TextInput } from "../../ui/TextInput.js";
 import { Button } from "../../ui/Button.js";
@@ -115,17 +115,12 @@ export function AddressQuestion({
        * (§5.3, invariant 2), so a map is impossible and this is the only answer left to "where
        * are you" that a visitor can act on.
        */}
-      <Field label="A link to directions" hint="Optional. From your maps app's share button.">
-        <TextInput
-          type="url"
-          inputMode="url"
-          value={directionsUrl}
-          spellCheck={false}
-          autoCapitalize="none"
-          placeholder="https://"
-          onChange={(event) => setDirectionsUrl(event.target.value)}
-        />
-      </Field>
+      <UrlField
+        label="A link to directions"
+        hint="Optional. From your maps app's share button."
+        value={directionsUrl}
+        onValueChange={setDirectionsUrl}
+      />
     </Question>
   );
 }
@@ -199,17 +194,11 @@ export function SocialQuestion({
                 onChange={(event) => update(index, { ...row, platform: event.target.value })}
               />
             </Field>
-            <Field label="Your page there">
-              <TextInput
-                type="url"
-                inputMode="url"
-                value={row.url}
-                spellCheck={false}
-                autoCapitalize="none"
-                placeholder="https://"
-                onChange={(event) => update(index, { ...row, url: event.target.value })}
-              />
-            </Field>
+            <UrlField
+              label="Your page there"
+              value={row.url}
+              onValueChange={(url) => update(index, { ...row, url })}
+            />
           </li>
         ))}
       </ul>
