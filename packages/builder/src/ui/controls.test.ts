@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { INPUT_CLASS, TEXTAREA_CLASS } from "./TextInput.js";
 import { WEIGHT } from "./Button.js";
 import { CHECKBOX_CLASS } from "./Checkbox.js";
+import { LADDER } from "./ladder.js";
+import { ROW_BUTTON, ROW_OPEN, ROW_PADDING, ROW_STACK_PADDING } from "./row.js";
 
 /**
  * The control layer holds, and the two colours it spends.
@@ -215,6 +217,84 @@ describe("the escape", () => {
       expect(WEIGHT.secondary, `secondary must share ${shared} with primary`).toContain(shared);
       expect(WEIGHT.primary, `primary must share ${shared} with secondary`).toContain(shared);
     }
+  });
+});
+
+/**
+ * One spec for a hairline-separated row. `SPEC.md` §7.4, §6; design change 4 (#191), finding B-43.
+ *
+ * The audit found four: the review rows at `py-4`, the language picker at `py-2` with the
+ * *identical* two-line structure, the link rows at `py-3`, and the contrast readings at `py-1`
+ * under a rule per line. Unifying them once is worth little on its own — the four were not written
+ * together, they drifted apart one edit at a time — so the durable half is a guard that reads the
+ * sources, the way the input and button rules above are held.
+ *
+ * **Scoped to `list/`**, deliberately. B-43 named four sites and all four are the review list's.
+ * The flow's own sub-lists (the hours days, the social rows, the progress bar's topics) were looked
+ * at by the same audit and left off the change list, and the map is explicit that a ticket adding a
+ * finding is arguing with a closed map. What this guard says is exactly what this ticket did: after
+ * it, no file in the review list writes its own row hairline.
+ */
+describe("the one hairline-separated row", () => {
+  it("is the only place the row recipe is written", () => {
+    // `divide-y divide-rule` is how a list draws the hairlines *between* its rows and nothing
+    // else does it; `ROW_BUTTON` is the pressable row's own string, checked whole so the guard
+    // cannot drift from what it guards.
+    const recipes = ["divide-y divide-rule", ROW_BUTTON];
+    const offenders = others("./row.ts")
+      .filter(([, text]) => recipes.some((recipe) => text.includes(recipe)))
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  it("leaves no hand-written hairline on a row in the review list", () => {
+    // `border-b border-rule` is how all four sites drew their own separator. The one legitimate
+    // writer of that string is `TextInput`, which is a *field* underline and lives elsewhere.
+    const offenders = Object.entries(sources)
+      .filter(([path]) => path.includes("/list/") && !path.includes(".test."))
+      .filter(([, text]) => code(text).includes("border-b border-rule"))
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  it("is used in more than one place, so the rules above cannot pass by finding none", () => {
+    const users = Object.entries(sources)
+      .filter(([path]) => !path.includes(".test.") && !path.endsWith("./ui/row.ts"))
+      .filter(([, text]) => code(text).includes("ROW_LIST"))
+      .map(([path]) => path);
+    expect(users.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("keeps the row's padding above the gap inside a two-line row (§1)", () => {
+    // `py-4` against `gap-0.5` is 16px against 2px — comfortably past the ≥4× floor the stacked
+    // list anchor asks for, which is the measurement the language picker's `py-2` failed at 4:1.
+    expect(ROW_BUTTON).toContain(ROW_PADDING.className);
+    expect(ROW_BUTTON).toContain("gap-0.5");
+    expect(ROW_PADDING.px).toBeGreaterThanOrEqual(4 * 2);
+  });
+
+  /**
+   * The rung the row spec has to stay true against, and the reason the numbers are carried in
+   * code rather than only in a class name.
+   *
+   * A boundary narrower than the gaps it separates inverts the grouping §1 is made of, and the
+   * ladder moves under this file: #187 widened field-to-field from 16px to 32px, which on its own
+   * turned the link rows' `py-3` into a 24px boundary around 32px contents. These comparisons go
+   * red the next time a rung moves, instead of the screen quietly stopping making sense.
+   */
+  it("stays monotonic against the ladder inside a row (§1)", () => {
+    // Two rows meet at twice the padding, and a row holding fields has to clear the gap between
+    // two of them — which `ROW_PADDING` alone does not, at exactly `betweenFields`.
+    expect(2 * ROW_STACK_PADDING.px).toBeGreaterThan(LADDER.betweenFields.px);
+    expect(2 * ROW_STACK_PADDING.px).toBeGreaterThanOrEqual(LADDER.betweenSections.px);
+  });
+
+  it("makes an open row's own boundary the widest gap on the screen (B-41, B-42)", () => {
+    // Below: past the section rung, so nothing inside the form it closes can be mistaken for the
+    // way out of it. Above: level with the widest rung inside the form, and owned once.
+    expect(ROW_OPEN.bottomPx).toBeGreaterThan(LADDER.betweenSections.px);
+    expect(ROW_OPEN.topPx).toBeGreaterThanOrEqual(LADDER.betweenFields.px);
+    expect(ROW_OPEN.bottomPx).toBeGreaterThan(ROW_OPEN.topPx);
   });
 });
 

@@ -26,6 +26,7 @@ import { LinkButtons } from "./LinkButtons.js";
 import { listRows, type Row, type RowId } from "./rows.js";
 import { StyleStep } from "./StyleStep.js";
 import { Button } from "../ui/Button.js";
+import { ROW_BUTTON, ROW_LIST, ROW_OPEN } from "../ui/row.js";
 import { TextInput } from "../ui/TextInput.js";
 
 /**
@@ -189,27 +190,36 @@ export function List({
         </div>
 
         {/*
-         * §7.4: once, on arriving from a run. The list was never blank on arrival — it is headed
-         * with the owner's own name, Download sits in the bar, and the page is beside it — but
-         * the owner has just answered ten questions and has never been told what happens next,
-         * with §8's guidance living inside a sheet they have no reason to open.
-         *
-         * Easy to get wrong later, so it is written down: **the line also fires for a run that
-         * began from a project that already existed**, where *your page is ready* is not quite
-         * true. No second line is added for that case — the row now showing its content is its
-         * own confirmation.
+         * **The header's ladder is 32 / 8 / 24 / 24** (B-44). It used to be flat: the bar, the
+         * arrival line and the title were all `mt-4` apart, so the status line was grouped
+         * equally with the row of buttons above it and with the title it actually belongs to —
+         * and with no arrival line the biggest conceptual break on the screen, buttons to title,
+         * got the screen's smallest gap. The 32 sits on this block rather than on either child,
+         * so it is the same break whether the line is there or not, and the 8 inside makes the
+         * line and the title one object.
          */}
-        {arrived && (
-          <p className="mt-4 font-sans text-base text-ink-quiet" data-arrival role="status">
-            Your page is ready. Look it over, then download it.
-          </p>
-        )}
+        <div className="mt-8 flex flex-col gap-2">
+          {/*
+           * §7.4: once, on arriving from a run. The list was never blank on arrival — it is
+           * headed with the owner's own name, Download sits in the bar, and the page is beside
+           * it — but the owner has just answered ten questions and has never been told what
+           * happens next, with §8's guidance living inside a sheet they have no reason to open.
+           *
+           * Easy to get wrong later, so it is written down: **the line also fires for a run that
+           * began from a project that already existed**, where *your page is ready* is not quite
+           * true. No second line is added for that case — the row now showing its content is its
+           * own confirmation.
+           */}
+          {arrived && (
+            <p className="font-sans text-base text-ink-quiet" data-arrival role="status">
+              Your page is ready. Look it over, then download it.
+            </p>
+          )}
 
-        <h1 className="mt-4 font-serif text-3xl leading-tight tracking-tight">
-          {draft.header.name}
-        </h1>
+          <h1 className="font-serif text-3xl leading-tight tracking-tight">{draft.header.name}</h1>
+        </div>
 
-        <ul className="m-0 mt-6 list-none divide-y divide-rule border-y border-rule p-0">
+        <ul className={`mt-6 ${ROW_LIST}`}>
           {rows.map((row) => (
             <RowItem
               key={row.id}
@@ -224,7 +234,8 @@ export function List({
 
         {uncovered.length > 0 && (
           <section className="mt-8">
-            <h2 className="mb-3 font-serif text-xl">Anything else?</h2>
+            {/* 24px, the same as the title-to-rows gap: the identical relationship (B-44). */}
+            <h2 className="mb-6 font-serif text-xl">Anything else?</h2>
             {/*
              * Ticking one of these does not park an empty row: it hands the topic to the flow,
              * which walks the owner through it and puts them back here (§7.1). That is why the
@@ -366,6 +377,25 @@ export function List({
  * contents and §7.4 asked for the answers. The body is mounted only while open, so a question
  * that holds its own draft state opens on what is stored rather than on what was typed and
  * abandoned last time.
+ *
+ * **The answer takes the ink and the field name takes the quiet colour** (B-62). It used to be the
+ * other way round: our vocabulary printed in full ink, the owner's own business in grey — backwards
+ * on the one screen whose entire job is *look over your answers*, and pulling the eye down a column
+ * of labels. §2 makes hierarchy out of weight and colour before size, so the swap is colour alone;
+ * the sizes are untouched.
+ *
+ * **An open row is separated by space, not by a heavier line** (B-41). The hairline above the body
+ * is the *same* hairline that separates two one-line summaries, so a 600px form and a 78px row were
+ * delimited identically — the boundary out of an open row was 32px against the form's own internal
+ * 24px, barely 1.3×. §1 prefers space to borders, so the line stays as it is and the gap grows:
+ * 48px below, unambiguously the widest gap on the screen. The 24px above is the *one* owner of the
+ * open row's top offset (B-42) — three of the ten editors used to bring their own `mt-4` and the
+ * other seven sat flush against the rule.
+ *
+ * **The summary goes while the row is open** (B-63). The editor is already showing that value, in
+ * an editable form, a couple of centimetres below — on a phone the two read as a duplicated block.
+ * The *mark* stays: §7.9 puts what cannot be used in two places deliberately, so that it outlives
+ * the screen, and the question behind the row repeats it on purpose.
  */
 function RowItem({
   row,
@@ -384,23 +414,27 @@ function RowItem({
     <li data-row={row.id}>
       <button
         type="button"
-        className="tap flex w-full flex-col gap-0.5 bg-transparent py-4 text-start font-sans"
+        className={ROW_BUTTON}
         aria-expanded={open}
         aria-controls={bodyId}
         onClick={onToggle}
       >
-        <span className="text-sm font-medium">{row.label}</span>
-        <span className="flex items-center gap-2 text-base text-ink-quiet">
-          {row.swatch !== undefined && row.swatch !== "" && (
-            // Decorative: the name beside it is the accessible content (§7.4).
-            <span
-              aria-hidden="true"
-              className="size-3 shrink-0 rounded-full border border-rule"
-              style={{ background: row.swatch }}
-            />
-          )}
-          {row.summary}
+        <span className="text-sm font-medium text-ink-quiet" data-row-label>
+          {row.label}
         </span>
+        {!open && (
+          <span className="flex items-center gap-2 text-base text-ink" data-row-summary>
+            {row.swatch !== undefined && row.swatch !== "" && (
+              // Decorative: the name beside it is the accessible content (§7.4).
+              <span
+                aria-hidden="true"
+                className="size-3 shrink-0 rounded-full border border-rule"
+                style={{ background: row.swatch }}
+              />
+            )}
+            {row.summary}
+          </span>
+        )}
         {/*
          * §7.9 decision 5: what cannot be used leaves a mark that outlives the screen. Editing
          * the row opens the same question, with the same message.
@@ -412,7 +446,12 @@ function RowItem({
         )}
       </button>
 
-      <div id={bodyId} className="border-t border-rule pb-4 font-sans" hidden={!open}>
+      <div
+        id={bodyId}
+        className={`border-t border-rule ${ROW_OPEN.className} font-sans`}
+        hidden={!open}
+        data-row-body
+      >
         {/*
          * A question inside a row is still the same question — an `<h2>` under the list's
          * title, and a button that says Save rather than Continue. Both are the shell's, so no
@@ -453,8 +492,8 @@ function LangRow({
 
   return (
     // A picker and a field stacked, which is a field-to-field relationship whatever the two are
-    // built from.
-    <div className={`mt-4 flex w-full flex-col items-start ${LADDER.betweenFields.className}`}>
+    // built from. The top offset is the open row's, once (B-42).
+    <div className={`flex w-full flex-col items-start ${LADDER.betweenFields.className}`}>
       <fieldset className="m-0 flex w-full flex-col gap-2 border-0 p-0">
         <legend className="block text-base font-medium">Page language</legend>
         {/* The gapped fieldset owns the offset; `mt-1` on top of it was the third distance the
@@ -468,12 +507,17 @@ function LangRow({
          * is the language in its own language, then the abbreviations and the closed word that
          * choosing it puts on the page — which is precisely what the walk said was missing.
          */}
-        <ul className="m-0 mt-2 max-h-80 list-none overflow-y-auto p-0" id={listId} data-languages>
+        {/*
+         * The same row as a review row, because it is the same shape: a full-width, two-line,
+         * pressable summary (B-43). It used to be that shape at half the padding, with its own
+         * `border-b` on every item.
+         */}
+        <ul className={`mt-2 max-h-80 overflow-y-auto ${ROW_LIST}`} id={listId} data-languages>
           {LANGUAGE_CHOICES.map((choice) => (
             <li key={choice.tag}>
               <button
                 type="button"
-                className="tap flex w-full flex-col gap-0.5 border-b border-rule bg-transparent py-2 text-start font-sans aria-pressed:font-medium"
+                className={`${ROW_BUTTON} aria-pressed:font-medium`}
                 lang={choice.tag}
                 aria-pressed={vocabularyKeyOf(value) === choice.tag}
                 onClick={() => {

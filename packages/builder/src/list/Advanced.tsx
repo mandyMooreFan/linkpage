@@ -113,12 +113,16 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
         </ul>
 
         <h3 className="m-0 font-serif text-base">What the numbers say</h3>
-        <ul className="m-0 flex list-none flex-col gap-1.5 p-0" data-readings>
+        {/*
+         * **The one row spec these readings do not take** (B-43). They were the fourth spelling
+         * of "a hairline-separated row" — `py-1` under a rule on every line, so dense that the
+         * rules dominated the numbers they were separating. §1 prefers white space to borders and
+         * §6 makes a border the last resort: a two-column `justify-between` line with a name at
+         * one end and a figure at the other is already two columns, and needs no rule to say so.
+         */}
+        <ul className="m-0 flex list-none flex-col p-0" data-readings>
           {readings.map((reading) => (
-            <li
-              key={reading.label}
-              className="flex justify-between gap-4 border-b border-rule py-1"
-            >
+            <li key={reading.label} className="flex justify-between gap-4 py-2">
               <span>{reading.label}</span>
               <span className="tabular-nums whitespace-nowrap">{formatRatio(reading.ratio)}</span>
             </li>
