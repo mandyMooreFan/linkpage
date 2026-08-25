@@ -42,11 +42,35 @@ export function TextInput({ className, ...rest }: TextInputProps): JSX.Element {
  * you write on, and a box would make it the only boxed field in the tool. Sharing `INPUT_CLASS`
  * is what keeps that true without a second string to keep in step — which is the whole failure
  * this file exists to have fixed.
+ *
+ * **The drag handle goes** (design change 6, finding B-73). A textarea ships with the browser's
+ * resize grip in its corner: it lets the owner pull the field straight out of §7.6's single
+ * column, which every screen in the tool is laid out against and which nothing else here can be
+ * dragged past, and it is a piece of browser furniture in a design where type is the only
+ * decoration. `rows` keeps the shape it had, so nothing else about the field moves.
+ *
+ * **Two alternatives were tried in the review shots and rejected on what they showed.**
+ *
+ * - `resize-y`, keeping the vertical drag: Chromium paints the *identical* grip for
+ *   `resize: vertical`, so the corner is unchanged pixel for pixel. It pays the whole visual cost
+ *   of the mark and buys back only the sideways drag.
+ * - `field-sizing-content`, so the field grows to a six-line address instead of scrolling: it
+ *   collapses the *empty* field to a single ruled line, because a field sized to no content is
+ *   one line tall and the `tap` floor this string inherits outranks any `min-h-*` put beside it.
+ *   An address field that opens looking exactly like a one-line field stops asking for several
+ *   lines, and winning that back needs an `!important` against the shared recipe. Scrolling a
+ *   long address is what the field does today, and it is the smaller loss.
+ *
+ * **This is why the class sits on its own string rather than on `INPUT_CLASS`.** `resize` means
+ * nothing on an `<input>`, and the growth experiment above showed the sharper reason to keep the
+ * two apart: `field-sizing` sizes a text input by its *width*.
  */
+export const TEXTAREA_CLASS = `${INPUT_CLASS} resize-none`;
+
 export interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   readonly ref?: Ref<HTMLTextAreaElement>;
 }
 
 export function TextArea({ className, ...rest }: TextAreaProps): JSX.Element {
-  return <textarea className={`${INPUT_CLASS} ${className ?? ""}`.trim()} {...rest} />;
+  return <textarea className={`${TEXTAREA_CLASS} ${className ?? ""}`.trim()} {...rest} />;
 }
