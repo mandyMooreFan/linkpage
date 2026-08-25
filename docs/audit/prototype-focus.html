@@ -1,0 +1,405 @@
+<title>Where Focus Lives</title>
+<style>
+  /*
+   * THROWAWAY PROTOTYPE — issue #179 of the design-audit map #171.
+   * Question: which treatment owns focus in the builder — the underline thickening
+   * in place, or a rectangle around the control?
+   * Three variants on one page, switchable via ?variant= and the bottom bar.
+   * Not production code. Not imported by anything. Delete once #179 is decided.
+   *
+   * SINGLE THEME ON PURPOSE. The builder has no dark mode, argued in SPEC.md §7.4
+   * ("the tool must not tint the decision they are in the middle of making").
+   * Rendering these specimens in a dark theme would be showing something that does
+   * not exist. Every colour below is painted explicitly so the page holds on any
+   * host ground.
+   */
+
+  /* --- the bench: deliberately COOL, so tool chrome never reads as specimen --- */
+  :root {
+    --bench:        #eef1f3;
+    --bench-raised: #f7f9fa;
+    --bench-ink:    #1c2024;
+    --bench-muted:  #5b656e;
+    --bench-rule:   #d4dade;
+    --bench-deep:   #2f4858;
+    --bench-focus:  #1d6fa5;
+
+    /* --- the real Paper tokens, from packages/builder/src/theme.css --- */
+    --ink:        #1f1b16;
+    --ink-quiet:  #6b6257;
+    --rule:       #e2d9cb;
+    --ground:     #faf7f2;
+    --surface:    #ffffff;
+    --notice:     #8a2d1b;
+
+    /* --- the generated page's light palette, from #172's captures --- */
+    --pg-ground:   #fdf7f8;
+    --pg-ink:      #281c1e;
+    --pg-fill:     #c2185b;
+    --pg-fill-ink: #fdf7f8;
+
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
+             "Times New Roman", serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 2.5rem 1.25rem 7rem;
+    background: var(--bench);
+    color: var(--bench-ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+  }
+
+  .wrap { max-width: 46rem; margin-inline: auto; display: flex; flex-direction: column; gap: 2rem; }
+
+  /* ---------- chrome ---------- */
+  header { display: flex; flex-direction: column; gap: 0.75rem; }
+  h1 { margin: 0; font-size: 1.75rem; line-height: 1.2; text-wrap: balance; letter-spacing: -0.01em; }
+  .lede { margin: 0; max-width: 60ch; color: var(--bench-muted); }
+  .lede strong { color: var(--bench-ink); font-weight: 600; }
+
+  .eyebrow {
+    font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--bench-muted);
+  }
+
+  .howto {
+    margin: 0; padding: 0.875rem 1rem; display: flex; flex-direction: column; gap: 0.375rem;
+    background: var(--bench-raised); border: 1px solid var(--bench-rule); border-radius: 8px;
+    font-size: 0.9375rem; color: var(--bench-muted);
+  }
+  .howto b { color: var(--bench-ink); }
+  kbd {
+    font-family: var(--mono); font-size: 0.8125rem; padding: 0.05em 0.4em;
+    background: #fff; border: 1px solid var(--bench-rule); border-bottom-width: 2px;
+    border-radius: 4px; color: var(--bench-ink);
+  }
+
+  /* ---------- specimen framing ---------- */
+  .spec { display: flex; flex-direction: column; gap: 0.625rem; }
+  .spec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .spec-name { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.08em;
+               text-transform: uppercase; color: var(--bench-muted); }
+  .spec-try { font-size: 0.875rem; color: var(--bench-muted); margin: 0; }
+  .spec-try b { color: var(--bench-ink); font-weight: 600; }
+
+  /* the actual product surface — warm Paper on the cool bench */
+  .paper {
+    background: var(--ground); color: var(--ink);
+    border: 1px solid var(--bench-rule); border-radius: 10px;
+    padding: 1.75rem 1.5rem;
+    display: flex; flex-direction: column; gap: 1.5rem;
+  }
+
+  .page-surface { background: var(--pg-ground); color: var(--pg-ink); }
+
+  /* ---------- the builder's real controls ---------- */
+  .field { display: flex; flex-direction: column; }
+  .field-label { display: block; font-size: 1rem; font-weight: 500; }
+  .field-hint  { display: block; font-size: 0.875rem; color: var(--ink-quiet); }
+
+  .inp {
+    width: 100%; min-height: 2.75rem;
+    border: 0; border-bottom: 1px solid var(--rule);
+    background: transparent; padding: 0.5rem 0;
+    font-family: var(--sans); font-size: 1.125rem; color: var(--ink);
+  }
+  .inp::placeholder { color: var(--ink-quiet); opacity: 0.75; }
+
+  /* gap fixed — the review already accepted this (fix-first item 3), so the
+     variants are shown in the world they will actually live in */
+  .field.fixed { gap: 0.5rem; }
+  /* today: no gap at all, hint sitting flush on the control */
+  .field.today .field-hint { margin: 0; }
+
+  .swatches { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
+  .swatch {
+    width: 3rem; height: 3rem; border-radius: 999px;
+    border: 1px solid var(--rule); padding: 0; cursor: pointer;
+  }
+
+  .q-title { margin: 0; font-family: var(--serif); font-size: 1.5rem; line-height: 1.2; }
+
+  .btn-primary {
+    min-height: 2.75rem; border: 0; border-radius: 2px;
+    background: var(--ink); color: var(--ground);
+    padding: 0.5rem 1rem; font-family: var(--sans); font-size: 1rem; cursor: pointer;
+  }
+
+  .pg-link {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    min-height: 3rem; padding: 0.75rem 1rem;
+    border: 1px solid transparent; border-radius: 0.75rem;
+    background: var(--pg-fill); color: var(--pg-fill-ink);
+    font-family: var(--sans); font-weight: 600; font-size: 1rem;
+    text-decoration: none; cursor: pointer; width: 100%;
+  }
+
+  /* =========================================================================
+     TODAY — both treatments firing at once, and the zero gap that lets the
+     ring cut through the hint. This panel never changes; it is the reference.
+     ========================================================================= */
+  #today .inp:focus { border-bottom-color: var(--ink); }
+  #today .inp:focus-visible { outline: 2px solid var(--notice); outline-offset: 2px; }
+  #today .swatch[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
+  #today .swatch:focus-visible { outline: 2px solid var(--notice); outline-offset: 2px; }
+  #today .pg-link:focus-visible { outline: 2px solid var(--pg-fill); outline-offset: 3px; }
+
+  /* =========================================================================
+     A — THE LINE OWNS IT. The underline thickens and recolours in place.
+     No rectangle on text controls. Selection sits inside the swatch.
+     ========================================================================= */
+  [data-variant="A"] .inp:focus-visible {
+    outline: none;
+    border-bottom-width: 2px; border-bottom-color: var(--ink);
+    padding-bottom: calc(0.5rem - 1px); /* the line thickens without moving anything */
+  }
+  [data-variant="A"] .swatch[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: -6px; }
+  [data-variant="A"] .swatch:focus-visible { outline: 2px solid var(--notice); outline-offset: 2px; }
+  [data-variant="A"] .btn-primary:focus-visible,
+  [data-variant="A"] .pg-link:focus-visible { outline: 2px solid var(--notice); outline-offset: 2px; }
+  [data-variant="A"] .pg-link:focus-visible { outline-color: var(--pg-ink); }
+
+  /* =========================================================================
+     B — THE BOX OWNS IT, DRAWN OUTSIDE. Today's geometry, minus the doubling.
+     ========================================================================= */
+  [data-variant="B"] .inp:focus-visible { outline: 2px solid var(--notice); outline-offset: 2px; }
+  [data-variant="B"] .swatch[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: -6px; }
+  [data-variant="B"] .swatch:focus-visible { outline: 2px solid var(--notice); outline-offset: 2px; }
+  [data-variant="B"] .btn-primary:focus-visible { outline: 2px solid var(--notice); outline-offset: 2px; }
+  [data-variant="B"] .pg-link:focus-visible { outline: 2px solid var(--pg-ink); outline-offset: 3px; }
+
+  /* =========================================================================
+     C — THE BOX OWNS IT, DRAWN INSIDE. Cannot escape the control's own bounds,
+     so it can never strike the hint or overhang the column on a phone.
+     ========================================================================= */
+  [data-variant="C"] .inp:focus-visible { outline: 2px solid var(--notice); outline-offset: -2px; }
+  [data-variant="C"] .swatch[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: -10px; }
+  [data-variant="C"] .swatch:focus-visible { outline: 2px solid var(--notice); outline-offset: -2px; }
+  [data-variant="C"] .btn-primary:focus-visible { outline: 2px solid var(--ground); outline-offset: -4px; }
+  [data-variant="C"] .pg-link:focus-visible { outline: 2px solid var(--pg-fill-ink); outline-offset: -4px; }
+
+  /* ---------- narrow-column rig, for the phone overhang ---------- */
+  .narrow { max-width: 17rem; }
+  .narrow-note { font-size: 0.8125rem; color: var(--bench-muted); margin: 0; }
+
+  /* ---------- the switcher ---------- */
+  .switcher {
+    position: fixed; left: 50%; bottom: 1.25rem; transform: translateX(-50%);
+    display: flex; align-items: stretch; gap: 0;
+    background: var(--bench-deep); color: #fff;
+    border-radius: 999px; box-shadow: 0 6px 24px rgba(28, 32, 36, 0.28);
+    font-family: var(--mono); z-index: 50; max-width: calc(100vw - 2rem);
+  }
+  .switcher button {
+    background: none; border: 0; color: #fff; cursor: pointer;
+    padding: 0.75rem 1.125rem; font-size: 1rem; line-height: 1; border-radius: 999px;
+  }
+  .switcher button:hover { background: rgba(255, 255, 255, 0.14); }
+  .switcher .label {
+    display: flex; align-items: center; padding: 0.75rem 0.5rem; font-size: 0.8125rem;
+    letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .switcher .key { font-weight: 700; margin-right: 0.5rem; }
+
+  /* chrome focus is deliberately a different colour from every specimen focus,
+     so operating the tool can never be mistaken for a specimen state */
+  .switcher button:focus-visible { outline: 2px solid var(--bench-focus); outline-offset: -3px; }
+  a:focus-visible { outline: 2px solid var(--bench-focus); outline-offset: 2px; }
+
+  .verdict {
+    padding: 1rem 1.125rem; background: var(--bench-raised);
+    border: 1px solid var(--bench-rule); border-left: 3px solid var(--bench-deep);
+    border-radius: 8px; font-size: 0.9375rem;
+  }
+  .verdict h2 { margin: 0 0 0.375rem; font-size: 1rem; }
+  .verdict p { margin: 0 0 0.5rem; color: var(--bench-muted); }
+  .verdict p:last-child { margin-bottom: 0; }
+  .verdict b { color: var(--bench-ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Prototype · issue 179 · design-audit map</span>
+    <h1>Where focus lives</h1>
+    <p class="lede">
+      A focused text box in the builder currently gets <strong>two</strong> signals at once: its
+      underline turns black, and a red rectangle is drawn around the whole control. So a field that
+      is a <strong>line</strong> when you are not in it becomes a <strong>box</strong> when you are.
+      This page shows three ways of settling that. Pick by tabbing, not by reading.
+    </p>
+    <div class="howto">
+      <span><b>Press <kbd>Tab</kbd></b> to move between the controls below. The focus signal only
+        appears for the keyboard — that is deliberate and stays true in all three.</span>
+      <span><b>Then click one with the mouse.</b> Today the underline also darkens on a click while
+        the rectangle does not, so the two disagree about what focus even is.</span>
+      <span><b>Use <kbd>←</kbd> <kbd>→</kbd></b> or the bar at the bottom to switch variant.</span>
+    </div>
+  </header>
+
+  <!-- ===================== TODAY ===================== -->
+  <section class="spec" id="today">
+    <div class="spec-head">
+      <span class="spec-name">Today — for reference</span>
+      <p class="spec-try">Tab into the box. <b>Watch the hint get struck through.</b></p>
+    </div>
+    <div class="paper">
+      <div class="field today">
+        <label class="field-label" for="t1">Or type your exact colour</label>
+        <span class="field-hint">From a designer or a brand guide.</span>
+        <input class="inp" id="t1" value="#c2185b">
+      </div>
+      <p class="spec-try" style="color: var(--ink-quiet);">
+        Both treatments fire together, and because the hint sits flush on the control the ring's top
+        edge lands inside the hint's own line. That gap is being fixed either way — everything below
+        shows the fixed version, so you are judging the treatment and not the spacing.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== THE VARIANTS ===================== -->
+  <section class="spec">
+    <div class="spec-head">
+      <span class="spec-name">1 · A text field</span>
+      <p class="spec-try">Tab in and out. <b>Does the control change shape?</b></p>
+    </div>
+    <div class="paper" data-swap>
+      <div class="field fixed">
+        <label class="field-label" for="f1">Business name</label>
+        <input class="inp" id="f1" value="Ada &amp; Sons Bakers">
+        <span class="field-hint">The name at the top of your page.</span>
+      </div>
+      <div class="field fixed">
+        <label class="field-label" for="f2">Or type your exact colour</label>
+        <input class="inp" id="f2" placeholder="#c2185b">
+        <span class="field-hint">From a designer or a brand guide.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="spec">
+    <div class="spec-head">
+      <span class="spec-name">2 · The colour swatches</span>
+      <p class="spec-try">The second one is <b>already chosen</b>. Tab onto it — can you still tell it is chosen?</p>
+    </div>
+    <div class="paper" data-swap>
+      <p class="q-title">What's your colour?</p>
+      <ul class="swatches">
+        <li><button class="swatch" style="background:#9c1b32" aria-label="Claret" aria-pressed="false"></button></li>
+        <li><button class="swatch" style="background:#c2185b" aria-label="Raspberry" aria-pressed="true"></button></li>
+        <li><button class="swatch" style="background:#7b1fa2" aria-label="Plum" aria-pressed="false"></button></li>
+        <li><button class="swatch" style="background:#303f9f" aria-label="Indigo" aria-pressed="false"></button></li>
+        <li><button class="swatch" style="background:#00695c" aria-label="Teal" aria-pressed="false"></button></li>
+        <li><button class="swatch" style="background:#33691e" aria-label="Olive" aria-pressed="false"></button></li>
+      </ul>
+      <button class="btn-primary" style="align-self: flex-start;">Continue</button>
+    </div>
+  </section>
+
+  <section class="spec">
+    <div class="spec-head">
+      <span class="spec-name">3 · A button on the finished page</span>
+      <p class="spec-try">This is the public page, not the tool. <b>Is the ring distinct from the button?</b></p>
+    </div>
+    <div class="paper page-surface" data-swap>
+      <button class="pg-link">See the menu</button>
+      <p class="spec-try" style="color: var(--pg-ink); opacity: 0.75;">
+        Today the ring here is drawn in the brand colour — the button's own colour — so it reads as a
+        halo rather than as a marker. All three variants below change that.
+      </p>
+    </div>
+  </section>
+
+  <section class="spec">
+    <div class="spec-head">
+      <span class="spec-name">4 · The same field in a narrow column</span>
+      <p class="spec-try">This is phone width. <b>Does the ring stay inside the column?</b></p>
+    </div>
+    <div class="paper narrow" data-swap>
+      <div class="field fixed">
+        <label class="field-label" for="f3">Address</label>
+        <input class="inp" id="f3" value="12 Mill Lane">
+      </div>
+      <p class="narrow-note">
+        On a phone the content margin is tight, so a ring drawn outside a full-width control is
+        pushed past the column edge — closer to the screen edge than anything else on the page.
+      </p>
+    </div>
+  </section>
+
+  <div class="verdict">
+    <h2>What each one costs</h2>
+    <p><b>A — the line owns it.</b> Fits a design where a field <i>is</i> a line you write on, and
+      nothing ever changes shape. The ring can never strike the hint or overhang the column, because
+      on text controls there is no ring. Cost: less conventional, and the signal is thinner.</p>
+    <p><b>B — the box owns it, outside.</b> The most familiar treatment, and the easiest to see. Cost:
+      every field changes shape when you reach it, and on a full-width control the ring is pushed
+      outside the column.</p>
+    <p><b>C — the box owns it, inside.</b> Keeps the familiar box but draws it within the control's
+      own bounds, so it can never strike the hint or overhang. Cost: on a filled button the ring has
+      to sit on the fill, which is a different look from the outlined controls.</p>
+    <p>In all three, <b>selection and focus stop sharing one geometry</b> — a chosen swatch holds its
+      mark inside while focus sits outside it, so the two can be read at once.</p>
+  </div>
+</div>
+
+<nav class="switcher" aria-label="Variant switcher">
+  <button type="button" id="prev" aria-label="Previous variant">←</button>
+  <span class="label"><span class="key" id="vkey">A</span><span id="vname">The line owns it</span></span>
+  <button type="button" id="next" aria-label="Next variant">→</button>
+</nav>
+
+<script>
+  const VARIANTS = [
+    ["A", "The line owns it"],
+    ["B", "The box owns it, outside"],
+    ["C", "The box owns it, inside"],
+  ];
+
+  const params = new URLSearchParams(location.search);
+  let i = Math.max(0, VARIANTS.findIndex(([k]) => k === (params.get("variant") || "A")));
+
+  function apply() {
+    const [key, name] = VARIANTS[i];
+    document.querySelectorAll("[data-swap]").forEach((el) => el.setAttribute("data-variant", key));
+    document.getElementById("vkey").textContent = key;
+    document.getElementById("vname").textContent = name;
+    try {
+      const u = new URL(location.href);
+      u.searchParams.set("variant", key);
+      history.replaceState(null, "", u);
+    } catch (e) { /* sandboxed history is fine to skip */ }
+  }
+
+  function step(n) { i = (i + n + VARIANTS.length) % VARIANTS.length; apply(); }
+
+  document.getElementById("prev").addEventListener("click", () => step(-1));
+  document.getElementById("next").addEventListener("click", () => step(1));
+
+  addEventListener("keydown", (e) => {
+    const t = e.target;
+    const typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+    if (typing) return;
+    if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+    if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
+  });
+
+  // the swatches are a real pick-one group, so selection can be seen moving
+  document.querySelectorAll(".swatch").forEach((s) => {
+    s.addEventListener("click", () => {
+      document.querySelectorAll(".swatch").forEach((o) => o.setAttribute("aria-pressed", "false"));
+      s.setAttribute("aria-pressed", "true");
+    });
+  });
+
+  apply();
+</script>
