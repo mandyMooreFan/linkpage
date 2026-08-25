@@ -1,6 +1,6 @@
 import { Button } from "../../ui/Button.js";
 import { LADDER } from "../../ui/ladder.js";
-import { TextArea, TextInput } from "../../ui/TextInput.js";
+import { TextArea, TextInput, UrlInput } from "../../ui/TextInput.js";
 import {
   cloneElement,
   createContext,
@@ -295,9 +295,21 @@ export function useJudged(
  * rejoins the accessible name — which is bug #91, restored by a refactor that changed no markup.
  * `TextField.test.tsx` now mounts the real component rather than a bare `<input>`, so the next
  * control that grows a wrapper fails a test instead of losing its description in silence.
+ *
+ * **`UrlInput` is the next control that grew one** (#197), and it is why this register is worth
+ * more than the three lines it costs. It renders a `<span>` holding the `https://` prefix and the
+ * box, which is exactly the shape the check below refuses to guess about — one element, two
+ * children, and only one of them labelable. Named here, it is associated as precisely as an
+ * `<input>`; unnamed, every web-address field in the builder would have gone back to the
+ * wrapping branch and taken its hint into its name with it, for the second time.
+ *
+ * Note what it did *not* need: `htmlFor`. That seam is for a row holding more than one
+ * **control**, and a prefix is not a control — it is text on the line. The half of it #187 built
+ * for this ticket, a description that still reaches a control inside a wrapper, is the half that
+ * mattered, and `UrlInput` gets it here.
  */
 const LABELABLE = new Set(["button", "input", "meter", "output", "progress", "select", "textarea"]);
-const LABELABLE_CONTROLS = new Set<unknown>([TextInput, TextArea]);
+const LABELABLE_CONTROLS = new Set<unknown>([TextInput, TextArea, UrlInput]);
 
 type Associable = ReactElement<{ id?: string; "aria-describedby"?: string }>;
 

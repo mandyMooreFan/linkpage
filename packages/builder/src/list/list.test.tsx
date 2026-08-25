@@ -296,18 +296,26 @@ describe("the link buttons (§7.5)", () => {
     );
   });
 
-  it("mends a web address on leaving the box, shown where it was typed (§7.9, #142)", () => {
+  it("mends a web address where it was typed, and now says so in advance (§7.9, #142, #197)", () => {
     // This editor has no Continue — leaving the box is "done answering" on it. Mid-typing is
     // untouched: mending under the owner's fingers is the told-off feeling #142 removes.
     const { latest } = editing();
     openRow(/^Link buttons/);
 
     const url = screen.getAllByLabelText("Where it goes")[0] as HTMLInputElement;
-    fireEvent.change(url, { target: { value: "mysite.com/menu" } });
-    expect(url.value).toBe("mysite.com/menu");
+    const line = url.closest("[data-url-field]") as HTMLElement;
 
+    // The scheme is on the line rather than in the box (#197), so the mend the owner used to
+    // watch happen on blur was already on the screen before they typed a character of it.
+    fireEvent.change(url, { target: { value: "mysite.com/menu" } });
+    expect(line.textContent + url.value).toBe("https://mysite.com/menu");
+    expect(latest()?.links[0]?.url).toBe("https://mysite.com/menu");
+
+    // What is left for the mend on leaving the box is the trim, and that is still shown here.
+    fireEvent.change(url, { target: { value: "mysite.com/menu " } });
+    expect(url.value).toBe("mysite.com/menu ");
     fireEvent.blur(url);
-    expect(url.value).toBe("https://mysite.com/menu");
+    expect(url.value).toBe("mysite.com/menu");
     expect(latest()?.links[0]?.url).toBe("https://mysite.com/menu");
   });
 

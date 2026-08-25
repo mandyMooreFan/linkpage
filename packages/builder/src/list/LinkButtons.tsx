@@ -4,6 +4,7 @@ import { Field } from "../flow/questions/Question.js";
 import type { Draft } from "../project/index.js";
 import { moved, setLinks, withoutAt } from "./edits.js";
 import { TextInput } from "../ui/TextInput.js";
+import { UrlField } from "../ui/TextField.js";
 import { Button } from "../ui/Button.js";
 import { LADDER } from "../ui/ladder.js";
 import { ROW_LIST, ROW_STACK_PADDING } from "../ui/row.js";
@@ -101,22 +102,18 @@ export function LinkButtons({
               />
             </Field>
 
-            <Field label="Where it goes">
-              <TextInput
-                type="url"
-                inputMode="url"
-                value={link.url}
-                spellCheck={false}
-                autoCapitalize="none"
-                placeholder="https://"
-                onChange={(event) => edit(index, { url: event.target.value })}
-                // §7.9 decision 4 (#142): the mend is shown here on leaving the box — this
-                // editor has no Continue, and leaving the box is what "done answering" is on
-                // it. Mid-typing stays untouched: mending under the owner's fingers is the
-                // told-off feeling #142 exists to remove.
-                onBlur={(event) => edit(index, { url: mendUrl(event.target.value) })}
-              />
-            </Field>
+            <UrlField
+              label="Where it goes"
+              value={link.url}
+              onValueChange={(url) => edit(index, { url })}
+              // §7.9 decision 4 (#142): the mend is shown here on leaving the box — this editor
+              // has no Continue, and leaving the box is what "done answering" is on it.
+              // Mid-typing stays untouched: mending under the owner's fingers is the told-off
+              // feeling #142 exists to remove. What is left for it to mend since #197 is the
+              // trim: the scheme is on the line from the first keystroke, so the correction the
+              // owner used to watch happen is now shown to them in advance instead.
+              onCommit={(url) => edit(index, { url: mendUrl(url) })}
+            />
 
             <div className="flex items-center gap-2">
               {/*

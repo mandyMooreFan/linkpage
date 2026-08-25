@@ -2,7 +2,14 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { contrastRatio, parseHex, type Rgb } from "@linkpage/renderer";
 import { describe, expect, it } from "vitest";
-import { INPUT_CLASS, TEXTAREA_CLASS } from "./TextInput.js";
+import {
+  INPUT_CLASS,
+  LINE_CLASS,
+  TEXTAREA_CLASS,
+  URL_BOX_CLASS,
+  URL_PREFIX_CLASS,
+  URL_ROW_CLASS,
+} from "./TextInput.js";
 import { WEIGHT } from "./Button.js";
 import { CHECKBOX_CLASS } from "./Checkbox.js";
 import { LADDER } from "./ladder.js";
@@ -134,6 +141,59 @@ describe("the one text input", () => {
     for (const backdrop of BACKDROPS) {
       expect(between("ink-quiet", backdrop), `on ${backdrop}`).toBeGreaterThanOrEqual(4.5);
     }
+  });
+});
+
+/**
+ * The one pattern swap in the whole audit (design change 10, finding B-55).
+ *
+ * **What is borrowed is the prefix, not the box.** The free Tailwind input group puts its leading
+ * add-on inside a rounded, outlined, filled wrapper, and paper's boundary is the underline — so
+ * the wrapper here *is* the line, and nothing gains a card, a fill, a radius or a second border.
+ * This is the place in the audit most likely to drift back into a box, and a drift would be one
+ * plausible-looking class in a diff, so it is a test rather than a note in a review.
+ */
+describe("the prefixed web-address field", () => {
+  it("stands on the same ruled line as every other field, not a copy of it", () => {
+    // Written once, so a later change to the rule's colour or weight reaches both.
+    expect(INPUT_CLASS).toContain(LINE_CLASS);
+    expect(URL_ROW_CLASS).toContain(LINE_CLASS);
+  });
+
+  it("gains no box: no card, no fill, no radius, no second border", () => {
+    expect(URL_ROW_CLASS, "a bottom rule and nothing else").toContain("border-0 border-b");
+    expect(URL_ROW_CLASS).not.toMatch(/\brounded/);
+    expect(URL_ROW_CLASS).not.toMatch(/\bshadow/);
+    expect(URL_ROW_CLASS).not.toMatch(/\bring\b/);
+    expect(URL_ROW_CLASS).not.toMatch(/\bbg-(?!transparent\b)/);
+    // The box inside draws nothing at all — the line above it is the only boundary there is.
+    expect(URL_BOX_CLASS).toContain("border-0");
+    expect(URL_BOX_CLASS).not.toMatch(/\bborder-b\b/);
+    expect(URL_BOX_CLASS).not.toMatch(/\brounded/);
+    expect(URL_BOX_CLASS).not.toMatch(/\bbg-(?!transparent\b)/);
+  });
+
+  it("recolours the line on focus, since the thing focused is now inside it", () => {
+    // The same treatment the field always had — the line recolours and nothing moves. The ring
+    // on the box is #188's business and is deliberately untouched here.
+    expect(INPUT_CLASS).toContain("focus:border-ink");
+    expect(URL_ROW_CLASS).toContain("focus-within:border-ink");
+  });
+
+  it("keeps the prefix quiet, and out of the answer", () => {
+    expect(URL_PREFIX_CLASS).toContain("text-ink-quiet");
+    expect(URL_PREFIX_CLASS).toContain("select-none");
+  });
+
+  it("has left no web address relying on a placeholder for its scheme", () => {
+    // The defect itself (B-55): `https://` was a placeholder on all four web-address fields, so
+    // it vanished the moment the owner typed. A guard on the source, because a fifth field
+    // reaching for the same placeholder would look entirely reasonable in a diff.
+    const offenders = Object.entries(sources)
+      .filter(([path]) => !path.includes(".test."))
+      .filter(([, text]) => code(text).includes('placeholder="https://'))
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
   });
 });
 

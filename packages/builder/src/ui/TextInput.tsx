@@ -1,3 +1,4 @@
+import { useId, useRef } from "react";
 import type { InputHTMLAttributes, JSX, Ref, TextareaHTMLAttributes } from "react";
 
 /**
@@ -26,10 +27,21 @@ import type { InputHTMLAttributes, JSX, Ref, TextareaHTMLAttributes } from "reac
  * lighter than the entered value's 16.02:1.
  */
 
+/**
+ * **The ruled line itself**, with nothing on it yet.
+ *
+ * Written apart from the recipe below only because a second thing now sits on it: the prefixed
+ * web-address field (design change 10) draws the line around a prefix *and* a box, so the line
+ * has to be something both can be given rather than something one of them owns. It is one
+ * string in one file either way, which is the rule `controls.test.ts` holds — and it means the
+ * `control-edge` split above reaches the prefixed field for free instead of leaving it behind
+ * at the old colour, which is exactly the drift a second copy of this string would have caused.
+ */
+export const LINE_CLASS =
+  "tap w-full border-0 border-b border-control-edge bg-transparent px-0 py-2 font-sans text-lg";
+
 /** The one recipe. Exported so `controls.test.ts` can assert on it rather than re-spell it. */
-export const INPUT_CLASS =
-  "tap w-full border-0 border-b border-control-edge bg-transparent px-0 py-2 font-sans text-lg " +
-  "placeholder:text-ink-quiet focus:border-ink";
+export const INPUT_CLASS = `${LINE_CLASS} placeholder:text-ink-quiet focus:border-ink`;
 
 export interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
   readonly ref?: Ref<HTMLInputElement>;
@@ -78,4 +90,90 @@ export interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
 
 export function TextArea({ className, ...rest }: TextAreaProps): JSX.Element {
   return <textarea className={`${TEXTAREA_CLASS} ${className ?? ""}`.trim()} {...rest} />;
+}
+
+/**
+ * The same line, with a scheme already written on it (design change 10, finding B-55).
+ *
+ * **What is borrowed is the prefix, not the box.** The free Tailwind input-group pattern puts a
+ * leading add-on inside a rounded, outlined, filled wrapper — and paper's boundary is the
+ * underline (`SPEC.md` §7.4), so the wrapper *is* the line the input used to draw for itself.
+ * `LINE_CLASS` moves onto the row and the box inside it keeps none of it: no card, no fill, no
+ * radius, no second border, and the same 44px floor and the same rule underneath as every other
+ * field in the tool. The only thing that changed is that two things now stand on the line
+ * instead of one.
+ *
+ * **Focus follows the same rule it always did** — the line recolours and nothing moves — and
+ * says `focus-within` because the thing that takes focus is now inside the thing that draws the
+ * boundary. The ring on the box is untouched; that is #188's, and this is not it.
+ *
+ * **The prefix is a description, not a name.** It sits outside the `<label>` — `Field` points
+ * rather than wraps, so nothing beside the box can join the accessible name (#91, #98) — and it
+ * is attached with `aria-describedby`, *joining* whatever the field already had rather than
+ * replacing it. That is the whole accessibility argument for the change, and it is the half that
+ * is easy to lose: `https://` used to be a placeholder, which is announced only while the field
+ * is empty. Making it permanent on screen and `aria-hidden` in the tree would have fixed the
+ * defect for people who can see it and deepened it for everyone else.
+ *
+ * **Clicking the prefix focuses the box.** The line used to be the input edge to edge, so
+ * anywhere on it took focus; without this, the leading centimetre of every web-address field
+ * would quietly stop working.
+ */
+export const URL_ROW_CLASS = `${LINE_CLASS} flex items-center gap-1 focus-within:border-ink`;
+
+/** Quiet, and not selectable — it is the field's own furniture, not part of the answer. */
+export const URL_PREFIX_CLASS = "shrink-0 select-none text-ink-quiet";
+
+/**
+ * The box on that line. It draws no boundary of its own — the row has it — and inherits its type
+ * from the row, which Tailwind's own reset makes true of form controls.
+ */
+export const URL_BOX_CLASS =
+  "w-full min-w-0 border-0 bg-transparent p-0 placeholder:text-ink-quiet";
+
+export interface UrlInputProps extends Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "type" | "children"
+> {
+  /** What is written on the line before the box. See `webAddress.ts` for where it comes from. */
+  readonly scheme: string;
+}
+
+export function UrlInput({
+  scheme,
+  className,
+  "aria-describedby": describedBy,
+  ...rest
+}: UrlInputProps): JSX.Element {
+  const schemeId = useId();
+  const box = useRef<HTMLInputElement>(null);
+
+  return (
+    <span
+      className={`${URL_ROW_CLASS} ${className ?? ""}`.trim()}
+      data-url-field
+      onPointerDown={(event) => {
+        if (event.target === box.current) return;
+        event.preventDefault();
+        box.current?.focus();
+      }}
+    >
+      <span className={URL_PREFIX_CLASS} id={schemeId} data-url-scheme>
+        {scheme}
+      </span>
+      <input
+        // `text`, not `url`: the box no longer holds a URL — the scheme is on the line beside it
+        // — so `type="url"` would mark every correctly-typed address `:invalid`. `inputMode`
+        // is what was actually buying the phone keyboard, and it stays.
+        type="text"
+        inputMode="url"
+        spellCheck={false}
+        autoCapitalize="none"
+        ref={box}
+        className={URL_BOX_CLASS}
+        aria-describedby={[schemeId, describedBy].filter((id) => id !== undefined).join(" ")}
+        {...rest}
+      />
+    </span>
+  );
 }
