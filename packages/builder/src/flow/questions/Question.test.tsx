@@ -19,6 +19,27 @@ import { TextArea } from "../../ui/TextInput.js";
  *
  * The two shapes are tested separately because they are genuinely different markup, and the
  * unhinted one carries composites — an input and a button in one row — that the hinted one may not.
+ *
+ * **What the bare host elements below stand for, checked rather than assumed (#213).** #187 wrote
+ * that "no screen in the builder" hands `Field` a bare host element, and that was the finding
+ * that mattered — every *text* field goes through `TextInput`. It is not the whole truth about
+ * this file, and the sweep is where the difference gets written down:
+ *
+ * - **`<input>` — one live caller, and it is not a text box.** `StyleStep`'s *Corner softness*
+ *   slider is a raw `<input type="range">` inside a `Field`, and it is the only host control the
+ *   builder still puts there. So the host branch is product surface and these fixtures guard it;
+ *   what they must never again be read as is a picture of a *text* field, which is the reading
+ *   that hid #91 for two releases. `list.test.tsx` mounts the slider itself.
+ * - **`<select>` — no caller at all.** The hours screen had one and #192 replaced it with the
+ *   segmented control. The test below is kept as a claim about `Field` — that it associates any
+ *   labelable element, not only the one shape the product happens to hold today — and is named
+ *   here as such rather than left looking like a screen.
+ * - **The composite row** is a `<span>` of two controls, which is exactly the product's *Something
+ *   else* row; there the two are a `TextInput` and a `Button`. Neither is labelable-by-guess, so
+ *   `Field` takes the same branch either way, and swapping the fixture would move no guarantee.
+ *   What holds the real row is `flow.test.tsx`, which reaches it by its label.
+ *
+ * The section at the foot of the file is the one that mounts what a text field actually is.
  */
 
 afterEach(cleanup);
@@ -261,7 +282,7 @@ describe("a field with something the tool cannot use (§7.9)", () => {
 /**
  * The same guarantees, through the control the product actually uses.
  *
- * **Every test above this point hands `Field` a bare `<input>`, and no screen in the builder
+ * **Every test above this point hands `Field` a bare `<input>`, and no *text field* in the builder
  * does.** They all pass `TextInput`, and that difference silently turned the association off:
  * `labelableControl` only recognised host elements, so a component fell through to the wrapping
  * `<label>` branch, where the hint is back inside the accessible name — the exact bug (#91) this

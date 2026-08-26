@@ -98,11 +98,17 @@ const openRow = (name: RegExp): void => {
 /**
  * §7.8's confirmation, the real component (#228).
  *
- * A bare `<p>` stands in for it in the panel tests below, where the claim is about the *surface* —
- * that it opens itself, that it grows to what it holds — and anything with text in it would do.
- * Here the claim is about what is **on** the surface: the second solid fill. A stand-in has no
+ * **Used wherever the claim is about the confirmation itself**, which since #213's sweep is one
+ * test more than #228 left it. Where the claim is about the fill it is obvious: a stand-in has no
  * fill, so a test built on one would go green against a screen that never had the defect (#187),
- * and would go on being green if `Open the file` lost its `primary` tomorrow.
+ * and would go on being green if `Open the file` lost its `primary` tomorrow. The subtler one is
+ * *never a modal* — a bare `<p>` has no role to be the wrong one, so that assertion held whatever
+ * the real component did.
+ *
+ * A bare `<p>` still stands in for it in the width test below, and deliberately: that claim is
+ * about the *surface* — a shrink-wrapped panel that has to be allowed to grow — and jsdom lays
+ * nothing out, so what is asserted is the class that buys the growth. Nothing about the content
+ * enters into it, and the widest string the panel must hold is measured in `controls.test.ts`.
  *
  * `outgoing` is the only thing it needs from outside — a filename and a `save` nothing here
  * presses. What the fork *does* on either branch is `App.test.tsx`'s, end to end.
@@ -675,11 +681,17 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
     });
   });
 
+  /**
+   * **The real confirmation here too, and for a second reason (#213).** The surface half of this
+   * — that the panel opens itself and holds the words — a `<p>` can carry. The last two lines
+   * cannot: *never a modal* is a claim about **what §7.8's confirmation is**, and a bare `<p>`
+   * has no role to be the wrong one, so the assertion was true of the fixture whatever the real
+   * component did. Verified on `main`: giving `ReplaceConfirm` `role="dialog"` and
+   * `aria-modal="true"` passed the whole suite. It renders `role="group"`, and that is the
+   * decision this line exists to hold.
+   */
   it("gives §7.8's confirmation and §7.9's message the menu's own surface", () => {
-    editing(POPULATED, {
-      onImport: () => {},
-      importConfirm: <p>Opening this file will replace it.</p>,
-    });
+    editing(POPULATED, { onImport: () => {}, importConfirm: confirmation });
 
     // The OS picker takes the screen while it is up and the menu can be dismissed underneath it,
     // which would leave the confirmation correct and invisible. So the surface opens itself.
@@ -688,6 +700,7 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
     expect(panel.textContent).toContain("Opening this file will replace it.");
     // In place, with the project intact behind it — never a modal (§7.9).
     expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.querySelector("[data-replace]")?.getAttribute("role")).toBe("group");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Ada & Sons <Bakers>");
   });
 

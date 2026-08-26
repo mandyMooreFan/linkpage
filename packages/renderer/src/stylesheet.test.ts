@@ -90,6 +90,56 @@ function declaration(project: Project, selector: string, property: string): stri
 }
 
 // ---------------------------------------------------------------------------
+// What the rules below are reading
+// ---------------------------------------------------------------------------
+
+/**
+ * The stylesheet these rules read, asserted before any of them reads it. #213.
+ *
+ * **This file's rules are mostly absences**, and an absence is the shape that goes green when the
+ * thing doing the looking finds nothing at all: *no rule steps off the ladder* is a `.filter()`
+ * over what a helper extracted, *references no token it did not declare* is a loop over what a
+ * regex matched, and *sets every step somewhere* is a loop over a token list. Every one of them
+ * is satisfied by an empty string.
+ *
+ * **Measured, not argued.** Breaking `css()` — one regex, and `<style nonce="…">` would be enough
+ * to do it in production code — left **18 of this file's 56 tests green**, including the whole of
+ * the ladder's stray sweep across all four shapes. The rules were fine; what was missing was
+ * anyone asking whether there was a stylesheet.
+ *
+ * **This is #188's opening move, one package over.** `controls.test.ts` reads two blocks out of
+ * `theme.css` and asserts both are non-empty before its eleven `not.toMatch` rules run, because
+ * a reader that falls back to `""` makes all eleven true about nothing. Same failure, same first
+ * line — and `page.test.ts` had already written the builder's version of it ("found the sources
+ * it claims to be scanning").
+ *
+ * **On every shape, not only the default one.** The helpers below are shape-parameterised and so
+ * are the rules; a delta that came back empty for one shape would leave that shape's three stray
+ * rules passing while the other three shapes kept the suite green.
+ */
+describe("the stylesheet every rule below reads", () => {
+  it.each(SHAPES)("is the page's own <style> block in %s, not an empty string", (shape) => {
+    const project = shaped(shape);
+    expect(css(project), "the export must carry a stylesheet").not.toBe("");
+    // The two halves the helpers split it into, each non-empty on its own: a `:root` block that
+    // swallowed the whole file would leave `ruleText` empty, and vice versa.
+    expect(declaredTokens(project).size, "the :root block declares tokens").toBeGreaterThan(0);
+    expect(ruleText(project), "and the rules are what is left").toContain(".lp-page{");
+  });
+
+  it("resolves the page it hands to the rules, rather than an empty map", () => {
+    // `resolvedPage` is the instrument behind every `declaration(…)` comparison below, and two
+    // `undefined`s compare equal — so a selector that stopped being emitted would read as
+    // agreement rather than as absence.
+    const page = resolvedPage(full);
+    expect(page.size).toBeGreaterThan(0);
+    expect(page.get(".lp-page")?.get("gap"), "and the values are resolved, not var()").toBe(
+      "1.75rem",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // The ladder itself
 // ---------------------------------------------------------------------------
 
@@ -160,6 +210,10 @@ describe("the type scale (§2)", () => {
   it("sets every step somewhere, and sets no size that is not a step", () => {
     const sizes = [...ruleText(full).matchAll(/font-size:([^;}]+)/g)].map(([, value]) => value!);
     const used = new Set(sizes);
+    // Both loops below are satisfied by an empty collection, so both collections are named first
+    // (#213). A stylesheet that set no size at all would otherwise read as a scale in perfect use.
+    expect(steps.length, "the scale declares steps").toBeGreaterThan(0);
+    expect(used.size, "and the page sets sizes").toBeGreaterThan(0);
     for (const [name] of steps) expect(used).toContain(`var(${name})`);
     for (const size of used) expect(steps.map(([name]) => `var(${name})`)).toContain(size);
   });
@@ -189,10 +243,10 @@ describe("no rule steps off the ladder", () => {
   const LENGTH = /(\d*\.?\d+)(rem|px|em)\b/g;
 
   it.each(SHAPES)("writes no length of its own in %s", (shape) => {
-    const strays = [...ruleText(shaped(shape)).matchAll(LENGTH)]
-      .map(([whole]) => whole)
-      .filter((length) => !NOT_RHYTHM.has(length));
-    expect(strays).toEqual([]);
+    const lengths = [...ruleText(shaped(shape)).matchAll(LENGTH)].map(([whole]) => whole);
+    // The rule is a `.filter()`, and a filter over nothing is empty for the wrong reason (#213).
+    expect(lengths.length, `${shape} writes lengths at all`).toBeGreaterThan(0);
+    expect(lengths.filter((length) => !NOT_RHYTHM.has(length))).toEqual([]);
   });
 
   /**
@@ -203,13 +257,18 @@ describe("no rule steps off the ladder", () => {
   it.each(SHAPES)("references no token it did not declare, in %s", (shape) => {
     const project = shaped(shape);
     const declared = declaredTokens(project);
-    for (const [, name] of ruleText(project).matchAll(/var\((--lp-[a-z0-9-]+)\)/g)) {
+    const references = [...ruleText(project).matchAll(/var\((--lp-[a-z0-9-]+)\)/g)];
+    // A loop over nothing is a rule about nothing (#213): the page is built out of tokens, so a
+    // shape whose rules reference none of them has lost its rules, not passed this test.
+    expect(references.length, `${shape} spends tokens`).toBeGreaterThan(0);
+    for (const [, name] of references) {
       expect([...declared.keys()]).toContain(name);
     }
   });
 
   it.each(SHAPES)("keeps every exemption earning its place in %s", (shape) => {
     const used = new Set([...ruleText(shaped(shape)).matchAll(LENGTH)].map(([whole]) => whole));
+    expect(used.size, `${shape} writes lengths of its own`).toBeGreaterThan(0);
     for (const length of used) expect(NOT_RHYTHM.has(length)).toBe(true);
   });
 });
@@ -288,13 +347,18 @@ describe("the resting page, with the tokens resolved", () => {
  */
 describe("the hours mark (§6.9, §2, §6)", () => {
   it("is set at the size it is drawn at, like every other icon on the page", () => {
+    // The claim is an absence, so the presence it is an absence *within* is named first: the mark
+    // has a rule of its own, and that rule sets no size (#213).
+    expect(resolvedPage(full).get(".lp-hours-mark"), "the mark has a rule").toBeDefined();
     expect(declaration(full, ".lp-hours-mark", "font-size")).toBeUndefined();
   });
 
   it("carries the same muted ink as the icons in the contact rows", () => {
-    expect(declaration(full, ".lp-hours-mark", "color")).toBe(
-      declaration(full, ".lp-row .lp-icon", "color"),
-    );
+    const mark = declaration(full, ".lp-hours-mark", "color");
+    // Named before compared: two `undefined`s are equal, so a mark that stopped being coloured at
+    // all would read here as agreement with the row icons (#213).
+    expect(mark, "the mark is coloured").toBeDefined();
+    expect(mark).toBe(declaration(full, ".lp-row .lp-icon", "color"));
   });
 });
 
@@ -310,7 +374,12 @@ describe("floatingCard's hairline (§1)", () => {
   const card = shaped("floatingCard");
 
   it("keeps the page's gap rather than restating a tighter one", () => {
-    expect(declaration(card, ".lp-page", "gap")).toBe(declaration(full, ".lp-page", "gap"));
+    const gap = declaration(card, ".lp-page", "gap");
+    expect(gap, "the shape's page has a gap").toBeDefined();
+    expect(gap).toBe(declaration(full, ".lp-page", "gap"));
+    // And the delta says nothing about it — read off the shape's own rules, which are asserted
+    // non-empty first so `not.toContain` cannot pass against a delta that stopped being emitted.
+    expect(shapeRules("floatingCard"), "the shape emits a delta").not.toBe("");
     expect(shapeRules("floatingCard")).not.toContain("gap:");
   });
 
@@ -332,15 +401,18 @@ describe("floatingCard's hairline (§1)", () => {
  */
 describe("ruledLeft stays on the inline axis (§4.1)", () => {
   it("names no physical side", () => {
+    // Non-empty first: `not.toMatch` against `""` is true of nothing (#213, #188).
+    expect(ruleText(shaped("ruledLeft"))).not.toBe("");
     expect(ruleText(shaped("ruledLeft"))).not.toMatch(/padding-(left|right)|margin-(left|right)/);
     expect(declaration(shaped("ruledLeft"), ".lp-panel", "padding-inline-start")).toBe("1rem");
   });
 
   it("pads the panel and the header off the axis by the same rung", () => {
     const page = resolvedPage(shaped("ruledLeft"));
-    expect(page.get(".lp-panel")?.get("padding-inline-start")).toBe(
-      page.get(".lp-header")?.get("padding-inline-start"),
-    );
+    const panel = page.get(".lp-panel")?.get("padding-inline-start");
+    // Named before compared, or two absent paddings agree perfectly (#213).
+    expect(panel, "the panel is padded off the axis").toBeDefined();
+    expect(panel).toBe(page.get(".lp-header")?.get("padding-inline-start"));
   });
 });
 

@@ -182,6 +182,20 @@ describe("stepping in and out", () => {
   });
 });
 
+/**
+ * **The bare `<button>` below is a deliberate stand-in, and this is the note saying so (#213).**
+ *
+ * `action` is a slot, and that is #186's decision rather than an accident: label, weight and
+ * unavailable-state stay on the screen that owns the errand, so `Preview` is supposed to be
+ * unable to tell what it has been handed. Every claim here is about *placement* — in the header,
+ * last in the row, gone once the page is put away — and a real `Button` would answer each of them
+ * identically. Standing one in would move code without moving a guarantee.
+ *
+ * **What the stand-in cannot see is asserted where the real one is rendered.** That Download
+ * travels into the drawer *still filled*, and steps down when it should, is `list.test.tsx`'s —
+ * mounted through the real `List`, which is the only place that pairing exists. This file is why
+ * a slot is safe to test with a placeholder: the component under test genuinely has no opinion.
+ */
 describe("what the screen hands the drawer to carry (#186)", () => {
   const carried = () => screen.queryByRole("button", { name: "Download" });
 

@@ -188,6 +188,141 @@ const propertiesIn = (block: string): string[] => [
   ...new Set([...block.matchAll(/^\s*([a-z-]+):[^;{]*;/gm)].map((match) => match[1] ?? "")),
 ];
 
+/**
+ * The corpus every rule below sweeps, asserted before any of them sweeps it. #213.
+ *
+ * **Nearly every guard in this file is an absence** — `expect(offenders).toEqual([])` — and an
+ * absence is exactly the shape that goes green when the thing doing the looking finds nothing to
+ * look at. `import.meta.glob` is a build-time transform: a pattern that stops matching does not
+ * throw, it returns `{}`, and `others(…)` and `everySource()` then hand every rule an empty list.
+ *
+ * **Measured rather than argued.** Breaking the glob on `main` left **94 of this file's 119 tests
+ * green**. The 25 that noticed did so incidentally — they happen to name a file and read
+ * something out of it — so the tripwire existed but belonged to nobody, and a *partial* failure
+ * (the pattern still matching `.ts` but no longer `.tsx`, say) would trip fewer of them still.
+ * This is the same silent green `readFileSync` exists to prevent one layer up for `theme.css`,
+ * and the same one #188's focus block opens by ruling out: **assert the thing you are measuring
+ * is there before measuring it.**
+ *
+ * **Named rather than counted** (#190, #198): a threshold on how many files the glob found would
+ * pass on any handful of them. What is asserted is that the corpus contains the files these rules
+ * name as owners — if one of those is renamed, the rule that owns it is already broken and this
+ * says so first, in one line, instead of going quiet.
+ */
+describe("the sources every rule below reads", () => {
+  /** The owners: each is the one place some rule below allows its recipe to be written. */
+  const OWNERS = [
+    "./TextInput.tsx",
+    "./Button.tsx",
+    "./Checkbox.tsx",
+    "./Panel.tsx",
+    "./row.ts",
+    "./type.ts",
+    "../flow/ProgressBar.tsx",
+    "../flow/questions/Question.tsx",
+    "../list/List.tsx",
+    "../list/LinkButtons.tsx",
+    "../download/DownloadSheet.tsx",
+  ];
+
+  it("is the builder itself, and not an empty glob", () => {
+    const paths = Object.keys(sources);
+    for (const owner of OWNERS) {
+      expect(paths, `the glob must reach ${owner}`).toContain(owner);
+    }
+  });
+
+  it("read each of them, rather than a stub of one", () => {
+    // `?raw` is stubbed to `""` for anything vitest does not process — which is how a token
+    // assertion against `theme.css` once went green measuring a file with nothing in it.
+    const empty = Object.entries(sources)
+      .filter(([, text]) => text.trim() === "")
+      .map(([path]) => path);
+    expect(empty).toEqual([]);
+  });
+
+  it("leaves exactly the owner out when a rule asks for everyone else", () => {
+    // `others(owner)` is how "written in one place" is spelled, so the one thing it must never do
+    // is exclude nothing — or everything.
+    const owner = "./Button.tsx";
+    const excluded = Object.keys(sources).filter(
+      (path) => !path.includes(".test.") && !others(owner).some(([kept]) => kept === path),
+    );
+    expect(excluded).toEqual([owner]);
+  });
+});
+
+/**
+ * A recipe reaches a screen. `SPEC.md` §7.4; findings B-47 and #183's; generalised by #213.
+ *
+ * **The second half of "written in one place", and the half that keeps being missing.** Twice now
+ * a component has held a rule and had **no call sites at all**: `TextInput` owned the placeholder
+ * colour while thirteen screens wrote the recipe out by hand (#183), and `Panel` owned §7.9's
+ * aside while four screens hand-rolled it (B-47, #199). In both the "only place it is written"
+ * guard was perfectly satisfied — a component nobody calls is not a second copy, so there was
+ * nothing for it to find. #199 wrote the answer for `Panel` and the map asked for it to become
+ * the default rather than something each ticket reinvents. This is that.
+ *
+ * **It is live, not theoretical.** On `main`, deleting `TextArea`'s only call site — swapping the
+ * address field to a `TextInput` — passed the entire suite: the address silently became a
+ * one-line box and `TEXTAREA_CLASS`'s `resize-none`, which is the whole of design change 6's
+ * finding B-73, reached nothing.
+ *
+ * **Named, not counted**, because the two halves want different instruments. "Is this called at
+ * all" is a count question and `Panel`'s guard rightly asks it that way; *which* screens call it
+ * is what a count cannot say, and for the four controls whose call sites their own docblocks
+ * claim to enumerate — the address is the one textarea, the tick boxes are two — naming them is
+ * what makes the claim fail when it stops being true rather than quietly age.
+ */
+describe("every shared control reaches a screen", () => {
+  /** Every file rendering `<Name …>`, the owner's own file aside. */
+  const callersOf = (name: string, owner: string): string[] =>
+    everySource()
+      .filter(([path]) => !path.endsWith(owner))
+      .filter(([, text]) => new RegExp(`<${name}\\b`).test(text))
+      .map(([path]) => path)
+      .sort();
+
+  it("renders the several-line answer at the one field that is one", () => {
+    // `TextInput.tsx` says so itself: "for an answer that runs to several — the address, and
+    // nothing else today". A second textarea is a decision, not a diff.
+    expect(callersOf("TextArea", "/TextInput.tsx")).toEqual([
+      "../flow/questions/SectionQuestions.tsx",
+    ]);
+  });
+
+  it("renders the prefixed field at the one field that owns every web address", () => {
+    // All four web addresses come through `UrlField`, which is where the split lives (#197).
+    expect(callersOf("UrlInput", "/TextInput.tsx")).toEqual(["./TextField.tsx"]);
+  });
+
+  it("renders the tick box at both tick boxes", () => {
+    // #193's ticket pointed at the wrong file, so these are named: the link-button picks and the
+    // advanced tier's own switch. `Checkbox.tsx` reasons about "both call sites" by name.
+    expect(callersOf("Checkbox", "/Checkbox.tsx")).toEqual([
+      "../flow/questions/LinkQuestions.tsx",
+      "../list/Advanced.tsx",
+    ]);
+  });
+
+  it("renders the aside on the surfaces §7.9 speaks from", () => {
+    // B-47's four copies, now callers: the logo step, the preset step and the list menu's two.
+    expect(callersOf("Panel", "/Panel.tsx")).toEqual([
+      "../flow/questions/LogoQuestion.tsx",
+      "../flow/questions/PresetQuestion.tsx",
+      "../list/List.tsx",
+    ]);
+  });
+
+  it("renders the one text input and the one button on screens rather than nowhere", () => {
+    // These two are on nearly every screen there is, so naming the set would be a list that
+    // changes whenever a screen does. What is worth holding is the thing that was actually wrong
+    // in #183 — a recipe with no reader — and that is emptiness.
+    expect(callersOf("TextInput", "/TextInput.tsx"), "#183's defect exactly").not.toEqual([]);
+    expect(callersOf("Button", "/Button.tsx")).not.toEqual([]);
+  });
+});
+
 describe("the one text input", () => {
   it("is the only place the underlined-field recipe is written", () => {
     // The distinguishing part of the recipe: a bottom rule and nothing else, at input size.
