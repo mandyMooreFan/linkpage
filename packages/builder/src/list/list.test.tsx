@@ -3,8 +3,10 @@
 import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
 import { useState, type JSX, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { FileDownload } from "../download/index.js";
 import { POPULATED } from "../fixtures.js";
 import type { Topic } from "../flow/topics.js";
+import { ReplaceConfirm } from "../open/index.js";
 import type { Draft } from "../project/index.js";
 import { ROW_OPEN } from "../ui/row.js";
 import { WEIGHT } from "../ui/Button.js";
@@ -92,6 +94,23 @@ const rowIds = (): string[] =>
 const openRow = (name: RegExp): void => {
   fireEvent.click(screen.getByRole("button", { name, expanded: false }));
 };
+
+/**
+ * §7.8's confirmation, the real component (#228).
+ *
+ * A bare `<p>` stands in for it in the panel tests below, where the claim is about the *surface* —
+ * that it opens itself, that it grows to what it holds — and anything with text in it would do.
+ * Here the claim is about what is **on** the surface: the second solid fill. A stand-in has no
+ * fill, so a test built on one would go green against a screen that never had the defect (#187),
+ * and would go on being green if `Open the file` lost its `primary` tomorrow.
+ *
+ * `outgoing` is the only thing it needs from outside — a filename and a `save` nothing here
+ * presses. What the fork *does* on either branch is `App.test.tsx`'s, end to end.
+ */
+const outgoing: FileDownload = { filename: "adas-bakery.linkpage.json", save: () => {} };
+const confirmation = (
+  <ReplaceConfirm name="Ada's Bakery" outgoing={outgoing} onOpen={() => {}} onCancel={() => {}} />
+);
 
 describe("every answer is a row (§7.4)", () => {
   it("renders every section the page has, with the page beside it", () => {
@@ -497,25 +516,37 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
    * one of them has to step down, and it is **Download**, because while a row is open the thing
    * the owner is doing is finishing that answer.
    *
+   * **§7.8's replace confirmation is the same defect from a fourth direction** (#228). Its *Open
+   * the file* is filled — the errand the owner arrived on, #200 — and it renders in the menu's own
+   * panel, a couple of centimetres from Download in this same bar. #190 found it, judged it
+   * outside change 3's three named sites, and put it to the owner, who asked for it. It is one
+   * more term in the same expression rather than a mechanism of its own, so it is tested here
+   * beside the other three and not somewhere new.
+   *
    * **The weight follows the screen's mode, never the pointer.** Nothing that changes the mode is
    * Download itself: rows open from their own header and close on Save or on the escape inside
-   * them, so the fill never leaves a button under a press. And the step is to `secondary` rather
-   * than `quiet` — the same box, the same padding, radius and type, one hairline instead of the
-   * fill (`controls.test.ts`, *differs from Continue only in fill*). Download does not move,
-   * resize or leave; what the eye sees is the fill travelling to the open row.
+   * them, and the confirmation arrives with a file from the OS picker and leaves on one of its own
+   * three buttons — so the fill never leaves a button under a press. And the step is to
+   * `secondary` rather than `quiet` — the same box, the same padding, radius and type, one
+   * hairline instead of the fill (`controls.test.ts`, *differs from Continue only in fill*).
+   * Download does not move, resize or leave; what the eye sees is the fill travelling.
    *
    * **The screen is what is on the glass.** On a phone the open drawer is an opaque
-   * `fixed inset-0` surface with the list behind it (#186), so an open row is not on the screen
-   * at all — and the drawer keeps the fill, because taking it away there is exactly the defect
-   * #186 was raised to fix. jsdom has no `matchMedia`, which the drawer reads as the phone, so
-   * that is the default here and the laptop is stubbed in where a test wants the other size.
+   * `fixed inset-0` surface with the list behind it (#186), so an open row — *and the menu panel
+   * holding the confirmation* — is not on the screen at all, and the drawer keeps the fill,
+   * because taking it away there is exactly the defect #186 was raised to fix. jsdom has no
+   * `matchMedia`, which the drawer reads as the phone, so that is the default here and the laptop
+   * is stubbed in where a test wants the other size.
    *
-   * **The appearance ritual cannot see this change, so these tests are the only standing record
-   * of it.** `pnpm shots` opens every review-list row (#209), but a row shot is an *element* shot
-   * of the row alone — the bar with Download in it is outside the frame — and `51-list-rows` is
-   * taken with every row closed. The before-and-after for this ticket came out of a patched copy
-   * of the script, taken once and thrown away. Worth knowing before reading a byte-identical pair
-   * as "the change did nothing", which is exactly the misreading #208 was raised to stop.
+   * **The ritual can photograph one of these four and not the others.**
+   * `63-menu-replace-confirm` (#209) is a *viewport* shot taken from the top of the list with the
+   * page put away, so the bar and its Download are in the frame behind the panel — the
+   * confirmation case moves a real picture. The row cases still move none: `pnpm shots` opens
+   * every row, but a row shot is an *element* shot of the row alone, so the bar is outside the
+   * frame, and `51-list-rows` is taken with every row closed. #190's before-and-after came out of
+   * a patched copy of the script, taken once and thrown away. Worth knowing before reading a
+   * byte-identical pair as "the change did nothing", which is exactly the misreading #208 was
+   * raised to stop.
    */
   describe("one filled button per screen (design change 3)", () => {
     /**
@@ -597,6 +628,33 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
       openRow(/^Opening hours/);
       expect(filledLabels(onGlass())).toEqual(["Save"]);
       roomy.restore();
+    });
+
+    it("hands the fill to the errand while §7.8's confirmation is up (#228)", () => {
+      editing(POPULATED, { onDownload: () => {}, onImport: () => {}, importConfirm: confirmation });
+      putThePageAway();
+
+      // One filled object, and it is the errand the owner arrived on (#200) — not two, a couple
+      // of centimetres apart in the same bar. **Identified, never counted**: a screen whose one
+      // fill has wandered onto Menu or onto the escape passes any count and fails this.
+      expect(filledLabels(onGlass())).toEqual(["Open the file"]);
+
+      // Stepped down, not stepped out — as for an open row: still there, still pressable, still a
+      // hairline outline rather than the footnote `quiet` would make of it (#189).
+      const download = screen.getByRole("button", { name: "Download" });
+      expect(download).toHaveProperty("disabled", false);
+      expect(download.className).toContain(WEIGHT.secondary);
+    });
+
+    it("keeps it on Download where the page covers the confirmation as well (#186)", () => {
+      editing(POPULATED, { onDownload: () => {}, onImport: () => {}, importConfirm: confirmation });
+
+      // No press needed: on a phone the list lands page-first, so the drawer is already the
+      // screen and the menu panel — confirmation, filled *Open the file* and all — is underneath
+      // it. `covered` outranks the confirmation for the same reason it outranks an open row, and
+      // it has to: a drawer whose only control was an outline is B-48 all over again.
+      expect(onGlass(), "the drawer should be the screen here").toBe(drawerRoot());
+      expect(filledLabels(onGlass())).toEqual(["Download"]);
     });
   });
 
