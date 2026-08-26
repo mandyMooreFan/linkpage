@@ -13,8 +13,11 @@ import {
 import { WEIGHT } from "./Button.js";
 import { CHECKBOX_CLASS } from "./Checkbox.js";
 import { LADDER } from "./ladder.js";
+import { PANEL_CLASS, PANEL_EDGE } from "./Panel.js";
 import { HEADING, TYPE } from "./type.js";
-import { MENU_PANEL } from "../list/List.js";
+import { SHEET_SURFACE } from "../download/DownloadSheet.js";
+import { REORDER_CLASS } from "../list/LinkButtons.js";
+import { MENU_PANEL, MENU_SURFACE } from "../list/List.js";
 import { ROW_BUTTON, ROW_OPEN, ROW_PADDING, ROW_STACK_PADDING } from "./row.js";
 import { BRAND_SWATCHES } from "../flow/index.js";
 
@@ -206,8 +209,18 @@ describe("the one text input", () => {
    *
    * The finding named "every input" and listed six sites; they all come through this file now, so
    * one string closes it — but a seventh could be hand-written tomorrow and would look entirely
-   * ordinary in a diff. The two reorder arrows are the deliberate exception and are named as
-   * such: an arrow glyph sized to be pressable is not a level of type hierarchy.
+   * ordinary in a diff. The reorder arrows are the deliberate exception and are named as such: an
+   * arrow glyph sized to be pressable is not a level of type hierarchy.
+   *
+   * **The exception is the arrows' recipe, not a count of two** — amended by #199, which found the
+   * sharper form the same day. This asked for *exactly two* `text-lg` in `LinkButtons.tsx`,
+   * meaning the two hand-copied class strings; #199 wrote that recipe once, because it is on the
+   * screen twice and the pair must not drift, and the count went red for a de-duplication that
+   * changed no pixel. What the rule is really saying is that 18px in that file **belongs to the
+   * arrows**: it is written in `REORDER_CLASS`, nowhere else in the file, and `REORDER_CLASS` is
+   * what both buttons wear. That survives the recipe being written once *and* still catches a
+   * seventh control reaching for the step — which a count does not, since two hand-written
+   * `text-lg` on something that is not an arrow would have satisfied it exactly.
    */
   it("leaves 18px on nothing that holds type", () => {
     const offenders = everySource()
@@ -215,10 +228,18 @@ describe("the one text input", () => {
       .filter(([, text]) => /\btext-lg\b/.test(text))
       .map(([path]) => path);
     expect(offenders, "the value's size comes from the scale now").toEqual([]);
+
+    expect(REORDER_CLASS, "the arrows are where 18px survives").toMatch(/\btext-lg\b/);
     const arrows = everySource().find(([path]) => path.endsWith("list/LinkButtons.tsx"))?.[1] ?? "";
+    expect(arrows, "LinkButtons.tsx was not read").not.toBe("");
+    const recipe = /export const REORDER_CLASS =[\s\S]*?;/.exec(arrows)?.[0];
+    expect(recipe, "the arrows' recipe must still be written down").toBeDefined();
+    expect(arrows.replace(recipe ?? "", ""), "nothing else in that file holds 18px").not.toMatch(
+      /\btext-lg\b/,
+    );
     expect(
-      [...arrows.matchAll(/\btext-lg\b/g)],
-      "the two arrow glyphs, and nothing else in that file",
+      [...arrows.matchAll(/className=\{REORDER_CLASS\}/g)],
+      "and both arrows wear it, so the pair cannot drift",
     ).toHaveLength(2);
   });
 
@@ -953,6 +974,264 @@ describe("the menu gives its buttons room (B-53, B-67)", () => {
       .filter(([, text]) => text.includes(MENU_PANEL.className))
       .map(([path]) => path);
     expect(offenders).toEqual([]);
+  });
+});
+
+/**
+ * The stray sweep. `SPEC.md` §7.4, §6, §1; design change 12 (#199), findings B-12, B-22, B-27,
+ * B-37, B-38, B-39, B-40, B-45, B-47, B-66, B-69.
+ *
+ * Eleven findings, none of them individually worth a ticket, which is exactly why they were still
+ * there: a scrim in a colour that belongs to no ramp, the one shadow in a design whose stylesheet
+ * says nothing is elevated, two overlays 8× apart on radius, a tap constant restated as a magic
+ * number, four bracket values nobody had explained, a row whose padding equalled the gap inside
+ * it, a label wrapping away from the buttons it labels, an off-ladder margin built by stacking two
+ * others, and a component with a rule in it and **zero call sites**.
+ *
+ * **What these guard is a floor, not a look.** Each of these is one plausible-looking class away
+ * from coming back — `bg-black/40` reads as a scrim to anyone, `shadow-lg` reads as a dropdown,
+ * `rounded-2xl` reads as a sheet — so the durable half of this ticket is a rule that names the
+ * thing rather than counting how many of it there are. #190's lesson: a test that asserts *how
+ * many* solid fills exist stays green when the one fill wanders onto the wrong element. So every
+ * rule below either names the site (`SHEET_SURFACE`, `MENU_SURFACE`, `REORDER_CLASS`) or lists
+ * the offenders by path, and the bracket rule asserts the whole **set** of arbitrary values in the
+ * builder against a written one, so a new one arrives in the failure message by name.
+ */
+describe("the stray sweep (design change 12)", () => {
+  /**
+   * A class list's tokens, with any variant prefixes removed — `wide:`, and the awkward ones:
+   * `data-[open=true]:`, `wide:group-data-[open=true]:`, `[&_code]:`.
+   *
+   * A variant ends at a `:` written **outside** brackets, which is why this counts depth rather
+   * than reaching for a pattern. Inside brackets a colon is part of the value (`[&:not([hidden])]`,
+   * `[overflow-wrap:anywhere]`) and splitting on it would invent utilities that are not there.
+   * What survives is the utility itself, which is what B-39 is about: an arbitrary *variant* is a
+   * selector with no utility equivalent, an arbitrary *value* is a number nobody wrote down.
+   */
+  const utilities = (list: string): string[] =>
+    list
+      .split(/\s+/)
+      .filter((token) => token !== "")
+      .map((token) => {
+        let depth = 0;
+        let start = 0;
+        for (const [at, ch] of [...token].entries()) {
+          if (ch === "[") depth += 1;
+          else if (ch === "]") depth -= 1;
+          else if (ch === ":" && depth === 0) start = at + 1;
+        }
+        return token.slice(start);
+      });
+
+  /** Every utility written anywhere in the builder, with the file that writes it. */
+  const everyUtility = (): [string, string][] =>
+    everySource().flatMap(([path, text]) =>
+      classLists(text).flatMap((list) => utilities(list).map((u): [string, string] => [path, u])),
+    );
+
+  describe("the scrim, which was the one colour outside the ramp (B-27, B-69)", () => {
+    it("veils the list in the tool's own ink", () => {
+      // Named on the element rather than counted: the sheet has exactly one full-bleed wash and
+      // this is it. `bg-ink/40` and not `bg-ink` — a 40% wash is a scrim, not §4's one fill,
+      // which is why *one solid fill* above excludes the slashed form on purpose.
+      const sheet = sources["../download/DownloadSheet.tsx"] ?? "";
+      expect(sheet, "reading the real component, not a missing glob key").toContain("data-scrim");
+      const scrim = /<div className="([^"]*)" data-scrim(?=[\s>/])/.exec(sheet);
+      expect(scrim?.[1], "the sheet must still draw a scrim").toBeDefined();
+      expect(scrim?.[1]).toContain("bg-ink/40");
+    });
+
+    it("leaves no colour in the builder that is not a paper token", () => {
+      // `theme.css` declares six colours plus the three the progress bar and the notice spend,
+      // and pure black is not among them: `--color-ink` is a warm `#1f1b16`. The finding is not
+      // pedantry — B-69 read the temperature break off a real screenshot, because the veil is
+      // always immediately beside an unveiled warm surface.
+      const offenders = everyUtility()
+        .filter(([, u]) =>
+          /^(?:bg|text|border|divide|outline|accent|ring|from|via|to)-(?:black|white)(?:\/|$)/.test(
+            u,
+          ),
+        )
+        .map(([path, u]) => `${path}: ${u}`);
+      expect(offenders).toEqual([]);
+    });
+  });
+
+  describe("nothing is elevated (B-37)", () => {
+    it("spends no shadow anywhere, which is what `theme.css` already says out loud", () => {
+      const offenders = everyUtility()
+        .filter(([, u]) => /^shadow(?:-|$)/.test(u))
+        .map(([path, u]) => `${path}: ${u}`);
+      expect(offenders, "paper has no elevation ladder to use sparingly").toEqual([]);
+    });
+
+    it("separates the menu panel the three ways §1 allows instead", () => {
+      // The site that had the shadow, named — so this cannot go green by the panel disappearing.
+      expect(MENU_SURFACE, "a background shift off the ground").toContain("bg-surface");
+      expect(MENU_SURFACE, "a hairline").toContain("border border-rule");
+      expect(MENU_SURFACE, "and a stacking order").toContain("z-10");
+    });
+  });
+
+  describe("one radius across the two overlays (B-38)", () => {
+    /** The radius *steps* a class list names, with the side prefix (`-t`, `-b`, `-s`) removed. */
+    const radiusSteps = (classes: string): string[] => [
+      ...new Set(
+        [
+          ...classes.matchAll(
+            /rounded(?:-(?:t|b|s|e|tl|tr|bl|br|ss|se|es|ee))?-([a-z0-9]+)(?=\s|$)/g,
+          ),
+        ].map((match) => match[1] ?? ""),
+      ),
+    ];
+
+    it("names the same step on both of them", () => {
+      // Identifying, not counting: each overlay has to *say* `sm`. A rule that only checked the
+      // two agreed would go green if both drifted to `rounded-2xl` together.
+      expect(radiusSteps(SHEET_SURFACE), "the download sheet").toEqual(["sm"]);
+      expect(radiusSteps(MENU_SURFACE), "the list's menu panel").toEqual(["sm"]);
+    });
+
+    it("is the same step the rest of the tool already used", () => {
+      // `rounded-2xl` was 1rem — 8× the radius of everything it sat above, and the only step in
+      // the builder that was neither `rounded-sm` nor a circle. So the whole tool is asserted,
+      // rather than the two overlays in isolation: `sm` for a box, `full` for a circle, nothing
+      // else, and a third step arrives here by name with the file that introduced it.
+      const steps = [
+        ...new Set(everySource().flatMap(([, text]) => classLists(text).flatMap(radiusSteps))),
+      ].sort();
+      expect(steps).toEqual(["full", "sm"]);
+    });
+  });
+
+  describe("the tap floor, held once on both axes (B-22)", () => {
+    /** One `@utility` block's declarations, by property. */
+    const utilityBlock = (name: string): Record<string, string> => {
+      const block = new RegExp(`@utility ${name} \\{([^{}]*)\\}`).exec(theme)?.[1] ?? "";
+      return Object.fromEntries(
+        [...block.matchAll(/([a-z-]+):\s*([^;]+);/g)].map((m) => [m[1] ?? "", (m[2] ?? "").trim()]),
+      );
+    };
+
+    it("gives `tap-square` the same number `tap` holds, rather than a second copy of it", () => {
+      const tap = utilityBlock("tap");
+      const square = utilityBlock("tap-square");
+      expect(tap["min-height"], "reading the real stylesheet, not an empty string").toBe("2.75rem");
+      expect(square["min-height"]).toBe(tap["min-height"]);
+      expect(square["min-width"]).toBe(tap["min-height"]);
+      // Both axes and nothing else — a width floor is the whole of what this adds.
+      expect(Object.keys(square).sort()).toEqual(["min-height", "min-width"]);
+    });
+
+    it("leaves 2.75rem written nowhere but the stylesheet", () => {
+      // `min-w-11` *is* 2.75rem, restated beside the utility that exists to hold it once.
+      const offenders = everyUtility()
+        .filter(([, u]) => /^min-w-11$/.test(u))
+        .map(([path]) => path);
+      expect(offenders).toEqual([]);
+      const spelled = everySource()
+        .filter(([, text]) => text.includes("2.75rem"))
+        .map(([path]) => path);
+      expect(spelled, "the number lives in `theme.css` and in prose about it").toEqual([]);
+    });
+
+    it("is what the reorder arrows carry, since they are the control that needed it", () => {
+      expect(REORDER_CLASS).toContain("tap-square");
+      // The one-axis floor would be a silent regression here: the box would still be 44px tall.
+      expect(REORDER_CLASS).not.toMatch(/(?:^|\s)tap(?:\s|$)/);
+    });
+  });
+
+  describe("no arbitrary value without a written reason (B-39)", () => {
+    /**
+     * **The whole set, asserted against a written one.** Counting them would go green the day one
+     * is swapped for another; naming them means a new arbitrary value arrives in the failure
+     * message with its own spelling, and whoever added it has to come here and say why.
+     *
+     * Arbitrary **variants** are deliberately out of scope, which is B-39's own line: `data-[…]:`
+     * and `[&_code]:` are selectors with no utility equivalent, not numbers nobody wrote down.
+     * `utilities()` strips them before this rule sees a token.
+     */
+    const REASONED = [
+      // The drawer beside the question has no height to inherit and states one. `Preview.tsx`.
+      "h-[min(80dvh,46rem)]",
+      // The sheet bottom-anchored, leaving a strip of veiled list. `DownloadSheet.tsx`.
+      "max-h-[92dvh]",
+      // The same sheet centred inside `wide:p-8`, which spends 64px first. `DownloadSheet.tsx`.
+      "max-h-[88dvh]",
+      // The menu panel's cap, clamped to a viewport narrower than we photograph. `List.tsx`.
+      "max-w-[min(20rem,calc(100vw-2.5rem))]",
+      // The panel 4px under the button that opens it — off the form ladder on purpose. `List.tsx`.
+      "top-[calc(100%+0.25rem)]",
+      // Plumbing: naming the property to transition has no utility equivalent. `ProgressBar.tsx`.
+      "transition-[width]",
+    ].sort();
+
+    it("holds exactly the six the builder has written a reason for", () => {
+      const found = [
+        ...new Set(
+          everyUtility()
+            .filter(([, u]) => u.includes("-["))
+            .map(([, u]) => u),
+        ),
+      ].sort();
+      expect(found).toEqual(REASONED);
+    });
+
+    it("has stopped hand-writing the two measures that had tokens available", () => {
+      // `max-w-[34rem]` was 544px beside a list already set at `max-w-lg`'s 512 — two hands
+      // agreeing by hand, which is the drift `--breakpoint-wide` exists to name.
+      expect(SHEET_SURFACE, "the sheet takes the list's own measure").toContain("max-w-lg");
+      // And 27.5rem is a token now, so the frame's width is written once.
+      expect(theme).toMatch(/--container-page:\s*27\.5rem;/);
+      const spelled = everySource()
+        .filter(([, text]) => text.includes("27.5rem"))
+        .map(([path]) => path);
+      expect(spelled).toEqual([]);
+    });
+  });
+
+  describe("the aside surface, which had four copies and no callers (B-47)", () => {
+    it("is written in the one component and nowhere else", () => {
+      // `border-s-2` is the distinguishing half of the recipe: a rule on the leading edge is what
+      // makes this an aside rather than a card, and nothing else in the tool draws one.
+      const offenders = others("./Panel.tsx")
+        .filter(([, text]) => text.includes("border-s-2"))
+        .map(([path]) => path);
+      expect(offenders).toEqual([]);
+    });
+
+    it("is actually called, which is the half that was missing", () => {
+      // The defect was not four copies; it was four copies *and* a component with no call sites,
+      // so the rule it held reached nothing — #183's finding, second instance. A count is the
+      // right instrument here precisely because "reaches something" is what is being asserted.
+      const callers = everySource()
+        .filter(([path]) => !path.endsWith("./Panel.tsx") && !path.endsWith("/Panel.tsx"))
+        .filter(([, text]) => /<Panel\b/.test(text))
+        .map(([path]) => path);
+      expect(
+        callers.length,
+        "the logo step, the preset step and the list menu's two",
+      ).toBeGreaterThanOrEqual(3);
+    });
+
+    it("keeps the notice colour on the edge, where §7.9's meaning lives", () => {
+      expect(PANEL_CLASS).toContain("border-s-2");
+      expect(PANEL_EDGE.notice).toBe("border-notice");
+      expect(PANEL_EDGE.quiet).toBe("border-rule");
+      expect(PANEL_CLASS, "an aside, not a card").not.toMatch(/\bbg-|\brounded|\bshadow/);
+    });
+  });
+
+  describe("the off-ladder margin (B-45)", () => {
+    it("has no `mt-5` left to stack a second margin on", () => {
+      // 28px, built by putting `mt-5` on a wrapper whose first child was `mt-2`, in a sheet whose
+      // every other step is 8, 12, 16 or 32. The step is not on any ladder in the tool.
+      const offenders = everyUtility()
+        .filter(([, u]) => u === "mt-5")
+        .map(([path]) => path);
+      expect(offenders).toEqual([]);
+    });
   });
 });
 

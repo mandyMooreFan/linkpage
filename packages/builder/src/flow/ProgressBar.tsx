@@ -139,6 +139,15 @@ export function ProgressBar({
           />
         </span>
       </button>
+      {/*
+       * **The rows line up with the header they drop from** (B-40). They were `px-1` under a
+       * header button at `p-0`, so the list was inset 4px from the words it opens under — §6 asks
+       * that alignment be consistent per context, and a drop-down that does not share its
+       * trigger's left edge reads as a second, misaligned column. `px-0` rather than moving the
+       * header, because the header's own edge is the bar's edge and the bar is the thing the
+       * whole screen is aligned to. `py-2` is untouched: it is what gives each row its half of
+       * the `tap` floor.
+       */}
       <ul
         className="m-0 mt-3 list-none border-t border-rule p-0"
         id={listId}
@@ -149,7 +158,7 @@ export function ProgressBar({
           <li key={unit.label} className="border-b border-rule">
             <button
               type="button"
-              className="tap flex w-full items-baseline justify-between bg-transparent px-1 py-2 text-left"
+              className="tap flex w-full items-baseline justify-between bg-transparent px-0 py-2 text-left"
               aria-current={unit === current ? "step" : undefined}
               onClick={() => {
                 setOpen(false);
@@ -167,7 +176,7 @@ export function ProgressBar({
           <li className="border-b border-rule">
             <button
               type="button"
-              className="tap block w-full bg-transparent px-1 py-2 text-left text-ink-quiet"
+              className="tap block w-full bg-transparent px-0 py-2 text-left text-ink-quiet"
               onClick={onLeave}
             >
               Done for now

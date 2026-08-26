@@ -27,6 +27,7 @@ import { LinkButtons } from "./LinkButtons.js";
 import { listRows, type Row, type RowId } from "./rows.js";
 import { StyleStep } from "./StyleStep.js";
 import { Button } from "../ui/Button.js";
+import { Panel } from "../ui/Panel.js";
 import { ROW_BUTTON, ROW_LIST, ROW_OPEN } from "../ui/row.js";
 import { TextInput } from "../ui/TextInput.js";
 
@@ -708,6 +709,28 @@ export const MENU_PANEL = {
 } as const;
 
 /**
+ * The menu panel's own surface — the tool's second overlay, the first being the download sheet.
+ *
+ * **No `shadow-lg`** (B-37). It was the only elevation anywhere in the builder, on a design whose
+ * own stylesheet says in as many words that *nothing is elevated and nothing is carded* (§7.4).
+ * One object contradicting the stated language is worse than none doing it, because it reads as
+ * the language being optional. Nothing was added to replace it: the panel already separates
+ * itself from the list three ways — `bg-surface` against the ground, which is §1's sanctioned
+ * background shift; `border border-rule`; and `z-10`. §1's remedy if that is ever not enough is
+ * more space, not a shadow.
+ *
+ * **`rounded-sm`, which the download sheet now shares** (B-38). The two overlays used to be 8×
+ * apart; this is the step that was already right, and the sheet moved to it.
+ *
+ * **`top-[calc(100%+0.25rem)]`** is 4px below the Menu button's own bottom edge — the one bracket
+ * value here, written down because it is a *gap between a trigger and the thing it opens* and
+ * therefore not on `ladder.ts`'s form ladder at all. It is deliberately smaller than any rung on
+ * that ladder: the panel is attached to the button, and any of the form's own gaps (8px and up)
+ * would read as the panel floating free of what opened it.
+ */
+export const MENU_SURFACE = `absolute top-[calc(100%+0.25rem)] left-0 z-10 ${MENU_PANEL.className} rounded-sm border border-rule bg-surface p-2`;
+
+/**
  * The list's menu, which is where Import lives (§7.8).
  *
  * Not the Download sheet: **the sheet is where things leave; import is the one action that can
@@ -762,12 +785,7 @@ function Menu({
       >
         Menu
       </Button>
-      <div
-        id={menuId}
-        className={`absolute top-[calc(100%+0.25rem)] left-0 z-10 ${MENU_PANEL.className} rounded-sm border border-rule bg-surface p-2 shadow-lg`}
-        data-menu-panel
-        hidden={!open}
-      >
+      <div id={menuId} className={MENU_SURFACE} data-menu-panel hidden={!open}>
         {/* Unavailable rather than inert until #36 is behind it — as with Download above. */}
         <button
           type="button"
@@ -780,18 +798,24 @@ function Menu({
         {/*
          * §7.8's confirmation and §7.9's refusal are the same place — the menu's own surface,
          * with the project intact behind it — and they cannot both be showing: a file is either
-         * refused outright or held for the confirmation. `<div>` and not `<p>`, because both
-         * carry flow content: a `<details>` in one and the fork's three controls in the other.
+         * refused outright or held for the confirmation. `Panel` renders a `<div>` and not a
+         * `<p>`, which is what both of these need: they carry flow content — a `<details>` in one
+         * and the fork's three controls in the other.
+         *
+         * **Both were hand-rolled copies of `Panel`'s own recipe** until #199, which is how a
+         * component with a rule in it ended up with zero call sites in the whole builder (B-47,
+         * and #191 named these two). The `mt-2` stays: the panel is `p-2` block flow with no gap
+         * of its own, so there is nothing here for a margin to stack on.
          */}
         {confirm !== undefined && (
-          <div className="mt-2 border-s-2 border-notice ps-3 font-sans" data-notice>
+          <Panel tone="notice" className="mt-2" data-notice>
             {confirm}
-          </div>
+          </Panel>
         )}
         {error !== undefined && (
-          <div className="mt-2 border-s-2 border-notice ps-3 font-sans" data-notice>
+          <Panel tone="notice" className="mt-2" data-notice>
             {error}
-          </div>
+          </Panel>
         )}
       </div>
     </div>

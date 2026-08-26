@@ -245,6 +245,88 @@ describe("the segment carries the focus ring the radio cannot (#188)", () => {
   });
 });
 
+/**
+ * The two strays this screen was carrying. `SPEC.md` §7.4, §1, §6; design change 12 (#199),
+ * findings B-12 and B-66.
+ *
+ * **Both are asserted on the real question rather than on a class string**, which is #187's
+ * lesson and #213's subject: a fixture that mounts its own `<li>` and its own row of buttons
+ * proves that the fixture is right. B-66 in particular is a fact about *what contains what* — the
+ * label used to be a sibling of the button it does not label — and nothing but the real tree can
+ * say whether that is still true.
+ *
+ * What no test here can see is the wrap itself: jsdom lays nothing out, so *how these land on a
+ * 390px line* is a question for the review shots, and it is the question that chose this fix over
+ * the other one B-66 offered. What a test **can** hold is the structure that decides the answer —
+ * one group holding the label and exactly its own two buttons, with the label taking a full line
+ * so they always begin the next one.
+ */
+describe("the strays this screen was carrying (#199)", () => {
+  it("gives a day's row four times the padding of the gap inside it (B-12)", () => {
+    open();
+    const row = state("Monday", "Open").closest("li");
+    // 8px of padding around an 8px gap is a 1× ratio where §1 asks for ≥4×, and with seven of
+    // these behind hairlines the boundary between two days read as no stronger than the one
+    // inside a day. `py-4` against `gap-2` is 16 against 8 on each edge — 4:1 across the pair.
+    expect(row?.className).toContain("py-4");
+    expect(row?.className, "the gap the padding is measured against").toContain("gap-2");
+    expect(row?.className, "and no second padding fighting it").not.toMatch(/\bpy-2\b/);
+  });
+
+  describe("the copy label and the buttons it labels (B-66)", () => {
+    /** A day with times in it, which is the only state the copy controls exist in. */
+    const filledMonday = (): void => {
+      open();
+      setState("Monday", "Open");
+      typeTimes("Monday", "09:00", "17:00");
+    };
+
+    it("keeps the label and its two buttons in one group", () => {
+      filledMonday();
+      const group = screen.getByText("Copy these times").parentElement;
+      const named = within(group as HTMLElement)
+        .getAllByRole("button")
+        .map((button) => button.textContent);
+      expect(named, "the two the label introduces, and only those").toEqual([
+        "to weekdays",
+        "to every day",
+      ]);
+    });
+
+    it("leaves the button it does not label outside that group", () => {
+      filledMonday();
+      const group = screen.getByText("Copy these times").parentElement as HTMLElement;
+      // The defect, in one line: on a phone the wrap put *Copy these times* at the end of a line
+      // whose other occupant was *Add another time*, with both of its real buttons below it.
+      expect(within(group).queryByRole("button", { name: "Add another time" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Add another time" })).toBeTruthy();
+    });
+
+    it("puts the label above them rather than beside them", () => {
+      filledMonday();
+      // `w-full` inside a wrapping group is what makes the sentence a heading: it takes the line
+      // to itself, so the two buttons always begin the next one. Held on one line instead, the
+      // phone column leaves the label ~60px and it squeezes to *Copy / these / times* — that
+      // version was built and photographed first, and this is the one the shots chose.
+      expect(screen.getByText("Copy these times").className).toContain("w-full");
+      const group = screen.getByText("Copy these times").parentElement;
+      expect(group?.className).toContain("flex-wrap");
+    });
+
+    it("sits on the group's own baseline, not the weight's (B-40)", () => {
+      filledMonday();
+      // `WEIGHT.secondary` carries `self-start`, which overrides the group's `items-center`.
+      // Corrected at the call site: #228 owns `Button` next and a weight is not this ticket's.
+      for (const name of ["to weekdays", "to every day"]) {
+        expect(screen.getByRole("button", { name }).className, name).toContain("self-center");
+      }
+      expect(screen.getByText("Copy these times").parentElement?.className).toContain(
+        "items-center",
+      );
+    });
+  });
+});
+
 describe("what this screen deliberately does not do", () => {
   it("says nothing about hours past midnight", () => {
     // `20:00–02:00` is enterable and renders literally, so a control would only add a name for

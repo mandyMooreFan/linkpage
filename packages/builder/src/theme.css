@@ -101,6 +101,16 @@
    */
   --breakpoint-wide: 60rem;
 
+  /**
+   * The width of the page frame in the preview, promoted out of a hand-written bracket value
+   * (B-39). It is a *measure*, so it belongs in the same namespace the tool's other measure comes
+   * from: the flow and the list are `max-w-lg`, which is `--container-lg` at 32rem, and the frame
+   * standing inside that column at phone proportions is 27.5rem. Written here for the same reason
+   * `--breakpoint-wide` is — the number used to be spelled out in one place and referred to in
+   * prose in another, and there is only one of it.
+   */
+  --container-page: 27.5rem;
+
   /* Paper sets its questions in a serif and its controls in the system sans. */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-serif:
@@ -114,6 +124,27 @@
  */
 @utility tap {
   min-height: 2.75rem;
+}
+
+/**
+ * The same floor on both axes, for a control whose content is narrower than the floor is tall.
+ *
+ * `tap` is a `min-height`, which is all a full-width or text-filled control needs — its width
+ * comes from its content or its container. A **glyph** button has neither: the reorder arrows on
+ * a link button (§7.5) hold one character, so the box would be 44px tall and about 30px wide and
+ * miss §7.6's target on the axis nobody wrote down. They said `tap min-w-11` (B-22), which is
+ * 2.75rem restated as a magic number beside the utility that exists to hold that number once —
+ * the drift `theme.css` warns about wherever a value is spelled twice.
+ *
+ * **A companion rather than a `square` prop on `tap`.** Most controls in the tool must *not* take
+ * a width floor: `Checkbox`'s box is 1.25rem wide by design (a 2.75rem-tall tick box is a
+ * stretched rectangle, see `Checkbox.tsx`), and the hours segments are sized by their words. So
+ * the two-axis version is the one you have to ask for, and `controls.test.ts` holds the pair to
+ * the same number.
+ */
+@utility tap-square {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
 }
 
 /**

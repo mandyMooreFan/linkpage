@@ -76,6 +76,36 @@ function focusStops(surface: HTMLElement): HTMLElement[] {
   return [...surface.querySelectorAll<HTMLElement>(FOCUS_STOPS)];
 }
 
+/**
+ * The sheet's own surface — one of the tool's two overlays, the other being the list's menu
+ * panel. Exported so `controls.test.ts` can hold the two of them to one radius and to one
+ * written measure, rather than re-spelling either.
+ *
+ * **`max-w-lg`, which is the list's own measure** (B-39). This was `max-w-[34rem]`, 544px — a
+ * hand-written near-twin of the 512px the flow and the list are already set at, so the sheet
+ * that opens *over* the list was 32px wider than it for no stated reason. It is the same drift
+ * `theme.css` names when it made `--breakpoint-wide` one token: two hands agreeing by hand.
+ *
+ * **`rounded-t-sm` / `wide:rounded-sm`, which is every other radius in the builder** (B-38). It
+ * was `rounded-t-2xl` / `wide:rounded-2xl` — 16px, **8× everything it sits above**, and the only
+ * radius step in the tool that is neither `rounded-sm` nor a circle. §6 asks one radius per
+ * component class and calls mixed siblings a failure; two overlays that disagree by a factor of
+ * eight are the loudest possible version of that. The step kept is the shared one, because the
+ * alternative was to move one object and leave nine.
+ *
+ * **The two `dvh` numbers are different on purpose, and this is the reason they were missing.**
+ * Narrow, the sheet is anchored to the bottom edge with no padding around it, so `92dvh` is what
+ * leaves a strip of veiled list visible above it — the strip is what says *this is over your
+ * page* rather than *this is your page*, and it is the same strip B-69 read the scrim's
+ * temperature off. Wide, the wrapper adds `wide:p-8` all round, which spends 64px of the
+ * viewport before the sheet is measured at all, so the sheet is given `88dvh` and the padding
+ * makes up the difference. Collapsing them to one value was the other option B-39 offered and it
+ * would have to be the smaller one, costing the narrow layout 4dvh of the sheet it is short of.
+ */
+export const SHEET_SURFACE =
+  "relative max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-sm bg-ground p-5 text-ink " +
+  "wide:max-h-[88dvh] wide:rounded-sm wide:p-8";
+
 export interface DownloadSheetProps {
   /** The project as the builder holds it. The page is built from it on the press. */
   readonly draft: Draft;
@@ -195,11 +225,20 @@ export function DownloadSheet({
 
   return (
     <div className="fixed inset-0 z-30 flex items-end justify-center font-sans wide:items-center wide:p-8">
-      {/* Tapping beside the sheet leaves it. The Close button is the keyboard's route out. */}
-      <div className="absolute inset-0 bg-black/40" data-scrim onClick={onClose} />
+      {/*
+       * Tapping beside the sheet leaves it. The Close button is the keyboard's route out.
+       *
+       * **`bg-ink/40`, not `bg-black/40`** (B-27, B-69). Pure black was the one colour in the
+       * whole tool that is not a `--color-*` token, and it did not merely fail a rule on paper:
+       * the veil always appears immediately beside an unveiled warm surface — the strip of list
+       * above the sheet — so a neutral-grey scrim against `#faf7f2` breaks temperature at the one
+       * seam where the two are touching. `--color-ink` is the warm `#1f1b16` the rest of the tool
+       * is drawn in, so the veiled strip now reads as the same paper, dimmed.
+       */}
+      <div className="absolute inset-0 bg-ink/40" data-scrim onClick={onClose} />
 
       <div
-        className="relative max-h-[92dvh] w-full max-w-[34rem] overflow-y-auto rounded-t-2xl bg-ground p-5 text-ink wide:max-h-[88dvh] wide:rounded-2xl wide:p-8"
+        className={SHEET_SURFACE}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
