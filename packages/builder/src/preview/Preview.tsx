@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { pageHtml } from "../page.js";
+import { TYPE } from "../ui/type.js";
 import type { Draft } from "../project/index.js";
 import { Button } from "../ui/Button.js";
 
@@ -158,7 +159,7 @@ export function Preview({ project, onList = false, action, onCover }: PreviewPro
          * row is one line, exactly as it was.
          */}
         {onList && open && (
-          <p className="m-0 mr-auto w-full text-sm text-ink-quiet wide:w-auto">
+          <p className={`m-0 mr-auto w-full ${TYPE.quietLine.className} wide:w-auto`}>
             Only you can see this. To share it, download the file and put it online.
           </p>
         )}

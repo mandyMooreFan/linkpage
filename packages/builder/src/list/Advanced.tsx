@@ -6,6 +6,7 @@ import { TextInput } from "../ui/TextInput.js";
 import { Checkbox } from "../ui/Checkbox.js";
 import { Field } from "../flow/questions/Question.js";
 import { LADDER } from "../ui/ladder.js";
+import { HEADING, TYPE } from "../ui/type.js";
 
 /**
  * The advanced tier, at the foot of _How it looks_. `SPEC.md` §3.4, §3.3, §7.4.
@@ -71,7 +72,7 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
         // a rung above the gap the fields inside them use, and the ladder stays monotonic.
         className={`${LADDER.betweenSections.className} flex flex-col ${LADDER.betweenSections.gapClassName}`}
       >
-        <p className="text-sm text-ink-quiet">
+        <p className={TYPE.quietLine.className}>
           The colours above are picked so they always read well together. Set your own here and that
           stops being true — the numbers at the bottom are how you check.
         </p>
@@ -112,7 +113,7 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
           ))}
         </ul>
 
-        <h3 className="m-0 font-serif text-base">What the numbers say</h3>
+        <h3 className={`m-0 ${HEADING.section.className}`}>What the numbers say</h3>
         {/*
          * **The one row spec these readings do not take** (B-43). They were the fourth spelling
          * of "a hairline-separated row" — `py-1` under a rule on every line, so dense that the
@@ -133,12 +134,12 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
          * gives the numbers above a scale; saying it *about* a particular reading would be the
          * verdict §3.4 rules out.
          */}
-        <p className="text-sm text-ink-quiet">
+        <p className={TYPE.quietLine.className}>
           Text is usually asked to reach 4.5:1, and larger text 3:1.
         </p>
 
         {brandSteppedBack && (
-          <p className="text-sm text-ink-quiet">
+          <p className={TYPE.quietLine.className}>
             Your colour is too close to the page background to fill a button, so the buttons use a
             stronger version of it. Your colour itself is unchanged.
           </p>

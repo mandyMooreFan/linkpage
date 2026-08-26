@@ -3,6 +3,7 @@ import { useEffect, useId, useState, type JSX } from "react";
 import { useJudged } from "../flow/questions/Question.js";
 import { displayTime, parseTime } from "./time.js";
 import { TextInput } from "./TextInput.js";
+import { TYPE } from "./type.js";
 
 /**
  * One time, typed rather than picked (`SPEC.md` §7.10).
@@ -99,7 +100,12 @@ export function TimeBox({
         onBlur={commit}
       />
       {message !== undefined && (
-        <span className="mt-1 block text-sm text-notice" id={messageId} data-message role="status">
+        <span
+          className={`mt-1 block ${TYPE.notice.className}`}
+          id={messageId}
+          data-message
+          role="status"
+        >
           {message}
         </span>
       )}

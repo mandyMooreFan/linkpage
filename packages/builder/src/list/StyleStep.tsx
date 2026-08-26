@@ -10,6 +10,7 @@ import { useId, useState, type JSX, type ReactNode } from "react";
 import { BRAND_SWATCHES } from "../flow/index.js";
 import { Field } from "../flow/questions/Question.js";
 import { LADDER } from "../ui/ladder.js";
+import { TYPE } from "../ui/type.js";
 import { hasContent } from "../flow/topics.js";
 import type { Draft } from "../project/index.js";
 import { Advanced } from "./Advanced.js";
@@ -180,7 +181,7 @@ function ColourControl({
        * the same hint string rendered 12px here against `Field`'s 4px (B-11). The container owns
        * the ladder, in one place, exactly as it does inside a field.
        */}
-      <p className="block text-sm text-ink-quiet">{hint}</p>
+      <p className={`block ${TYPE.quietLine.className}`}>{hint}</p>
 
       <ul className="m-0 flex list-none flex-row flex-wrap gap-3 p-0">
         {BRAND_SWATCHES.map((swatch) => (
@@ -204,7 +205,7 @@ function ColourControl({
       </ul>
 
       <label className="flex flex-col" htmlFor={groupId}>
-        <span className="mt-1 block text-sm text-ink-quiet">
+        <span className={`mt-1 block ${TYPE.quietLine.className}`}>
           Or type an exact colour, like #c2185b.
         </span>
         <TextInput

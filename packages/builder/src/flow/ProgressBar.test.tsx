@@ -8,6 +8,7 @@ import { Flow } from "./Flow.js";
 import { barUnits } from "./ProgressBar.js";
 import { planSteps, type FlowEntry } from "./plan.js";
 import { findPreset, PRESETS, type PresetId } from "./presets.js";
+import { TYPE } from "../ui/type.js";
 
 /**
  * The progress bar's arithmetic and its two promises. `SPEC.md` §7.2 as amended (#139, #146).
@@ -229,5 +230,61 @@ describe("the bar is the run's navigation (§7.2, #146)", () => {
       within(topicList() as HTMLElement).getByRole("button", { name: "Done for now" }),
     );
     expect(screen.queryByText("the review list")).not.toBeNull();
+  });
+});
+
+/**
+ * The bar names the topic you are on at one size (design change 11, finding B-31).
+ *
+ * The header and the drawer used to be 14px and 16px, so tapping the bar open showed the same
+ * words twice, two sizes apart, on one screen — while the `done` marker inside those 16px rows
+ * was itself 14px, so one row mixed both and its header twin mixed neither.
+ *
+ * **This mounts the real bar and reads the size each name actually inherits**, rather than
+ * checking that two class strings match. `controls.test.ts` holds the source rule — the bar may
+ * set a size exactly once, on itself — and this holds the consequence: the two places the same
+ * label appears resolve to the same step. A guard on the classes alone would go green if the
+ * drawer grew an ancestor with a size of its own, which is exactly how the defect arrived.
+ */
+describe("one size per role: the bar's own type (§2, B-31)", () => {
+  /** The step an element is set at, resolved the way the cascade resolves it: nearest ancestor. */
+  const stepOf = (node: Element | null): string | undefined => {
+    for (let at = node; at !== null; at = at.parentElement) {
+      const step = [...at.classList].find((name) => /^text-(xs|sm|base|lg|[2-9]?xl)$/.test(name));
+      if (step !== undefined) return step;
+    }
+    return undefined;
+  };
+
+  const named = (label: string, within: Element): Element | undefined =>
+    [...within.querySelectorAll("span")].find((span) => span.textContent === label);
+
+  it("sets the topic you are on at the same step in the header and in the drawer", () => {
+    harness();
+    choosePreset("food");
+    tapBar();
+
+    const header = named("Name", bar() as Element);
+    const drawer = named("Name", topicList() as Element);
+    expect(header, "the header does not name the current topic").toBeDefined();
+    expect(drawer, "the drawer does not name the current topic").toBeDefined();
+
+    expect(stepOf(header ?? null), "the header names it at no step at all").toBeDefined();
+    expect(stepOf(drawer ?? null)).toBe(stepOf(header ?? null));
+  });
+
+  it("sets the whole bar at that step, marker included", () => {
+    harness();
+    choosePreset("food");
+    walkTo("What's your colour?");
+    tapBar();
+
+    const step = stepOf(bar());
+    expect(step).toBe(TYPE.bar.className);
+
+    const inside = [...(bar() as Element).querySelectorAll("*")].filter((node) =>
+      [...node.classList].some((name) => /^text-(xs|sm|base|lg|[2-9]?xl)$/.test(name)),
+    );
+    expect(inside, "nothing inside the bar may set a second size").toEqual([]);
   });
 });

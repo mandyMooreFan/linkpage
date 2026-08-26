@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type JSX } from "react";
 import type { FileDownload } from "../download/index.js";
 import { Button } from "../ui/Button.js";
+import { TYPE } from "../ui/type.js";
 
 /**
  * The confirmation that turns a warning into a fork. `SPEC.md` §7.8.
@@ -125,7 +126,7 @@ export function ReplaceConfirm({
 
       {/* Names the file, because what the owner has to recognise later is a name in a folder. */}
       {saved && (
-        <p className="mt-2 text-sm text-ink-quiet" role="status">
+        <p className={`mt-2 ${TYPE.quietLine.className}`} role="status">
           Saved as <code>{outgoing.filename}</code>.
         </p>
       )}

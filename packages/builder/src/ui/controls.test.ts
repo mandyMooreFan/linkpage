@@ -13,6 +13,7 @@ import {
 import { WEIGHT } from "./Button.js";
 import { CHECKBOX_CLASS } from "./Checkbox.js";
 import { LADDER } from "./ladder.js";
+import { HEADING, TYPE } from "./type.js";
 import { MENU_PANEL } from "../list/List.js";
 import { ROW_BUTTON, ROW_OPEN, ROW_PADDING, ROW_STACK_PADDING } from "./row.js";
 import { BRAND_SWATCHES } from "../flow/index.js";
@@ -1079,5 +1080,210 @@ describe("one disabled vocabulary", () => {
     for (const backdrop of BACKDROPS) {
       expect(between("ink-quiet", backdrop), `on ${backdrop}`).toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+/**
+ * One size per role, and one recipe per heading level. `SPEC.md` §7.4, §2; design change 11
+ * (#198), findings B-30, B-31, B-32, B-33.
+ *
+ * **These guards say which size each role has, not how many sizes exist.** That distinction is
+ * #190's, learned one ticket earlier: a test that asserted the *number* of solid fills stayed
+ * green the day the one fill wandered onto the wrong element, because the count was still one.
+ * "One size per role" is exactly the rule where that bites — a screen that swaps its hint's size
+ * for its label's has the same number of sizes on it as before and reads wrongly. So every rule
+ * below names an element and asserts what *that* element is set at.
+ *
+ * The counting assertions that do appear are deliberately the other kind: each one exists to stop
+ * an identity rule passing by finding nothing, which is the failure mode of every guard that
+ * sweeps the sources for a shape.
+ */
+describe("one size per role (design change 11)", () => {
+  /** The recipe each HTML heading level takes. A level with no entry is a heading with no home. */
+  const HEADING_RECIPE: Readonly<Record<string, string>> = {
+    1: "HEADING.page",
+    2: "HEADING.screen",
+    3: "HEADING.section",
+  };
+
+  /** Arrow functions put a `>` in the props, exactly as they do in the escape's tags above. */
+  const tagsMatching = (text: string, pattern: RegExp): string[] =>
+    [...text.replaceAll("=>", "==").matchAll(pattern)].map(([tag]) => tag);
+
+  const headingTags = (): { path: string; level: string; tag: string }[] =>
+    everySource().flatMap(([path, text]) =>
+      tagsMatching(text, /<h([1-6])\b[^>]*>/g).map((tag) => ({ path, level: tag[2] ?? "", tag })),
+    );
+
+  /** Any size, leading or tracking utility written by hand rather than taken from a recipe. */
+  const OWN_TYPE = /\b(text-(xs|sm|base|lg|[2-9]?xl)|leading-[a-z]+|tracking-[a-z]+)\b/;
+
+  it("gives every heading in the builder the recipe for its level", () => {
+    const offenders = headingTags()
+      .filter(({ level, tag }) => {
+        const recipe = HEADING_RECIPE[level];
+        return recipe === undefined || !tag.includes(recipe);
+      })
+      .map(({ path, tag }) => `${path}: ${tag}`);
+    expect(
+      offenders,
+      "two `<h3>` recipes eight pixels apart is the defect this closes (B-32)",
+    ).toEqual([]);
+  });
+
+  it("finds a heading at all three levels, so the rule above cannot pass by finding none", () => {
+    const levels = new Set(headingTags().map(({ level }) => level));
+    expect([...levels].sort()).toEqual(["1", "2", "3"]);
+  });
+
+  it("lets no heading set a size, a leading or a tracking of its own beside the recipe", () => {
+    const offenders = headingTags()
+      .filter(({ tag, level }) => OWN_TYPE.test(tag.replace(HEADING_RECIPE[level] ?? "", "")))
+      .map(({ path, tag }) => `${path}: ${tag}`);
+    expect(offenders).toEqual([]);
+  });
+
+  it("steps down exactly once per level, and never sideways", () => {
+    const px = [HEADING.page.px, HEADING.screen.px, HEADING.section.px];
+    expect(px).toEqual([...px].sort((a, b) => b - a));
+    expect(new Set(px).size, "two levels at one size is two levels with one voice").toBe(px.length);
+    const classes = Object.values(HEADING).map((recipe) => recipe.className);
+    expect(new Set(classes).size).toBe(classes.length);
+  });
+
+  /**
+   * Every recipe reaches a screen.
+   *
+   * #195 retired `1.125rem` from the exported page rather than rehousing it — a step no rule sets
+   * is bytes for nothing. The builder pays in generated utilities rather than in exported bytes,
+   * but the reason survives the change of currency: an unused step is one more option offered to
+   * the next person choosing, with nothing on screen to compare it against.
+   */
+  it("keeps no step the builder does not set", () => {
+    const named = [
+      ...Object.keys(HEADING).map((role) => `HEADING.${role}`),
+      ...Object.keys(TYPE).map((role) => `TYPE.${role}`),
+    ];
+    const elsewhere = everySource().filter(([path]) => !path.endsWith("ui/type.ts"));
+    const unused = named.filter((reference) =>
+      elsewhere.every(([, text]) => !text.includes(reference)),
+    );
+    expect(unused, "a step no role sets is a step with nothing to compare it against").toEqual([]);
+  });
+
+  /**
+   * The roles that are not headings, named by the hook the markup already carries.
+   *
+   * §7.4: the tool's markup carries `data-*` hooks where a test needs to name a thing it cannot
+   * reach by role. These are those hooks — so each assertion is *this element is set at this
+   * size* rather than *the builder contains this many sizes*.
+   */
+  const ROLE_HOOKS: readonly (readonly [string, string])[] = [
+    // One quiet line: above a title, under a label, under the option it belongs to.
+    ["data-question-preamble", "TYPE.quietLine"],
+    ["data-question-hint", "TYPE.quietLine"],
+    ["data-hint", "TYPE.quietLine"],
+    ["data-arrival", "TYPE.quietLine"],
+    ["data-carried", "TYPE.quietLine"],
+    ["data-row-label", "TYPE.quietLine"],
+    // The tool saying something will not work (§7.9).
+    ["data-message", "TYPE.notice"],
+    ["data-mark", "TYPE.notice"],
+    ["data-warning", "TYPE.notice"],
+  ];
+
+  const hookTags = (hook: string): [string, string][] =>
+    everySource().flatMap(([path, text]) =>
+      tagsMatching(text, new RegExp(`<[a-z]+\\b[^>]*\\b${hook}\\b[^>]*>`, "g")).map(
+        (tag): [string, string] => [path, tag],
+      ),
+    );
+
+  it.each(ROLE_HOOKS)("sets every %s at %s", (hook, recipe) => {
+    const tags = hookTags(hook);
+    expect(
+      tags.length,
+      `no element carries ${hook}, so this rule is measuring nothing`,
+    ).toBeGreaterThan(0);
+    const offenders = tags.filter(([, tag]) => !tag.includes(recipe)).map(([path]) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  /**
+   * The two the change list called one meaning at three treatments are the same step.
+   *
+   * A notice is not a louder hint; it is a hint about something broken. §2 ranks colour above
+   * size, so the colour changes and the size does not — which is what "the colour is already the
+   * emphasis" means once it is written down as a number.
+   */
+  it("sets a notice at the same size as a hint, because the colour is the emphasis", () => {
+    expect(TYPE.notice.px).toBe(TYPE.quietLine.px);
+    expect(TYPE.notice.className).toContain("text-notice");
+    expect(TYPE.quietLine.className).toContain("text-ink-quiet");
+    expect(TYPE.notice.className, "a weight would say it twice").not.toMatch(/\bfont-\w+\b/);
+  });
+
+  it("keeps both quiet roles below the body size the labels beside them take", () => {
+    // 16px, from `Field`'s label and `WEIGHT`'s own `text-base`. A hint the same size as the
+    // label above it is separated from it by weight alone — one instrument doing two jobs.
+    expect(WEIGHT.primary).toContain("text-base");
+    expect(TYPE.quietLine.px).toBeLessThan(16);
+  });
+
+  /**
+   * A hand-rolled copy of either recipe is how three treatments for one meaning happened.
+   *
+   * Written in the shape the input, the button and the row rules above are: the string lives in
+   * one file, and every other file has to ask for it by name.
+   */
+  it.each(["text-sm text-ink-quiet", "text-sm text-notice"])(
+    "is the only place `%s` is written",
+    (recipe) => {
+      const offenders = others("./type.ts")
+        .filter(([, text]) => text.includes(recipe))
+        .map(([path]) => path);
+      expect(offenders).toEqual([]);
+    },
+  );
+
+  /**
+   * The progress bar sets its size once, on itself (B-31).
+   *
+   * It used to name the topic you are on at 14px in its header and at 16px in the drawer that
+   * opens directly beneath it. Setting both to 14px would have closed the instance and left the
+   * shape — two declarations that have to agree. This asserts *which* element owns the size, so a
+   * second one appearing anywhere inside the bar fails rather than merely disagreeing.
+   * `ProgressBar.test.tsx` measures the same claim on the rendered bar.
+   */
+  it("lets the progress bar set a type size exactly once, on the bar itself", () => {
+    const bar = everySource().find(([path]) => path.endsWith("flow/ProgressBar.tsx"))?.[1] ?? "";
+    expect(bar, "ProgressBar.tsx was not read").not.toBe("");
+    const sized = tagsMatching(bar, /<[a-z]+\b[^>]*>/g).filter(
+      (tag) => OWN_TYPE.test(tag) || tag.includes("TYPE.bar"),
+    );
+    expect(sized.map((tag) => tag.includes("data-progress-bar"))).toEqual([true]);
+  });
+
+  /**
+   * Two weights, and this says which two (§2: "at most two font weights in the UI").
+   *
+   * `font-semibold` was the only occurrence in the audited scope and it sat on one of the
+   * notice's three treatments — a third weight spent saying what `--color-notice` was already
+   * saying. With the default 400 and `<strong>`'s browser bold, the sheet and the list carried
+   * four.
+   *
+   * **`<strong>` is deliberately not counted here.** It is semantic emphasis inside a sentence
+   * rather than a weight chosen from a palette, and taking it out would remove the emphasis
+   * rather than restyle it — a copy decision, and one #180 does not ask for. What this holds is
+   * the set of weights the tool *chooses*.
+   */
+  it("chooses exactly one weight above the default, everywhere in the builder", () => {
+    const weights = new Set(
+      everySource().flatMap(([, text]) =>
+        [...text.matchAll(/\bfont-(\w+)\b/g)].map(([, weight]) => weight ?? ""),
+      ),
+    );
+    for (const face of ["sans", "serif", "mono"]) weights.delete(face);
+    expect([...weights]).toEqual(["medium"]);
   });
 });
