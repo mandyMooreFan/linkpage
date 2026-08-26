@@ -425,6 +425,32 @@ describe("how it looks (§3.1, §3.4)", () => {
     expect(step?.lastElementChild?.hasAttribute("data-advanced")).toBe(true);
   });
 
+  /**
+   * The disclosure is a button of the tool's, not a copy of one (finding B-3, #240).
+   *
+   * **The rendered half of the source rule in `controls.test.ts`.** Until #240 this control was a
+   * raw `<button>` wearing `WEIGHT.quiet` as it read in #183 — no `text-base`, no `text-ink-quiet`
+   * — so it took neither #198's size nor #234's ink and stood at full `text-ink` while every other
+   * tertiary in the tool receded. #234's and #230's sweeps could not see it, because both walk
+   * `<Button>` opening tags and this rendered no `<Button>` to walk.
+   *
+   * Asserted against `WEIGHT` rather than a re-spelling: the same two classes `flow.test.tsx`
+   * asserts on `Back` and the test above asserts on `Remove`, which is the point — they are the
+   * same two, and now this one is as well.
+   */
+  it("gives the advanced disclosure the same quiet button the rest of the tool has (B-3)", () => {
+    editing();
+    openRow(/^How it looks/);
+
+    const disclosure = screen.getByRole("button", { name: "Advanced colours" });
+    expect(quietButtons(), "the disclosure is a quiet button").toContain(disclosure);
+    expect(textClasses(disclosure)).toEqual(["text-base", "text-ink-quiet"]);
+    expect(widthDisagreements(), "at the width its weight names").toEqual([]);
+    // The disclosure is what it is because of what it does, and `Button` passes both through.
+    expect(disclosure.getAttribute("aria-expanded")).toBe("false");
+    expect(disclosure.getAttribute("aria-controls")).toBeTruthy();
+  });
+
   it("writes a control straight through, because the page is the feedback", () => {
     const { latest } = editing();
     openRow(/^How it looks/);
