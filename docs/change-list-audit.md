@@ -17,6 +17,27 @@
 > _Out of scope_ section. **Every finding on this list is now either built, deliberately left with an
 > owner's decision behind it, or ticketed.**
 >
+> **B-3's "landed" verdict has a remainder, and the method is why**
+> ([#240](https://github.com/mandyMooreFan/linkpage/issues/240)). This audit read B-3 as landed from
+> the **definition** — `WEIGHT` in `ui/Button.tsx` is unified, which it is, and `Remove` carries
+> `tap`, which it does. Both are true, and a call site that **bypasses the component entirely**
+> is invisible to either check: `list/Advanced.tsx` went on hand-writing
+> `tap bg-transparent py-2 font-sans underline underline-offset-4` — `WEIGHT.quiet` frozen at the
+> moment #183 copied it, without the size [#198](https://github.com/mandyMooreFan/linkpage/issues/198)
+> later gave it or the ink [#234](https://github.com/mandyMooreFan/linkpage/issues/234) later gave it
+> — so the tool's own advanced disclosure stood at full `text-ink` while every other tertiary
+> receded. It is now `<Button weight="quiet">`, and `controls.test.ts` asks the question none of
+> the sweeps asked: **is a control recipe hand-written anywhere, not only inside a `<Button>` tag?**
+>
+> **This is the second time a verdict on this list has had a remainder, and the next reader should
+> know the shape.** B-39 was the first — this audit caught it itself, recording _partly landed_
+> where a resolution said done. B-3 is the harder one: the verdict was not wrong about what it
+> checked, it was checking the wrong side. **A finding about "hand-copied at N sites" cannot be
+> closed from the definition.** #183, #198, #234 and #230 all swept the call sites by walking
+> `<Button>` opening tags, and this audit verified the record they left; nothing in that chain could
+> see an element that never became a `<Button>`. Where a finding is about copies, the check has to
+> be a sweep over every element, and it has to prove it found something.
+>
 > **B-72 is built** ([#230](https://github.com/mandyMooreFan/linkpage/issues/230)), so the last of
 > item 0's three agreed-and-never-built findings is closed and the "still open" rows below are
 > historical. A button is as wide as its words, said once on the weight: `w-fit` on `primary`,

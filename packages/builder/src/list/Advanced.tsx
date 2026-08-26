@@ -2,6 +2,7 @@ import { useId, useState, type JSX } from "react";
 import type { Draft } from "../project/index.js";
 import { formatRatio, readout, ROLE_LABELS } from "./contrast.js";
 import { setAdvancedEnabled, setOverride } from "./edits.js";
+import { Button } from "../ui/Button.js";
 import { TextInput } from "../ui/TextInput.js";
 import { Checkbox } from "../ui/Checkbox.js";
 import { Field } from "../flow/questions/Question.js";
@@ -51,21 +52,28 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
   return (
     <div className="mt-4 border-t border-rule pt-4" data-advanced>
       {/*
-       * `self-start` came off this string with #230: the parent is an ordinary block, so
+       * **B-3's last hand-copy, and the one the sweeps could not see** (#240). Until now this was
+       * a raw `<button>` wearing `tap bg-transparent py-2 font-sans underline underline-offset-4`
+       * — `WEIGHT.quiet` as it stood in 2026 before #198 gave it a size and #234 gave it an ink,
+       * frozen at the moment it was copied. #183 moved the ten `<Button>` call sites and unified
+       * the weights; #198 and #234 swept the call sites by walking `<Button>` opening tags. A
+       * recipe hand-written on a plain element is invisible to all three, so this one went on
+       * taking the screen's `text-ink` while every other tertiary in the tool moved to
+       * `text-ink-quiet`. It is a disclosure at the foot of a step — §4's tertiary, the tool's own
+       * words — so `quiet` is what it always meant, and `Button` is where that is written.
+       *
+       * `self-start` came off the same string with #230: the parent is an ordinary block, so
        * `align-self` reached nothing here at any point — a declaration that styles nothing, which
-       * is B-1's defect in one word. The rest of the string is a hand-copied `quiet` recipe that
-       * never went through `Button`; it is on no list and is left for whoever picks up B-3's
-       * remainder.
+       * is B-1's defect in one word.
        */}
-      <button
-        type="button"
-        className="tap bg-transparent py-2 font-sans underline underline-offset-4"
+      <Button
+        weight="quiet"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen(!open)}
       >
         Advanced colours
-      </button>
+      </Button>
 
       {/*
        * The panel is a sibling of the button in a container that is not a flex parent, so it

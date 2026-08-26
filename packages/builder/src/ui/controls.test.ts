@@ -10,7 +10,7 @@ import {
   URL_PREFIX_CLASS,
   URL_ROW_CLASS,
 } from "./TextInput.js";
-import { WEIGHT } from "./Button.js";
+import { WEIGHT, type ButtonWeight } from "./Button.js";
 import { CHECKBOX_CLASS } from "./Checkbox.js";
 import { declaredWidth, widthsIn } from "./fill.testing.js";
 import { LADDER } from "./ladder.js";
@@ -133,16 +133,21 @@ const restingColours = (classes: string): string[] =>
     .filter((one) => !one.includes(":") && COLOUR_NAMES.some((name) => one === `text-${name}`));
 
 /**
- * Every `<Button …>` element in a file, as the text of its opening tag.
+ * Every `<Name …>` element in a file, as the text of its opening tag.
  *
  * **Brace-matched rather than regex-terminated**, because the first `>` after `<Button` is very
  * often the one in an `onClick={() => …}`. Anything inside braces or quotes is skipped, so the
  * tag ends at the first `>` the JSX itself owns — which is what makes "no button spells its own
  * colour" a rule about the *button* rather than about the whole file it happens to sit in.
+ *
+ * **Taken off `<Button>` and given a name to walk** by #240. Walking `<Button>` is what #234 and
+ * #230 needed and it is also what neither of them could see past: the recipe that never went
+ * through the component renders no `<Button>` tag to walk. The lowercase `<button>` walk below is
+ * the same instrument pointed at the elements those rules were blind to.
  */
-const buttonElements = (text: string): string[] => {
+const openingTags = (text: string, name: string): string[] => {
   const found: string[] = [];
-  const opener = /<Button\b/g;
+  const opener = new RegExp(`<${name}\\b`, "g");
   for (let hit = opener.exec(text); hit !== null; hit = opener.exec(text)) {
     let depth = 0;
     let quote = "";
@@ -164,6 +169,12 @@ const buttonElements = (text: string): string[] => {
   }
   return found;
 };
+
+/** The `<Button …>` call sites #234's and #230's rules are written about. */
+const buttonElements = (text: string): string[] => openingTags(text, "Button");
+
+/** The raw `<button …>` elements that never went through the component at all (#240). */
+const hostButtons = (text: string): string[] => openingTags(text, "button");
 
 /**
  * The two halves of the one focus treatment, read out of `theme.css` (#179 variant A, #188).
@@ -794,6 +805,187 @@ describe("one width for every button (B-72)", () => {
       ),
     );
     expect(offenders, "alignment is the container's business").toEqual([]);
+  });
+});
+
+/**
+ * No button is drawn by hand, anywhere. `SPEC.md` §7.4; finding B-3, ticket #240.
+ *
+ * **The question none of the button rules asked.** B-3 is "the button weights are hand-copied at
+ * ten sites", and #183 answered it by unifying `WEIGHT` and moving ten `<Button>` call sites.
+ * Every rule built on top of that answer — #198's one size per role, #234's one ink, #230's one
+ * width — is enforced by **walking `<Button>` opening tags**, and #231's audit recorded B-3 as
+ * landed by checking that `WEIGHT` is unified, which it is. All four were right about the
+ * definition and none of them could see a call site that bypasses the component: an eleventh copy
+ * survived on a plain `<button>` in `Advanced.tsx` for four tickets, still wearing the recipe as
+ * it read before #198 gave `quiet` a size and #234 gave it an ink.
+ *
+ * **This is #213's shape one level over.** *Written here* and *here has callers* are source facts,
+ * and *the component wears it* is the third; **nothing else wears it by hand** is a fourth, and it
+ * is a question about every element in the tool rather than about the component's own file.
+ *
+ * **What can be held, and what cannot.** The rule "everything pressable is a `Button`" cannot: six
+ * files render a raw `<button>` on purpose — a progress step, two colour swatches, the reorder
+ * arrows, a preset tile, the review rows and the menu items — and none of them is one of §4's
+ * weights. The last test below is that list, named rather than counted, so a seventh is a decision
+ * somebody argues rather than a diff. What **can** be held is the recipe: a class string may not be
+ * copied out of a weight, and the marks that say *this is one of the tool's buttons* may not be
+ * written outside the file that draws them.
+ *
+ * **And the limit, stated rather than left to be discovered** (#213's habit). The two rules cover
+ * different halves and one weight falls between them: a hand-written `secondary` that both drops
+ * `w-fit` *and* adds a class of its own is neither a subset of the recipe nor wearing a mark, and
+ * would pass. `primary` cannot do that (`bg-ink` and `text-ground` are both its alone), nor can
+ * `quiet` or `inline` (`underline-offset-4`), and `secondary`'s escape is only open because every
+ * other utility it wears — the hairline, the radius, the padding, the tap floor — is shared paper
+ * vocabulary the tiles and rows use for their own reasons. Narrowing it further would mean an
+ * allow-list of the strings that are *allowed* to look like a button, which is the maintained
+ * exception list #213 declined to write.
+ */
+describe("no button is drawn by hand (B-3)", () => {
+  /**
+   * The utilities a class string writes, interpolations dropped.
+   *
+   * `${…}` is a *composition* — `MENU_PANEL.className` and the ladder's rungs arrive that way —
+   * so what is left after removing it is the part this file wrote out by hand, which is the part
+   * the rule is about. Dropping the whole string instead would let a hand-copy hide behind one
+   * interpolated rung.
+   */
+  const utilities = (classes: string): string[] =>
+    classes
+      .replaceAll(/\$\{[^}]*\}/g, " ")
+      .split(/\s+/)
+      .filter((one) => one !== "");
+
+  /**
+   * **Three, and it is a floor rather than a threshold** — the rule is the subset, not the size.
+   * Two utilities are not a recipe: `disabled:border-rule disabled:text-ink-quiet` on the reorder
+   * arrows is exactly `secondary`'s disabled pair and is *meant* to be, which *one disabled
+   * vocabulary* below requires of it by reading that vocabulary off `WEIGHT`. Borrowing two words
+   * of a shared vocabulary is not copying a button.
+   */
+  const COPY_FLOOR = 3;
+
+  /**
+   * The weights a class string is a hand-copy of — **every** utility in it comes out of that one
+   * weight's recipe, and there are enough of them to be a recipe rather than a coincidence.
+   *
+   * **Subset, not overlap**, and the difference is the whole reason this is not a false-positive
+   * machine. Raw overlap says the preset tile is 7/10 of a `secondary` — it shares `tap`,
+   * `rounded-sm`, `border border-rule`, `bg-transparent`, `px-4`, `font-sans` — while being a
+   * full-width `flex-col` card at `py-3`, which is a different species wearing the same paper
+   * vocabulary. What makes a hand-copy a hand-copy is that it adds **nothing**: the string in
+   * `Advanced.tsx` was `WEIGHT.quiet` with three utilities dropped and not one put back.
+   *
+   * Derived from `WEIGHT` rather than spelled out, so the day a weight is rewritten this follows
+   * it instead of guarding a recipe nobody uses any more.
+   */
+  const handCopiedWeights = (classes: string): ButtonWeight[] => {
+    const written = utilities(classes);
+    if (written.length < COPY_FLOOR) return [];
+    return (Object.keys(WEIGHT) as ButtonWeight[]).filter((name) => {
+      const recipe = new Set(utilities(WEIGHT[name]));
+      return written.every((one) => recipe.has(one));
+    });
+  };
+
+  /**
+   * The marks that say *this is one of the tool's buttons* — one per weight, so no weight can be
+   * hand-written without tripping something even when the copy adds a class of its own and stops
+   * being a subset.
+   *
+   * - **`w-fit`** — a button is as wide as its words (B-72). Nothing else in the tool is: rows,
+   *   tiles, fields and menu items are `w-full`, and a swatch is `size-12`.
+   * - **`text-ground`** — ink drawn *on* a fill, which only `primary` stands on.
+   * - **`underline-offset-4`** — the underline that in paper **is** the control (§7.4, `quiet` and
+   *   `inline`). The one other `underline` in the builder is a word in a refusal message, and it
+   *   sets no offset.
+   *
+   * `primary`'s fourth mark, `bg-ink`, is deliberately not repeated here: *one solid fill, spent
+   * once* holds it the same way, for §4's own reasons. Between the two, every weight has at least
+   * one utility that cannot be written outside `Button.tsx`.
+   */
+  const MARKS = ["w-fit", "text-ground", "underline-offset-4"];
+
+  /**
+   * **The pin, and it is positive rather than incidental** (#213: breaking `controls.test.ts`'s
+   * corpus read left 94 of 119 tests green). Both rules below are absences, and an absence goes
+   * green when the thing doing the looking has stopped being able to see. So the reader is run
+   * against a copy it must catch and against two shared recipes it must let through, before it is
+   * pointed at the builder at all.
+   */
+  it("knows a copied recipe from a recipe of its own", () => {
+    // What was live on `Advanced.tsx` from #183 until #240 — `WEIGHT.quiet` frozen at the moment
+    // it was copied, missing the size #198 gave it and the ink #234 gave it.
+    const wasLive = "tap bg-transparent py-2 font-sans underline underline-offset-4";
+    expect(handCopiedWeights(wasLive)).toEqual(["quiet"]);
+    for (const name of Object.keys(WEIGHT) as ButtonWeight[]) {
+      expect(handCopiedWeights(WEIGHT[name]), `a whole ${name}`).toContain(name);
+    }
+    // The two nearest things in the tool that are not buttons, and must not be read as ones.
+    expect(handCopiedWeights(ROW_BUTTON), "a review row is not a button").toEqual([]);
+    expect(handCopiedWeights(INPUT_CLASS), "and neither is a text field").toEqual([]);
+    expect(handCopiedWeights("tap font-sans"), "two words are not a recipe").toEqual([]);
+  });
+
+  it("finds no copy of a weight anywhere in the builder", () => {
+    const offenders = others("./Button.tsx").flatMap(([path, text]) =>
+      classLists(text).flatMap((classes) =>
+        handCopiedWeights(classes).map((name) => `${path}: ${name} — "${classes}"`),
+      ),
+    );
+    expect(offenders, "a weight is written in `Button.tsx` and worn through `Button`").toEqual([]);
+  });
+
+  it("keeps every mark that identifies a button inside the file that draws it", () => {
+    for (const mark of MARKS) {
+      // Named marks go stale silently, so each is checked against `WEIGHT` first: a mark no weight
+      // wears any more is a rule guarding nothing, which is the same vacuous green one layer up.
+      expect(
+        Object.values(WEIGHT).some((classes) => utilities(classes).includes(mark)),
+        `${mark} must still be a mark some weight wears`,
+      ).toBe(true);
+
+      const offenders = others("./Button.tsx")
+        .filter(([, text]) => new RegExp(`\\b${mark}\\b`).test(text))
+        .map(([path]) => path);
+      expect(offenders, `${mark} says "this is one of the tool's buttons"`).toEqual([]);
+    }
+  });
+
+  /**
+   * **The half the `<Button>` walk cannot reach**, pointed at the elements it was blind to — and
+   * the honest answer to "is everything pressable a `Button`?", which is **no**, on purpose.
+   *
+   * Named rather than counted (#190, #198), and exhaustive by *file*: a second swatch inside
+   * `StyleStep` is a diff, a seventh file rendering a raw `<button>` is a decision. Every one of
+   * these is a pressable thing that is not one of §4's weights — a progress step, a colour
+   * swatch, a reorder arrow, a preset tile, a review row, a menu item — and this is also what
+   * stops the sweep above being green because it found nothing to read.
+   */
+  it("reads the pressable things that are not buttons, and lets them be", () => {
+    const raw = others("./Button.tsx")
+      .filter(([, text]) => hostButtons(text).length > 0)
+      .map(([path]) => path)
+      .sort();
+    expect(raw, "a raw <button> that is not a weight is a decision, not a diff").toEqual([
+      "../flow/ProgressBar.tsx",
+      "../flow/questions/ColourQuestion.tsx",
+      "../flow/questions/PresetQuestion.tsx",
+      "../list/LinkButtons.tsx",
+      "../list/List.tsx",
+      "../list/StyleStep.tsx",
+    ]);
+
+    const offenders = others("./Button.tsx").flatMap(([path, text]) =>
+      hostButtons(text).flatMap((element) =>
+        classLists(element)
+          .flatMap(utilities)
+          .filter((one) => MARKS.includes(one))
+          .map((mark) => `${path}: ${mark}`),
+      ),
+    );
+    expect(offenders, "and it must not dress as one either").toEqual([]);
   });
 });
 
