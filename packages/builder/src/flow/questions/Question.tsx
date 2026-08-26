@@ -220,7 +220,12 @@ export function Question({
               weight="quiet"
               // The most separate thing on the screen, so it takes the inter-section rung rather
               // than the intra-form one it used to share with a gap between two fields (B-8).
-              className={`${LADDER.betweenSections.className} text-ink-quiet`}
+              //
+              // Spacing only. The ink used to be spelled here too — `text-ink-quiet` at this one
+              // call site, which made `Back` the only place in the tool the tertiary colour was
+              // written down and every other quiet button an unstated full-ink default (B-21).
+              // It is `WEIGHT.quiet`'s now, and a button never spells its own colour.
+              className={LADDER.betweenSections.className}
               onClick={onBack}
             >
               Back

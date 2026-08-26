@@ -10,7 +10,7 @@ import { ReplaceConfirm } from "../open/index.js";
 import type { Draft } from "../project/index.js";
 import { ROW_OPEN } from "../ui/row.js";
 import { WEIGHT } from "../ui/Button.js";
-import { filledLabels } from "../ui/fill.testing.js";
+import { filledLabels, quietButtons, textClasses } from "../ui/fill.testing.js";
 import { List, MENU_PANEL } from "./List.js";
 
 /**
@@ -290,6 +290,23 @@ describe("the link buttons (§7.5)", () => {
       true,
     );
     expect(marks[0]?.textContent).toMatch(/most people will tap/i);
+  });
+
+  /**
+   * One ink for every small text-only button (finding B-21, #234).
+   *
+   * `Remove` is the other half of the pair the decision was argued over: `Back` is navigation and
+   * `Remove` acts on the owner's own work, and the rejected alternative had them at two different
+   * inks for exactly that reason. The owner chose one rule, so this asserts the same two classes
+   * `flow.test.tsx` asserts on `Back` — the point being that they *are* the same two.
+   */
+  it("gives Remove the same quiet ink Back takes (B-21)", () => {
+    editing();
+    openRow(/^Link buttons/);
+
+    const remove = screen.getByRole("button", { name: "Remove See the menu" });
+    expect(quietButtons(), "Remove is a quiet button").toContain(remove);
+    expect(textClasses(remove)).toEqual(["text-base", "text-ink-quiet"]);
   });
 
   it("reorders with up and down arrows, and offers no drag at all", () => {

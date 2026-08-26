@@ -7,7 +7,7 @@ import { serializeProject, writeDraft, readDraft, type Draft } from "../project/
 import { Flow } from "./Flow.js";
 import type { FlowEntry } from "./plan.js";
 import { PRESETS, type PresetId } from "./presets.js";
-import { filledButtons } from "../ui/fill.testing.js";
+import { filledButtons, quietButtons, textClasses } from "../ui/fill.testing.js";
 
 /**
  * The flow, driven screen by screen. `SPEC.md` §7.1–§7.3, §7.8, §7.9.
@@ -117,6 +117,20 @@ function decline(preset: PresetId, name = "Ada's Bakery", colour = 0): string[] 
     expect(filledButtons(), `the one fill belongs to Continue, on "${heading}"`).toEqual(
       submit() === null ? [] : [submit()],
     );
+
+    /**
+     * B-21 (#234): **one ink for every small text-only button**, on the screen rather than in the
+     * source. `controls.test.ts` says no call site spells a colour on a `<Button>`; this says
+     * what the buttons a person is looking at actually came out as, on every step of every
+     * preset. The size travels with the ink deliberately — `text-base` beside `text-ink-quiet`
+     * is the pair that keeps a pressable sentence from reading as one of #198's hints.
+     */
+    for (const button of quietButtons()) {
+      expect(textClasses(button), `"${button.textContent?.trim()}" on "${heading}"`).toEqual([
+        "text-base",
+        "text-ink-quiet",
+      ]);
+    }
 
     if (heading === PRESET_QUESTION) {
       // Step one has no escape and no Continue: choosing *is* answering (§7.3).
@@ -523,6 +537,28 @@ describe("the preset is re-choosable while still in the flow (§7.3)", () => {
       "Which of these do you have?",
       "Where else are you online?",
     ]);
+  });
+});
+
+/**
+ * One ink for every small text-only button (finding B-21, #234).
+ *
+ * The walk above sweeps every screen, and a sweep passes when it finds nothing. `Back` is the
+ * site that makes it worth naming: until #234 it was the *only* place in the tool where the
+ * tertiary ink was written down at all, as a `text-ink-quiet` on its own call site, with every
+ * other quiet button left on whatever ink its screen happened to set. The rule lives on the
+ * weight now, so this asserts `Back` still arrives at that ink — by inheritance from the
+ * component rather than by an instruction beside it.
+ */
+describe("one ink for every small text-only button (B-21)", () => {
+  it("gives Back the quiet ink from the weight, with nothing laid over it", () => {
+    harness();
+    choosePreset("food");
+    expect(title()).toBe(NAME);
+
+    const back = screen.getByRole("button", { name: "Back" });
+    expect(quietButtons(), "Back is a quiet button").toContain(back);
+    expect(textClasses(back)).toEqual(["text-base", "text-ink-quiet"]);
   });
 });
 
