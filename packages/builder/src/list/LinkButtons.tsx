@@ -87,7 +87,11 @@ export function LinkButtons({
     commit(rows.map((link, index) => (index === at ? { ...link, ...patch } : link)));
 
   return (
-    <div className="flex flex-col items-start gap-4">
+    // No `items-start`: it was here to stop *Add another button* and the escape below it
+    // stretching, and cost the row list a `w-full` to put the default back. The weights say
+    // `w-fit` now (B-72, #230), and a paragraph is the same paragraph either way — it wraps at
+    // the column's width whether the box around it is that wide or only as wide as the words.
+    <div className="flex flex-col gap-4">
       <p className={TYPE.quietLine.className}>
         People read from the top. The first button is the one most of them will tap.
       </p>

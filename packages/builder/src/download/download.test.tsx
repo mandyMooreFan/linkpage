@@ -9,7 +9,7 @@ import { installDownloads, type FakeDownloads } from "./downloads.testing.js";
 import type { Draft } from "../project/index.js";
 import type { FileDownload } from "./save.js";
 import { WEIGHT } from "../ui/Button.js";
-import { filledLabels } from "../ui/fill.testing.js";
+import { filledLabels, widthClasses, widthDisagreements } from "../ui/fill.testing.js";
 
 /**
  * The Download sheet. `SPEC.md` §7.7, §8, §6.1.
@@ -157,6 +157,23 @@ describe("two sections, in the order they happen (§7.7)", () => {
     const backup = within(section("project")).getByRole("button");
     expect(backup.className).toContain(WEIGHT.secondary);
     expect(backup).toHaveProperty("disabled", false);
+  });
+
+  /**
+   * **The screen B-72 was written from** (#230). "Download index.html" fitting its words is the
+   * half of the finding that was already right: a `<section>` is ordinary block flow, so a button
+   * in it has always been as wide as its label. What was wrong was the same weight one screen
+   * over, stretching the flow's column — so the fix is the flow coming to meet this sheet, and
+   * this is what says the sheet did not move to meet the flow.
+   */
+  it("gives both downloads the width their weights name (B-72)", () => {
+    open({ projectDownload: { filename: "adas-bakery.linkpage.json", save: () => {} } });
+
+    expect(widthDisagreements()).toEqual([]);
+    const page = within(section("page")).getByRole("button");
+    const backup = within(section("project")).getByRole("button");
+    expect(widthClasses(page), "the fill fits its words").toEqual(["w-fit"]);
+    expect(widthClasses(backup), "and so does the one below it").toEqual(widthClasses(page));
   });
 
   it("keeps the fill on the page even when there is no project file to offer", () => {

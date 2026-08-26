@@ -373,22 +373,20 @@ export function HoursQuestion({
                      * exactly what it introduces, reads the same at 390 and at 1440, and needs no
                      * breakpoint to say so.
                      *
-                     * `self-center` on the buttons because `WEIGHT.secondary` carries
-                     * `self-start`, which overrides this group's `items-center` (B-40). Done at
-                     * the call site rather than by editing the weight: #228 owns `Button` next
-                     * and a weight is not this ticket's to move.
+                     * The buttons used to need `self-center` here, because `WEIGHT.secondary`
+                     * carried `self-start` and overrode this group's `items-center` (B-40, #199,
+                     * corrected at the call site because a weight was not that ticket's to move).
+                     * **B-72 moved it** (#230): the weights say their width with `w-fit` and say
+                     * nothing at all about alignment, so this row's own `items-center` is the only
+                     * thing deciding where its three objects sit on the line.
                      */}
                     {source?.day === day && isFilled(form) && (
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`w-full ${TYPE.quietLine.className}`}>
                           Copy these times
                         </span>
-                        <Button className="self-center" onClick={() => copyFrom(day, WEEKDAY_KEYS)}>
-                          to weekdays
-                        </Button>
-                        <Button className="self-center" onClick={() => copyFrom(day, WEEKDAYS)}>
-                          to every day
-                        </Button>
+                        <Button onClick={() => copyFrom(day, WEEKDAY_KEYS)}>to weekdays</Button>
+                        <Button onClick={() => copyFrom(day, WEEKDAYS)}>to every day</Button>
                       </div>
                     )}
                   </div>

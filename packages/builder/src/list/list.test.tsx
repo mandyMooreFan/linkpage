@@ -10,7 +10,7 @@ import { ReplaceConfirm } from "../open/index.js";
 import type { Draft } from "../project/index.js";
 import { ROW_OPEN } from "../ui/row.js";
 import { WEIGHT } from "../ui/Button.js";
-import { filledLabels, quietButtons, textClasses } from "../ui/fill.testing.js";
+import { filledLabels, quietButtons, textClasses, widthDisagreements } from "../ui/fill.testing.js";
 import { List, MENU_PANEL } from "./List.js";
 
 /**
@@ -307,6 +307,27 @@ describe("the link buttons (§7.5)", () => {
     const remove = screen.getByRole("button", { name: "Remove See the menu" });
     expect(quietButtons(), "Remove is a quiet button").toContain(remove);
     expect(textClasses(remove)).toEqual(["text-base", "text-ink-quiet"]);
+  });
+
+  /**
+   * One width for every button (finding B-72, #230).
+   *
+   * **Three of the five `primary` sites are on this screen** — the bar's Download, an open row's
+   * Save and the language row's own — and two of the three arrived in columns that had to write
+   * `items-start` to stop them stretching, and then `w-full` on every child that was not a button
+   * to put the default back. The weights say `w-fit` now, so those columns are ordinary columns
+   * again; this is what says the buttons in them did not start stretching when the props came off.
+   */
+  it("gives every button on the list the width its weight names (B-72)", () => {
+    editing(POPULATED);
+    expect(widthDisagreements(), "the bar, with the page up").toEqual([]);
+
+    openRow(/^Link buttons/);
+    expect(widthDisagreements(), "a row open, with its own Save and its Removes").toEqual([]);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Link buttons/, expanded: true }));
+    openRow(/^Page language/);
+    expect(widthDisagreements(), "the language row, which owns its own Save").toEqual([]);
   });
 
   it("reorders with up and down arrows, and offers no drag at all", () => {

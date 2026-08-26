@@ -12,6 +12,7 @@ import {
 } from "./TextInput.js";
 import { WEIGHT } from "./Button.js";
 import { CHECKBOX_CLASS } from "./Checkbox.js";
+import { declaredWidth, widthsIn } from "./fill.testing.js";
 import { LADDER } from "./ladder.js";
 import { PANEL_CLASS, PANEL_EDGE } from "./Panel.js";
 import { HEADING, TYPE } from "./type.js";
@@ -549,6 +550,119 @@ describe("one ink for every small text-only button (B-21)", () => {
 });
 
 /**
+ * A button is as wide as its words. `SPEC.md` §4, §6; finding B-72, ticket #230.
+ *
+ * **The finding is two screens showing one weight at two widths**: `Continue` stretching the whole
+ * flow column, and `Download index.html` — the same `primary`, one screen over — fitting its
+ * words. §4 asks that the buttons on a screen share one box per size variant and §6 that a
+ * repeated element be pixel-identical, and this was the last dimension in which they were not:
+ * B-16 had already settled the padding, the radius and the type size.
+ *
+ * **What was on `main` was #234's shape again — the width was not decided by the weight at all.**
+ * `primary` carried `shrink-0`, which is a *main-axis* class: it says a flex item may not be
+ * squeezed, and says nothing whatever about how wide a button is drawn. Of the five `primary`
+ * sites, four are not flex rows and the fifth holds a one-word label, so it drew nothing anywhere.
+ * `secondary` and `quiet` carried `self-start`, which does reach the width — by way of the cross
+ * axis, dragging a screen's vertical alignment with it, which is exactly the collision B-40 found
+ * and #199 had to answer with a `self-center` at a call site. So the real decision lived in the
+ * containers: three of them wrote `items-start` to stop their buttons stretching and then `w-full`
+ * on every child that was not a button to put the default back, and the one container that did not
+ * — the flow's own form — is where B-72 shows.
+ *
+ * **So the weight names it, and nothing else may.** `w-fit` on the three box weights: a definite
+ * width, so an ancestor's `align-items: stretch` has nothing left to stretch, and capped at the
+ * space available, so a long label still wraps inside its column. `inline` names none, because it
+ * is a word in a sentence rather than a box (see `Button.tsx`).
+ *
+ * Both halves are here, and neither is enough alone — the same pairing B-21 needed. The source
+ * says the weight declares one width and no call site declares any; the rendered walks in
+ * `flow.test.tsx`, `list.test.tsx`, `download/download.test.tsx` and `open/open.test.tsx` say
+ * what the buttons a person is actually looking at came out as, which is where "the same weight,
+ * two containers, two widths" would show.
+ */
+describe("one width for every button (B-72)", () => {
+  it("is named by the weight, and it is the same width for all three boxes", () => {
+    // Identity, not a count: "every weight declares a width" would be satisfied by `primary`
+    // saying `w-full` while the escape beside it says `w-fit`, which is the defect with a
+    // declaration on it.
+    expect(declaredWidth("primary"), "the fill fits its words").toEqual(["w-fit"]);
+    expect(declaredWidth("secondary"), "and so does the outline beside it").toEqual(["w-fit"]);
+    expect(declaredWidth("quiet"), "and the sentence you can press").toEqual(["w-fit"]);
+  });
+
+  /**
+   * `inline` is the one weight without a width, for the reason it is the one without `tap`: a
+   * word inside a sentence is not a box, so a width for it would be a width for nothing.
+   */
+  it("leaves the one weight that is a word rather than a box saying nothing", () => {
+    expect(declaredWidth("inline")).toEqual([]);
+  });
+
+  /**
+   * The two classes B-72 named as the instrument, kept off the weights on purpose. `shrink-0` is
+   * still a real utility with a real job — the `https://` prefix, the tick box, a swatch dot, the
+   * hours segment group, all fixed-size things that must not collapse in a row — and borrowing it
+   * to mean *width* is how `primary` came to have none.
+   */
+  it("says width on the axis width is on", () => {
+    for (const [name, classes] of Object.entries(WEIGHT)) {
+      expect(classes.split(/\s+/), `${name} must not reach for the cross axis`).not.toContainEqual(
+        expect.stringMatching(/^self-/),
+      );
+      expect(
+        classes.split(/\s+/),
+        `${name} must not mistake shrinking for width`,
+      ).not.toContainEqual(expect.stringMatching(/^shrink-/));
+    }
+  });
+
+  it("is never respelled on a button, anywhere in the builder", () => {
+    const offenders = everySource().flatMap(([path, text]) =>
+      buttonElements(text)
+        .flatMap((element) => classLists(element).flatMap(widthsIn))
+        .map((one) => `${path}: ${one}`),
+    );
+    expect(offenders, "width is the weight's business, not the call site's").toEqual([]);
+  });
+
+  /**
+   * The sweep above is a sweep, and a sweep that finds nothing passes — and this one has a second
+   * way to pass vacuously, since it would also be green if it found every `<Button>` and read no
+   * classes off any of them. So it is pinned to the one call site that hands a `<Button>` a class
+   * string at all: §7.7's `SaveButton`, which passes a margin and an overflow rule and no width.
+   */
+  it("still reads the classes a call site does hand a button", () => {
+    const sheet =
+      everySource().find(([path]) => path.endsWith("download/DownloadSheet.tsx"))?.[1] ?? "";
+    const save = buttonElements(sheet).find((element) => element.includes("className="));
+    expect(
+      save,
+      "DownloadSheet renders its download through Button, with a class string",
+    ).toBeDefined();
+    expect(classLists(save ?? "").flatMap((one) => one.split(/\s+/))).toContain("mt-4");
+    expect(classLists(save ?? "").flatMap(widthsIn), "and none of it is a width").toEqual([]);
+  });
+
+  /**
+   * **The other side of the same rule**: with the width on the weight, nothing in the tool has a
+   * reason left to countermand its container's alignment. Every `self-*` in the builder was one
+   * of these — `WEIGHT.secondary`, `WEIGHT.quiet`, the two `self-center`s put back over them at
+   * `HoursQuestion` and `Preview`, and a `self-start` in `Advanced.tsx` sitting in an ordinary
+   * block where `align-self` reached nothing at all. A new one is a container deciding a button's
+   * width again, by the back door B-72 came in through; if some future thing genuinely needs one,
+   * this rule is the place to say why.
+   */
+  it("leaves nothing in the tool aligning itself against its own row", () => {
+    const offenders = everySource().flatMap(([path, text]) =>
+      [...text.matchAll(/\bself-(?:start|center|end|stretch)\b/g)].map(
+        ([one]) => `${path}: ${one}`,
+      ),
+    );
+    expect(offenders, "alignment is the container's business").toEqual([]);
+  });
+});
+
+/**
  * There is one solid fill, and it belongs to one action. `SPEC.md` §7.4, §4, §6; design change 3
  * (#190), findings B-18, B-19, B-51, B-60.
  *
@@ -662,7 +776,10 @@ describe("the escape", () => {
   it("differs from Continue only in fill", () => {
     expect(WEIGHT.primary).toContain("bg-ink");
     expect(WEIGHT.secondary).toContain("bg-transparent");
-    for (const shared of ["rounded-sm", "px-4", "py-2", "text-base", "tap"]) {
+    // `w-fit` is in this list because of B-72 (#230): before it, Continue stretched the flow's
+    // column while the escape one line below it fit its words, so "differs only in fill" was a
+    // sentence this file asserted and the screen contradicted.
+    for (const shared of ["rounded-sm", "px-4", "py-2", "text-base", "tap", "w-fit"]) {
       expect(WEIGHT.secondary, `secondary must share ${shared} with primary`).toContain(shared);
       expect(WEIGHT.primary, `primary must share ${shared} with secondary`).toContain(shared);
     }

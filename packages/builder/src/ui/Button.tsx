@@ -27,6 +27,22 @@ import type { ButtonHTMLAttributes, JSX, Ref } from "react";
  * back to the quiet ink — and `quiet`, which now rests at that ink, drops the underline instead
  * (see the weight itself).
  *
+ * **A button is as wide as its words, and the weight is where that is said** (`SPEC.md` §4, §6;
+ * finding B-72, #230). `w-fit` on all three box weights, so a `primary` is the same object in a
+ * flex column, in a flex row and in ordinary block flow. What was here before did not say a width
+ * at all: `primary` carried `shrink-0`, which is a *main-axis* class and decides nothing about how
+ * wide a button is drawn, and `secondary` and `quiet` carried `self-start`, which reaches the width
+ * only by way of the cross axis and drags a screen's vertical alignment along with it. So the width
+ * was each container's — `Continue` stretched the whole flow column while `Download index.html`,
+ * the same weight one screen over, fit its words — and three containers had to write `items-start`
+ * and then `w-full` on every child that was *not* a button, to put back the default they had just
+ * taken away from it.
+ *
+ * **`w-fit` is a definite width, which is what makes this a rule rather than a preference**: a
+ * flex parent's `align-items: stretch` has nothing left to stretch, so no ancestor can widen a
+ * button by accident. `w-fit` also never overflows — it is capped at the space available — so a
+ * long label wraps inside its column exactly as it did when it was stretched to it.
+ *
  * **One ink for every small text-only button, declared here** (`SPEC.md` §4; finding B-21, #234).
  * `quiet` is the only weight that departs from the ink the screen sets, so it is the only one that
  * names a colour at rest: `primary` names `text-ground` because it sits on a fill, and `secondary`
@@ -43,10 +59,10 @@ export type ButtonWeight = "primary" | "secondary" | "quiet" | "inline";
  */
 export const WEIGHT: Record<ButtonWeight, string> = {
   primary:
-    "tap shrink-0 rounded-sm bg-ink px-4 py-2 font-sans text-base text-ground " +
+    "tap w-fit rounded-sm bg-ink px-4 py-2 font-sans text-base text-ground " +
     "disabled:cursor-default disabled:bg-rule disabled:text-ink-quiet",
   secondary:
-    "tap self-start rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base " +
+    "tap w-fit rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base " +
     "disabled:cursor-default disabled:border-rule disabled:text-ink-quiet",
   /**
    * A sentence you can press — `Back`, `Remove`, `Cancel`, "Or type a code" (§4's tertiary).
@@ -74,7 +90,7 @@ export const WEIGHT: Record<ButtonWeight, string> = {
    * grey line of type that no longer offers to be pressed, at no cost in contrast.
    */
   quiet:
-    "tap self-start bg-transparent py-2 font-sans text-base text-ink-quiet underline " +
+    "tap w-fit bg-transparent py-2 font-sans text-base text-ink-quiet underline " +
     "underline-offset-4 disabled:cursor-default disabled:no-underline",
   /**
    * A link inside a sentence — "Already have a project file? **Open it.**"
@@ -91,6 +107,12 @@ export const WEIGHT: Record<ButtonWeight, string> = {
    * declares. Declaring it here would be the same pixels today and the wrong instruction
    * tomorrow: dropped into a full-ink sentence, a link that recedes from the words around it is a
    * link nobody sees.
+   *
+   * **It names no width either, and for the same kind of reason** (B-72, #230). The other three
+   * are boxes, and a box has to say how wide it is or its container will. This one is a *word*:
+   * its width is the run of type it sits in, it is never a flex item and never a block, and
+   * `w-fit` on it would be a width for a thing that has none. If a call site ever needs it to be
+   * a box, what it needs is one of the other three.
    */
   inline: "bg-transparent p-0 font-sans text-base underline underline-offset-4",
 };
