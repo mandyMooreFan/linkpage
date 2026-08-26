@@ -7,6 +7,8 @@ import { POPULATED } from "../fixtures.js";
 import type { Topic } from "../flow/topics.js";
 import type { Draft } from "../project/index.js";
 import { ROW_OPEN } from "../ui/row.js";
+import { WEIGHT } from "../ui/Button.js";
+import { filledLabels } from "../ui/fill.testing.js";
 import { List, MENU_PANEL } from "./List.js";
 
 /**
@@ -80,6 +82,9 @@ function laptop(): { restore: () => void } {
     },
   };
 }
+
+/** The preview drawer's own root, which carries its open state as a hook. */
+const drawerRoot = (): HTMLElement => document.querySelector("[data-open]") as HTMLElement;
 
 const rowIds = (): string[] =>
   [...document.querySelectorAll("[data-row]")].map((row) => row.getAttribute("data-row") ?? "");
@@ -434,7 +439,7 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
    */
   describe("the page-first landing keeps the button it names (#186)", () => {
     const downloads = () => screen.getAllByRole("button", { name: "Download" });
-    const drawer = () => document.querySelector("[data-open]") as HTMLElement;
+    const drawer = drawerRoot;
 
     it("carries Download onto the page the phone lands on, and presses it", () => {
       const onDownload = vi.fn();
@@ -479,6 +484,118 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
       // The drawer is open here too — it just is not covering anything, so nothing moves.
       expect(screen.getByRole("button", { name: "Edit your page" })).toBeTruthy();
       expect(drawer().contains(button!)).toBe(false);
+      roomy.restore();
+    });
+  });
+
+  /**
+   * One filled button per screen (§4, §6; design change 3, findings B-18/B-51).
+   *
+   * The list used to show two at once: the pinned Download and, the moment a row was opened, the
+   * form's own Save — the same solid ink, a few centimetres apart, disagreeing about what the
+   * owner is in the middle of. §4 gives the one filled object on a screen to the one action, so
+   * one of them has to step down, and it is **Download**, because while a row is open the thing
+   * the owner is doing is finishing that answer.
+   *
+   * **The weight follows the screen's mode, never the pointer.** Nothing that changes the mode is
+   * Download itself: rows open from their own header and close on Save or on the escape inside
+   * them, so the fill never leaves a button under a press. And the step is to `secondary` rather
+   * than `quiet` — the same box, the same padding, radius and type, one hairline instead of the
+   * fill (`controls.test.ts`, *differs from Continue only in fill*). Download does not move,
+   * resize or leave; what the eye sees is the fill travelling to the open row.
+   *
+   * **The screen is what is on the glass.** On a phone the open drawer is an opaque
+   * `fixed inset-0` surface with the list behind it (#186), so an open row is not on the screen
+   * at all — and the drawer keeps the fill, because taking it away there is exactly the defect
+   * #186 was raised to fix. jsdom has no `matchMedia`, which the drawer reads as the phone, so
+   * that is the default here and the laptop is stubbed in where a test wants the other size.
+   *
+   * **The appearance ritual cannot see this change, so these tests are the only standing record
+   * of it.** `pnpm shots` opens every review-list row (#209), but a row shot is an *element* shot
+   * of the row alone — the bar with Download in it is outside the frame — and `51-list-rows` is
+   * taken with every row closed. The before-and-after for this ticket came out of a patched copy
+   * of the script, taken once and thrown away. Worth knowing before reading a byte-identical pair
+   * as "the change did nothing", which is exactly the misreading #208 was raised to stop.
+   */
+  describe("one filled button per screen (design change 3)", () => {
+    /**
+     * Which surface the owner is actually looking at, **read off the rendered DOM**.
+     *
+     * The obvious spelling is to re-derive the drawer's own `open && !roomy` here from
+     * `data-open` and the absence of `matchMedia`. That is a test that mirrors the code it is
+     * checking — the shape #184 and #213 both caught late — and it fails quietly: a stub that
+     * one day reports the narrow size would make this say "not covering", scope every assertion
+     * below to the whole document, and go green having looked at the wrong thing.
+     *
+     * So ask the screen instead. #186 puts the single Download **in the bar or in the drawer's
+     * header, never both**, so whichever surface is holding it is the surface that is on the
+     * glass — and `getByRole` throwing on none or two is that guarantee re-asserted on the way
+     * past.
+     */
+    const onGlass = (): ParentNode =>
+      drawerRoot().contains(screen.getByRole("button", { name: "Download" }))
+        ? drawerRoot()
+        : document;
+
+    const putThePageAway = (): void => {
+      fireEvent.click(screen.getByRole("button", { name: "Edit your page" }));
+    };
+
+    it("gives the fill to Download while the list is a list", () => {
+      editing(POPULATED, { onDownload: () => {} });
+      putThePageAway();
+
+      expect(filledLabels(onGlass())).toEqual(["Download"]);
+    });
+
+    it("hands it to Save while a row is open, and leaves Download a real action", () => {
+      editing(POPULATED, { onDownload: () => {} });
+      putThePageAway();
+      openRow(/^Opening hours/);
+
+      expect(filledLabels(onGlass())).toEqual(["Save"]);
+
+      // Stepped down, not stepped out: still there, still pressable, still §4's secondary — a
+      // hairline outline rather than the footnote `quiet` would make of it (#189).
+      const download = screen.getByRole("button", { name: "Download" });
+      expect(download).toHaveProperty("disabled", false);
+      expect(download.className).toContain(WEIGHT.secondary);
+    });
+
+    it("hands it straight back the moment the row closes", () => {
+      editing(POPULATED, { onDownload: () => {} });
+      putThePageAway();
+      openRow(/^A line about what you do/);
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+      expect(filledLabels(onGlass())).toEqual(["Download"]);
+    });
+
+    it("keeps it on Download where the page covers the row it belongs to (#186)", () => {
+      editing(POPULATED, { onDownload: () => {} });
+      putThePageAway();
+      openRow(/^Opening hours/);
+      // Back onto the page, with the row still open underneath it.
+      fireEvent.click(screen.getByRole("button", { name: "See the page" }));
+
+      expect(onGlass(), "the drawer should be the screen here").toBe(drawerRoot());
+      // The drawer is the screen, and its one action is Download. A screen whose only control is
+      // an outline is B-48 all over again.
+      expect(filledLabels(onGlass())).toEqual(["Download"]);
+    });
+
+    it("holds at the size where the page sits beside the list", () => {
+      const roomy = laptop();
+      editing(POPULATED, { onDownload: () => {} });
+
+      // The page is beside the list, not over it, so the bar is the screen and stays it — with
+      // the drawer sitting open the whole time, which is what makes this the other size.
+      expect(onGlass(), "the bar should be the screen at this size").toBe(document);
+      expect(drawerRoot().dataset.open).toBe("true");
+
+      expect(filledLabels(onGlass())).toEqual(["Download"]);
+      openRow(/^Opening hours/);
+      expect(filledLabels(onGlass())).toEqual(["Save"]);
       roomy.restore();
     });
   });
