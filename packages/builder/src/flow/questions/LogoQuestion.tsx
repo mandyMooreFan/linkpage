@@ -3,6 +3,7 @@ import { useRef, useState, type JSX } from "react";
 import { browserImageCodec, importLogo, LOGO_ACCEPT, type LogoIntake } from "../../logo/index.js";
 import { Question } from "./Question.js";
 import { Button } from "../../ui/Button.js";
+import { Panel } from "../../ui/Panel.js";
 import { TYPE } from "../../ui/type.js";
 
 /**
@@ -85,10 +86,17 @@ export function LogoQuestion({
           });
         }}
       />
+      {/*
+       * `Panel`, not a fifth copy of its recipe (B-47). The `mt-2` that came with the copy goes
+       * with it: this is a direct child of the question's own `LADDER.betweenFields` column, so
+       * the margin was stacking on a gap and putting the message 8px further from the button
+       * that produced it than the "have a look at your page" line directly below is. The parent
+       * gap does the spacing, and the two messages now stand at the same distance.
+       */}
       {message !== null && (
-        <p className="mt-2 border-s-2 border-notice ps-3 font-sans" data-notice>
+        <Panel tone="notice" data-notice>
           {message}
-        </p>
+        </Panel>
       )}
       {logo !== null && message === null && (
         <p className={TYPE.quietLine.className}>Have a look at your page to see it.</p>

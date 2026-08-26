@@ -40,6 +40,26 @@ import { TYPE } from "../ui/type.js";
  * with it. The page shows the button leave and come back, which is that rule, visible.
  */
 
+/**
+ * A reorder arrow: one glyph, pressed a lot, on both ends of every row.
+ *
+ * **`tap-square` rather than `tap min-w-11`** (B-22). `tap` is a `min-height`, and this is the one
+ * control in the tool whose *content* is narrower than §7.6's floor — a single arrow — so the
+ * width had been written out by hand as `min-w-11`, which is 2.75rem restated beside the utility
+ * that exists to hold that number once. The companion utility holds both axes at the one value.
+ *
+ * **`text-lg` is deliberate and stays**, and since #227 it is the *only* 18px left in the builder:
+ * that ticket brought the ruled line's value down to the body step, so the arrows no longer share
+ * the step with anything. `ui/type.ts` keeps the reason — a glyph sized to be pressable is not a
+ * level of type hierarchy — and `controls.test.ts` holds the exception to **this constant** rather
+ * than to a count of two, which is what let the recipe be written once without going red.
+ *
+ * Written once because it is written twice on the screen, and the pair must not drift.
+ */
+export const REORDER_CLASS =
+  "tap-square rounded-sm border border-rule bg-transparent text-lg " +
+  "disabled:border-rule disabled:text-ink-quiet";
+
 export interface LinkButtonsProps {
   readonly draft: Draft;
   readonly onChange: (draft: Draft) => void;
@@ -127,7 +147,7 @@ export function LinkButtons({
                */}
               <button
                 type="button"
-                className="tap min-w-11 rounded-sm border border-rule bg-transparent text-lg disabled:border-rule disabled:text-ink-quiet"
+                className={REORDER_CLASS}
                 disabled={index === 0}
                 aria-label={`Move ${link.label} up`}
                 onClick={() => commit(moved(rows, index, index - 1))}
@@ -136,7 +156,7 @@ export function LinkButtons({
               </button>
               <button
                 type="button"
-                className="tap min-w-11 rounded-sm border border-rule bg-transparent text-lg disabled:border-rule disabled:text-ink-quiet"
+                className={REORDER_CLASS}
                 disabled={index === rows.length - 1}
                 aria-label={`Move ${link.label} down`}
                 onClick={() => commit(moved(rows, index, index + 1))}

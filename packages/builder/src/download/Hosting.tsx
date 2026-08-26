@@ -39,9 +39,17 @@ import type { JSX } from "react";
  * answer when it breaks — a hosting business rather than a feature.
  */
 export function Hosting(): JSX.Element {
+  /*
+   * **One step, on the ladder** (B-45). This was `mt-5` on the wrapper immediately containing an
+   * `mt-2` on its first paragraph — 28px, arrived at by stacking two margins, in a sheet whose
+   * every other step is `mt-2`, `mt-3`, `mt-4` or `mt-8`. `mt-5` appears nowhere else in the
+   * builder. §8's guidance is a sub-section of the page section above it and takes that section's
+   * own step; the paragraph inside then needs nothing, because the wrapper is what is being
+   * spaced.
+   */
   return (
-    <div className="mt-5" data-hosting>
-      <p className="mt-2">
+    <div className="mt-8" data-hosting>
+      <p>
         Your page is one file. To put it online, it needs to sit somewhere that will hand it to
         anyone who asks for it — that is all hosting is. There is nothing to install and nothing
         running anywhere.

@@ -179,6 +179,16 @@ export function Preview({ project, onList = false, action, onCover }: PreviewPro
          */}
         {open && action}
       </div>
+      {/*
+       * **`wide:h-[min(80dvh,46rem)]`, with the reason it was missing** (B-39). Narrow, the
+       * drawer is `fixed inset-0 h-dvh` and this box simply takes what is left of it. Wide, it
+       * sits *beside* the question in an ordinary column with no height to inherit, so it has to
+       * state one — and a page frame is judged by whether it looks like a phone, which is a
+       * question about its **proportion**, not its area. `80dvh` is what leaves the list's own
+       * heading and bar visible above it on a laptop; `46rem` is the cap that stops a tall
+       * monitor stretching a 27.5rem-wide frame into a strip nothing on a phone resembles. The
+       * smaller of the two wins, which is `80dvh` on every screen shorter than about 920px.
+       */}
       <div
         className="min-h-0 flex-1 justify-center [&:not([hidden])]:flex wide:h-[min(80dvh,46rem)] wide:flex-none"
         id={drawerId}
@@ -190,10 +200,17 @@ export function Preview({ project, onList = false, action, onCover }: PreviewPro
          * JavaScript (§5.3, invariant 1), so it needs no script permission, and withholding
          * `allow-same-origin` keeps the previewed page off the builder's origin and away from
          * the project in `localStorage`.
+         *
+         * **`max-w-page` rather than a hand-written `27.5rem`** (B-39). The width of the page
+         * frame is a measure the tool refers to in prose as well as in a class list — the row
+         * above argues about where it starts from the fact that the column is 32rem and the frame
+         * inside it is 27.5rem — so it is a `--container-*` token now, generated from the same
+         * namespace `max-w-lg` comes from. `w-full max-w-page` is `min(100%, 27.5rem)`: full
+         * width of whatever it is given, clamped at the measure.
          */}
         {open && (
           <iframe
-            className="enter-fade block h-full w-[min(100%,27.5rem)] border border-rule bg-surface"
+            className="enter-fade block h-full w-full max-w-page border border-rule bg-surface"
             title="Your page"
             data-preview-frame
             sandbox=""

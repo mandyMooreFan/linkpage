@@ -217,8 +217,21 @@ export function HoursQuestion({
       <ul className="m-0 flex list-none flex-col p-0">
         {WEEKDAYS.map((day) => {
           const form = days[day];
+          /*
+           * **`py-4`, not `py-2`** (B-12). The row's own internal gap is `gap-2` — 8px between the
+           * day's one line and the times under it — and the padding around it was the same 8px, a
+           * **1×** ratio where §1 asks a row's padding to be ≥4× the gap inside it. With seven of
+           * these stacked behind hairlines the boundary *between* two days read as no stronger
+           * than the boundary *inside* one, which is the grouping inverted.
+           *
+           * 16px is `ROW_PADDING`'s number, which the review list's rows already take, so the two
+           * lists of rows in the tool are separated by the same amount. The hairline stays: B-12
+           * asks for the padding and not for the separator, and these rows are the flow's own
+           * sub-list rather than the review list's family — #191 scoped `row.ts` to `list/`
+           * deliberately, and widening it to here would be re-auditing.
+           */
           return (
-            <li key={day} className="flex flex-col gap-2 border-b border-rule py-2">
+            <li key={day} className="flex flex-col gap-2 border-b border-rule py-4">
               {/*
                * One line: the day, then all three states at once (§7.10). The `<select>` is gone
                * — three states that need no opening is what makes a closed or an unshown day
@@ -340,12 +353,43 @@ export function HoursQuestion({
                      * source is the day the owner most recently typed on, which is where they
                      * are already looking.
                      */}
+                    {/*
+                     * **The label is a heading over the two buttons it labels, and the three are
+                     * one group** (B-66). They used to be three loose children of the wrapping
+                     * row, so the line read *Add another time · Copy these times · to weekdays*
+                     * and then wrapped, dropping *to every day* onto the next line — the label
+                     * split from half of what it labels, at **both** of §7.6's sizes. On a phone
+                     * it was worse: the wrap left *Copy these times* at the end of a line whose
+                     * only other occupant was *Add another time*, a button it does **not** label,
+                     * with both of its real buttons below it. A label that reads as belonging to
+                     * the wrong control is worse than no label, and §1 asks that related items sit
+                     * closer than unrelated ones.
+                     *
+                     * **A heading rather than one non-wrapping line**, which is B-66's other
+                     * offered fix and the one the review shots chose. Held on one line the three
+                     * fit nowhere: on a phone the two buttons and the gaps take all but ~60px of
+                     * the column, so the label squeezes to *Copy / these / times* — photographed,
+                     * and worse than the defect. Full-width, the sentence sits directly above
+                     * exactly what it introduces, reads the same at 390 and at 1440, and needs no
+                     * breakpoint to say so.
+                     *
+                     * `self-center` on the buttons because `WEIGHT.secondary` carries
+                     * `self-start`, which overrides this group's `items-center` (B-40). Done at
+                     * the call site rather than by editing the weight: #228 owns `Button` next
+                     * and a weight is not this ticket's to move.
+                     */}
                     {source?.day === day && isFilled(form) && (
-                      <>
-                        <span className={TYPE.quietLine.className}>Copy these times</span>
-                        <Button onClick={() => copyFrom(day, WEEKDAY_KEYS)}>to weekdays</Button>
-                        <Button onClick={() => copyFrom(day, WEEKDAYS)}>to every day</Button>
-                      </>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`w-full ${TYPE.quietLine.className}`}>
+                          Copy these times
+                        </span>
+                        <Button className="self-center" onClick={() => copyFrom(day, WEEKDAY_KEYS)}>
+                          to weekdays
+                        </Button>
+                        <Button className="self-center" onClick={() => copyFrom(day, WEEKDAYS)}>
+                          to every day
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>

@@ -2,6 +2,7 @@ import { useRef, type JSX, type ReactNode } from "react";
 import { PRESETS, type PresetId } from "../presets.js";
 import { Question } from "./Question.js";
 import { Button } from "../../ui/Button.js";
+import { Panel } from "../../ui/Panel.js";
 import { TYPE } from "../../ui/type.js";
 
 /**
@@ -106,13 +107,18 @@ export function PresetQuestion({
               }}
             />
             {/*
-             * A `<div>` and not a `<p>`: §4.6 puts the technical half of a refusal behind a
-             * disclosure, and a `<details>` is flow content that cannot live inside a paragraph.
+             * `Panel`, not a hand-rolled copy of its recipe (B-47) — and `Panel` renders a
+             * `<div>` rather than a `<p>`, which is what this site needs anyway: §4.6 puts the
+             * technical half of a refusal behind a disclosure, and a `<details>` is flow content
+             * that cannot live inside a paragraph.
+             *
+             * The `mt-2` stays here, unlike `LogoQuestion`'s. This is the question's `footer`
+             * slot, which is ordinary block flow with no gap of its own to stack on.
              */}
             {fileError !== undefined && fileError !== null && (
-              <div className="mt-2 border-s-2 border-notice ps-3 font-sans" data-open-error>
+              <Panel tone="notice" className="mt-2" data-open-error>
                 {fileError}
-              </div>
+              </Panel>
             )}
           </>
         )
