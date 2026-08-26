@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { App } from "./App.js";
 import { installDownloads, type FakeDownloads } from "./download/downloads.testing.js";
 import { PROJECT_STORAGE_KEY, type StorageLike } from "./project/index.js";
+import { WEIGHT } from "./ui/Button.js";
+import { filledLabels } from "./ui/fill.testing.js";
 
 /**
  * The seam, end to end. `SPEC.md` §7.1.
@@ -662,6 +664,40 @@ describe("opening a project you already have (§7.8, §7.9)", () => {
       // is where it always was.
       expect(document.querySelector("[data-refusal]")).toBeNull();
       expect(confirmation()).toContain("Opening this file will replace it.");
+    });
+
+    /**
+     * One filled button per screen, across the seam that composes the two (§4, §6; #228).
+     *
+     * `list.test.tsx` holds the expression itself, with the real `ReplaceConfirm` handed to it.
+     * This is the other half: the fork raised the way the owner raises it — a file coming back
+     * from the OS picker — and answered the way the owner answers it, with the fill going back
+     * where it came from. The two fills belong to two components and only `App` puts them on one
+     * screen, so only here can the defect be reproduced end to end.
+     *
+     * jsdom has no `matchMedia`, so the drawer reads the phone and the list lands page-first —
+     * which is why *Edit your page* comes first. That is the same press #200 needed to photograph
+     * this surface at 390px, and with the page up `covered` outranks the confirmation anyway and
+     * Download travels into the drawer's header still filled (#186; held in `list.test.tsx`).
+     */
+    it("steps the list's Download down while the fork is open, and hands the fill back (#228)", async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Edit your page" }));
+      expect(filledLabels()).toEqual(["Download"]);
+
+      openTheMenu();
+      await pick(projectJson(BOS));
+
+      // Two solid fills a couple of centimetres apart is what this fixes: the confirmation's own
+      // errand keeps the one fill (#200), and Download steps to the same box without it.
+      expect(filledLabels()).toEqual(["Open the file"]);
+      expect(screen.getByRole("button", { name: "Download" }).className).toContain(
+        WEIGHT.secondary,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+      // The fork is answered, so the screen is the list again and Download is what it is for.
+      expect(filledLabels()).toEqual(["Download"]);
     });
   });
 });
