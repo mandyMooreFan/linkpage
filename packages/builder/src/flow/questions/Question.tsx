@@ -1,6 +1,7 @@
 import { Button } from "../../ui/Button.js";
 import { LADDER } from "../../ui/ladder.js";
 import { TextArea, TextInput, UrlInput } from "../../ui/TextInput.js";
+import { HEADING, TYPE } from "../../ui/type.js";
 import {
   cloneElement,
   createContext,
@@ -163,17 +164,24 @@ export function Question({
             }}
           >
             {preamble !== undefined && (
-              <p className="-mb-2 font-sans text-sm text-ink-quiet" data-question-preamble>
+              <p className={`-mb-2 font-sans ${TYPE.quietLine.className}`} data-question-preamble>
                 {preamble}
               </p>
             )}
             {shell.level === 1 ? (
-              <h1 className="text-3xl leading-tight tracking-tight">{title}</h1>
+              <h1 className={HEADING.page.className}>{title}</h1>
             ) : (
-              <h2 className="text-2xl leading-tight tracking-tight">{title}</h2>
+              <h2 className={HEADING.screen.className}>{title}</h2>
             )}
+            {/*
+             * **The same size as the preamble above the title** (B-30, design change 11). This was
+             * `text-base`, which made one role — the component's own doc comment calls both of them
+             * "one quiet line" — two sizes in one file, and made a hint the same size as the `Field`
+             * label directly under it, separated from it by weight alone. `text-ink-quiet` was
+             * always the instrument doing the de-emphasis, which is the order §2 asks for.
+             */}
             {hint !== undefined && (
-              <p className="-mt-2 font-sans text-base text-ink-quiet" data-question-hint>
+              <p className={`-mt-2 font-sans ${TYPE.quietLine.className}`} data-question-hint>
                 {hint}
               </p>
             )}
@@ -413,14 +421,14 @@ export function Field({
   // 12px inside a gapped copy of it, which is one hint at three distances (B-11).
   const hintText =
     hint === undefined ? null : (
-      <span className="block text-sm text-ink-quiet" id={hintId} data-hint>
+      <span className={`block ${TYPE.quietLine.className}`} id={hintId} data-hint>
         {hint}
       </span>
     );
   // Live, so it is announced when it appears rather than only when the control is next reached.
   const messageText =
     message === undefined ? null : (
-      <span className="block text-sm text-notice" id={messageId} data-message role="status">
+      <span className={`block ${TYPE.notice.className}`} id={messageId} data-message role="status">
         {message}
       </span>
     );

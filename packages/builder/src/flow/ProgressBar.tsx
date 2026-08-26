@@ -1,5 +1,6 @@
 import { useId, useState, type JSX } from "react";
 import type { Step } from "./plan.js";
+import { TYPE } from "../ui/type.js";
 
 /**
  * The flow's progress bar. `SPEC.md` §7.2, §7.4's one exception, §7.11 (#139, #146).
@@ -25,6 +26,16 @@ import type { Step } from "./plan.js";
  *
  * The bar is static chrome (§7.11): `Flow.tsx` renders it outside the subtree that remounts
  * per screen, which is what lets the fill tween instead of blinking.
+ *
+ * **The whole bar is set at one size, declared once on the root** (design change 11, B-31). It
+ * used to name the topic you are on at 14px in the header and again at 16px in the drawer that
+ * opens directly beneath it, so tapping the bar showed the same words twice, two sizes apart, on
+ * one screen — while the `done` marker inside those 16px rows was itself 14px, so one row mixed
+ * both sizes and its header twin mixed neither. Setting the two places to the same size would have
+ * closed the instance and left the shape: two declarations that have to agree. One cannot.
+ * `controls.test.ts` holds it — this file may set a type size exactly once, on the element carrying
+ * `data-progress-bar` — and `ProgressBar.test.tsx` proves it on the rendered bar, by finding the
+ * current topic's name in both places and comparing the size each one actually inherits.
  */
 
 /** One bar unit: a topic's label and the span of screens it owns in this plan. */
@@ -100,7 +111,7 @@ export function ProgressBar({
   const current = units.find((unit) => at >= unit.first && at <= unit.last);
 
   return (
-    <div className="mb-6 font-sans" data-progress-bar>
+    <div className={`mb-6 font-sans ${TYPE.bar.className}`} data-progress-bar>
       {/*
        * The whole bar is the control (§7.2): full-width named rows beat per-segment targets on
        * a phone, so tapping anywhere on it drops open the run's topic list.
@@ -112,7 +123,7 @@ export function ProgressBar({
         aria-controls={listId}
         onClick={() => setOpen(!open)}
       >
-        <span className="flex items-baseline justify-between text-sm">
+        <span className="flex items-baseline justify-between">
           <span className="font-medium text-ink">{current?.label}</span>
           <span className="text-ink-quiet">
             {finished} of {units.length} done
@@ -148,7 +159,7 @@ export function ProgressBar({
               <span className={unit === current ? "font-medium text-ink" : "text-ink"}>
                 {unit.label}
               </span>
-              {done.has(unit.label) && <span className="text-sm text-ink-quiet">done</span>}
+              {done.has(unit.label) && <span className="text-ink-quiet">done</span>}
             </button>
           </li>
         ))}

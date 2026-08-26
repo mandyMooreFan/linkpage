@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import type { Refusal } from "../project/index.js";
+import { TYPE } from "../ui/type.js";
 
 /**
  * A refused file, said out loud. `SPEC.md` §7.9, §4.6.
@@ -48,7 +49,7 @@ export function RefusalNotice({ refusal }: RefusalNoticeProps): JSX.Element {
        * It exists so that the person who opened the file in a text editor and broke it has
        * somewhere to look, without the message above having to be written for them.
        */}
-      <details className="mt-2 text-sm text-ink-quiet">
+      <details className={`mt-2 ${TYPE.quietLine.className}`}>
         <summary className="cursor-pointer">Technical detail</summary>
         <p className="mt-1 [overflow-wrap:anywhere]" data-refusal-text>
           {refusal.detail}

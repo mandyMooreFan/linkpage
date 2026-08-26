@@ -6,6 +6,7 @@ import { Button } from "../../ui/Button.js";
 import { TimeBox } from "../../ui/TimeBox.js";
 import { SEEDED_HOURS_PREFERENCES } from "../../project/environment.js";
 import { TextInput } from "../../ui/TextInput.js";
+import { TYPE } from "../../ui/type.js";
 
 /**
  * Opening hours. `SPEC.md` §2.3, §7.2, §7.3.
@@ -318,7 +319,7 @@ export function HoursQuestion({
                    * once it is true.
                    */}
                   {form.carriedFrom !== undefined && (
-                    <p className="text-sm text-ink-quiet" data-carried>
+                    <p className={TYPE.quietLine.className} data-carried>
                       Same as {SHORT_DAY[form.carriedFrom]} — change it below if it isn&rsquo;t.
                     </p>
                   )}
@@ -341,7 +342,7 @@ export function HoursQuestion({
                      */}
                     {source?.day === day && isFilled(form) && (
                       <>
-                        <span className="text-sm text-ink-quiet">Copy these times</span>
+                        <span className={TYPE.quietLine.className}>Copy these times</span>
                         <Button onClick={() => copyFrom(day, WEEKDAY_KEYS)}>to weekdays</Button>
                         <Button onClick={() => copyFrom(day, WEEKDAYS)}>to every day</Button>
                       </>

@@ -8,6 +8,7 @@ import { UrlField } from "../ui/TextField.js";
 import { Button } from "../ui/Button.js";
 import { LADDER } from "../ui/ladder.js";
 import { ROW_LIST, ROW_STACK_PADDING } from "../ui/row.js";
+import { TYPE } from "../ui/type.js";
 
 /**
  * The link buttons row: arrows, and a marked top slot. `SPEC.md` §7.5, §2.3, §7.6.
@@ -67,7 +68,7 @@ export function LinkButtons({
 
   return (
     <div className="flex flex-col items-start gap-4">
-      <p className="text-sm text-ink-quiet">
+      <p className={TYPE.quietLine.className}>
         People read from the top. The first button is the one most of them will tap.
       </p>
 
@@ -89,7 +90,7 @@ export function LinkButtons({
             data-button-row
           >
             {index === 0 && (
-              <p className="m-0 text-sm font-semibold text-notice" data-mark>
+              <p className={`m-0 ${TYPE.notice.className}`} data-mark>
                 Most people will tap this one
               </p>
             )}

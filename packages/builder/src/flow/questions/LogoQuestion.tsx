@@ -3,6 +3,7 @@ import { useRef, useState, type JSX } from "react";
 import { browserImageCodec, importLogo, LOGO_ACCEPT, type LogoIntake } from "../../logo/index.js";
 import { Question } from "./Question.js";
 import { Button } from "../../ui/Button.js";
+import { TYPE } from "../../ui/type.js";
 
 /**
  * The logo step. `SPEC.md` §6.6, §7.9.
@@ -90,7 +91,7 @@ export function LogoQuestion({
         </p>
       )}
       {logo !== null && message === null && (
-        <p className="text-sm text-ink-quiet">Have a look at your page to see it.</p>
+        <p className={TYPE.quietLine.className}>Have a look at your page to see it.</p>
       )}
     </Question>
   );

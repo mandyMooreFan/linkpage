@@ -5,6 +5,7 @@ import { sheetWarnings } from "../project/unusable.js";
 import { Hosting } from "./Hosting.js";
 import { HTML_TYPE, saveTextFile, type FileDownload } from "./save.js";
 import { Button, type ButtonWeight } from "../ui/Button.js";
+import { HEADING, TYPE } from "../ui/type.js";
 
 /**
  * Download: one sheet, two sections. `SPEC.md` §7.7, §8, §6.1.
@@ -206,7 +207,7 @@ export function DownloadSheet({
         ref={panel}
       >
         <div className="flex items-center justify-between gap-4">
-          <h2 className="font-serif text-2xl leading-tight" id={titleId}>
+          <h2 className={HEADING.screen.className} id={titleId}>
             Download
           </h2>
           <Button type="button" weight="secondary" onClick={onClose}>
@@ -222,7 +223,7 @@ export function DownloadSheet({
           className="mt-8 border-t border-rule pt-8 first-of-type:mt-6 first-of-type:border-0 first-of-type:pt-0"
           data-section="page"
         >
-          <h3 className="font-serif text-xl">Put your page online</h3>
+          <h3 className={HEADING.section.className}>Put your page online</h3>
           <p className="mt-2 [&_code]:[overflow-wrap:anywhere]">
             This is your web page — <code>{EXPORT_FILENAME}</code>. Put it online and anyone can
             visit it.
@@ -244,7 +245,7 @@ export function DownloadSheet({
           {warnings.length > 0 && (
             <div className="mt-3 flex flex-col gap-1" data-warnings>
               {warnings.map((line) => (
-                <p key={line} className="text-notice">
+                <p key={line} className={TYPE.notice.className} data-warning>
                   {line}
                 </p>
               ))}
@@ -265,7 +266,7 @@ export function DownloadSheet({
           className="mt-8 border-t border-rule pt-8 first-of-type:mt-6 first-of-type:border-0 first-of-type:pt-0"
           data-section="project"
         >
-          <h3 className="font-serif text-xl">Keep a copy of your work</h3>
+          <h3 className={HEADING.section.className}>Keep a copy of your work</h3>
           <p className="mt-2 [&_code]:[overflow-wrap:anywhere]">
             This is your saved work —{" "}
             <code>{projectDownload?.filename ?? PROJECT_FILENAME_FALLBACK}</code>. It’s how you make

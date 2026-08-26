@@ -2,6 +2,7 @@ import { useRef, type JSX, type ReactNode } from "react";
 import { PRESETS, type PresetId } from "../presets.js";
 import { Question } from "./Question.js";
 import { Button } from "../../ui/Button.js";
+import { TYPE } from "../../ui/type.js";
 
 /**
  * Step one: _"What kind of business is this?"_ `SPEC.md` §7.3, §7.8, §7.9.
@@ -132,7 +133,7 @@ export function PresetQuestion({
             >
               <span className="font-medium">{preset.label}</span>
               {preset.examples !== "" && (
-                <span className="text-sm text-ink-quiet">{preset.examples}</span>
+                <span className={TYPE.quietLine.className}>{preset.examples}</span>
               )}
             </button>
           </li>

@@ -19,6 +19,7 @@ import {
 } from "../flow/topics.js";
 import { Preview } from "../preview/Preview.js";
 import { LADDER } from "../ui/ladder.js";
+import { HEADING, TYPE } from "../ui/type.js";
 import type { Draft } from "../project/index.js";
 import { removeTopic, setLang } from "./edits.js";
 import { LANGUAGE_NAMES } from "./languages.js";
@@ -236,13 +237,20 @@ export function List({
            * true. No second line is added for that case — the row now showing its content is its
            * own confirmation.
            */}
+          {/*
+           * **One quiet line above a title is 14px** (design change 11, B-30). This was
+           * `text-base`, which made it the one exception to the role the flow's own preamble sets
+           * — the same line, in the same place relative to the same heading, one screen earlier.
+           * The finding named `Question.tsx`; the role is what is being settled, so this goes with
+           * it rather than staying the last copy of the size it had.
+           */}
           {arrived && (
-            <p className="font-sans text-base text-ink-quiet" data-arrival role="status">
+            <p className={`font-sans ${TYPE.quietLine.className}`} data-arrival role="status">
               Your page is ready. Look it over, then download it.
             </p>
           )}
 
-          <h1 className="font-serif text-3xl leading-tight tracking-tight">{draft.header.name}</h1>
+          <h1 className={HEADING.page.className}>{draft.header.name}</h1>
         </div>
 
         <ul className={`mt-6 ${ROW_LIST}`}>
@@ -260,8 +268,15 @@ export function List({
 
         {uncovered.length > 0 && (
           <section className="mt-8">
-            {/* 24px, the same as the title-to-rows gap: the identical relationship (B-44). */}
-            <h2 className="mb-6 font-serif text-xl">Anything else?</h2>
+            {/*
+             * 24px, the same as the title-to-rows gap: the identical relationship (B-44).
+             *
+             * The recipe is the level's, not this heading's (design change 11, B-32). It used to be
+             * `text-xl` with no leading or tracking — a third `<h2>` spelling in a list that
+             * already renders one at `HEADING.screen` every time a row opens, so two headings of
+             * the same rank sat four pixels and two type settings apart on one screen.
+             */}
+            <h2 className={`mb-6 ${HEADING.screen.className}`}>Anything else?</h2>
             {/*
              * Ticking one of these does not park an empty row: it hands the topic to the flow,
              * which walks the owner through it and puts them back here (§7.1). That is why the
@@ -452,7 +467,7 @@ function RowItem({
         aria-controls={bodyId}
         onClick={onToggle}
       >
-        <span className="text-sm font-medium text-ink-quiet" data-row-label>
+        <span className={`${TYPE.quietLine.className} font-medium`} data-row-label>
           {row.label}
         </span>
         {!open && (
@@ -473,7 +488,7 @@ function RowItem({
          * the row opens the same question, with the same message.
          */}
         {row.mark !== undefined && (
-          <span className="text-sm text-notice" data-mark>
+          <span className={TYPE.notice.className} data-mark>
             {row.mark}
           </span>
         )}
@@ -531,7 +546,7 @@ function LangRow({
         <legend className="block text-base font-medium">Page language</legend>
         {/* The gapped fieldset owns the offset; `mt-1` on top of it was the third distance the
             same hint string rendered at (B-11). */}
-        <span className="block text-sm text-ink-quiet">
+        <span className={`block ${TYPE.quietLine.className}`}>
           It sets the words on your page, and tells screen readers how to read it.
         </span>
 
@@ -574,7 +589,7 @@ function LangRow({
                 }}
               >
                 <span className="text-base">{choice.name}</span>
-                <span className="text-sm text-ink-quiet" dir={choice.dir}>
+                <span className={TYPE.quietLine.className} dir={choice.dir}>
                   {choice.sample}
                 </span>
               </button>
