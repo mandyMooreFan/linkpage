@@ -7,6 +7,7 @@ import { serializeProject, writeDraft, readDraft, type Draft } from "../project/
 import { Flow } from "./Flow.js";
 import type { FlowEntry } from "./plan.js";
 import { PRESETS, type PresetId } from "./presets.js";
+import { filledButtons } from "../ui/fill.testing.js";
 
 /**
  * The flow, driven screen by screen. `SPEC.md` §7.1–§7.3, §7.8, §7.9.
@@ -95,6 +96,27 @@ function decline(preset: PresetId, name = "Ada's Bakery", colour = 0): string[] 
   for (let guard = 0; guard < 40 && !onList(); guard += 1) {
     const heading = title();
     seen.push(heading);
+
+    /**
+     * §4, §6: **exactly one solid high-contrast button per screen** (design change 3).
+     *
+     * Asserted here rather than in a test of its own because it is the same kind of claim the
+     * walk already makes — a property every screen must have, checked on every screen there is,
+     * for every preset. The hours step is why it is worth holding: it stacked seven solid ink
+     * blocks for seven days nobody had chosen while Continue sat disabled and pale, so the
+     * strongest objects on the screen were defaults and the one real action was the faintest
+     * thing on it. #192 moved the segments onto the shared picked mark; this is what says they
+     * stay off the fill.
+     *
+     * **Identity rather than a count**, because the count alone would go green on a screen whose
+     * one fill had wandered onto something that is not the action: what §4 gives the fill to is
+     * *the* primary action, and on every step that has one, that is Continue. The step that has
+     * none is §7.3's first — choosing a preset *is* answering it, so there is no submit and
+     * nothing on it is filled.
+     */
+    expect(filledButtons(), `the one fill belongs to Continue, on "${heading}"`).toEqual(
+      submit() === null ? [] : [submit()],
+    );
 
     if (heading === PRESET_QUESTION) {
       // Step one has no escape and no Continue: choosing *is* answering (§7.3).

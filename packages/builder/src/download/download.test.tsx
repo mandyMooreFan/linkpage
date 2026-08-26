@@ -8,6 +8,8 @@ import { DownloadSheet, PROJECT_FILENAME_FALLBACK } from "./DownloadSheet.js";
 import { installDownloads, type FakeDownloads } from "./downloads.testing.js";
 import type { Draft } from "../project/index.js";
 import type { FileDownload } from "./save.js";
+import { WEIGHT } from "../ui/Button.js";
+import { filledLabels } from "../ui/fill.testing.js";
 
 /**
  * The Download sheet. `SPEC.md` §7.7, §8, §6.1.
@@ -128,6 +130,40 @@ describe("two sections, in the order they happen (§7.7)", () => {
     // Both sections are one surface: the sentence above is what does the work, and it has no
     // room to exist beside a second button on the list.
     expect(document.querySelectorAll("[data-section]")).toHaveLength(2);
+  });
+
+  /**
+   * One filled button per screen (§4, §6; design change 3, finding B-19).
+   *
+   * The sheet rendered both downloads solid, so a screen whose whole design is *first this, then
+   * that* said the two were equal and left the order to do the arguing alone. The page keeps the
+   * fill because it is what the button was pressed for; the project file steps down to §4's
+   * secondary — **its prose already does the persuading**, and the sentence it turns on is the
+   * one thing on this sheet set in bold.
+   *
+   * Stepping down is not stepping back: section two is still second, still here rather than in a
+   * menu, and still a labelled button sharing every measurement with the one above it.
+   *
+   * The ritual's `60-download-sheet` stops at the fold, so section two is below it and this
+   * change is invisible in the standing set — the same blind spot the review list has. Its
+   * before-and-after came out of a patched copy of the script, taken once and thrown away.
+   * What it gives up is the fill, which there is only one of.
+   */
+  it("fills the page's download and steps the project file's down", () => {
+    open({ projectDownload: { filename: "adas-bakery.linkpage.json", save: () => {} } });
+
+    expect(filledLabels()).toEqual(["Download index.html"]);
+
+    const backup = within(section("project")).getByRole("button");
+    expect(backup.className).toContain(WEIGHT.secondary);
+    expect(backup).toHaveProperty("disabled", false);
+  });
+
+  it("keeps the fill on the page even when there is no project file to offer", () => {
+    open();
+    // The unavailable state is section two's own (see the seam below); the fill does not wander
+    // back just because the second button is disabled.
+    expect(filledLabels()).toEqual(["Download index.html"]);
   });
 });
 

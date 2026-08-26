@@ -150,9 +150,35 @@ export function List({
    * places it is in, so there is exactly one Download on the screen and exactly one in the
    * accessibility tree — a second copy hidden by a media query would be read out by a screen
    * reader on the size that needs it least.
+   *
+   * **It carries the screen's one fill, and hands it over while a row is open** (§4, §6; design
+   * change 3, B-18/B-51). An open row is a form with its own Save, so the screen showed two solid
+   * ink fills a few centimetres apart, disagreeing about what the owner is in the middle of. §4
+   * gives the one filled object to the one action, and while a row is open that action is
+   * finishing the answer — so Download steps down and takes it back when the row closes.
+   *
+   * Three things make that a step down rather than a flicker:
+   *
+   * - **It follows the screen's mode, never the pointer.** Nothing that opens or closes a row is
+   *   Download: rows open from their own header, and close on their Save or on the escape inside
+   *   them. The fill never leaves a button under a press.
+   * - **`secondary`, not `quiet`.** The same box — padding, radius, type and tap floor are shared
+   *   with `primary` and asserted to be (`controls.test.ts`, *differs from Continue only in
+   *   fill*) — so nothing moves or resizes; a hairline arrives where the fill was. `quiet` would
+   *   make a footnote of the one thing §7.4 pins to this screen, which is the defect #189 spent a
+   *   ticket undoing for the escapes.
+   * - **`covered` outranks it**, because the screen is what is on the glass. With the page up on a
+   *   phone the drawer is an opaque surface and the open row is not on screen at all, so there is
+   *   no second fill to make room for — and a drawer whose only control was an outline is exactly
+   *   what #186 was raised to fix (B-48). Where Download travels, it travels filled.
    */
   const download = (
-    <Button type="button" weight="primary" disabled={onDownload === undefined} onClick={onDownload}>
+    <Button
+      type="button"
+      weight={!covered && open !== null ? "secondary" : "primary"}
+      disabled={onDownload === undefined}
+      onClick={onDownload}
+    >
       Download
     </Button>
   );

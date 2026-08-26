@@ -291,6 +291,59 @@ describe("the one button", () => {
 });
 
 /**
+ * There is one solid fill, and it belongs to one action. `SPEC.md` §7.4, §4, §6; design change 3
+ * (#190), findings B-18, B-19, B-51, B-60.
+ *
+ * §4 gives the highest-contrast fill on a screen to the single primary action, which only means
+ * anything if the tool has exactly one fill to give. It nearly had three: the review list showed
+ * the pinned Download and an opened row's Save at once, the Download sheet rendered both of its
+ * downloads solid, and the hours step stacked **seven** — one per day, every one of them a
+ * default nobody had chosen — under a Continue that was disabled and pale.
+ *
+ * **Two halves, and neither is enough alone.** Here is the half the source can answer: the fill is
+ * `WEIGHT.primary` and there is no second way to spell it, so a hand-written `bg-ink` cannot open
+ * a fourth front the way the escape's `question__escape` did. *How many* of it reach a screen at
+ * once is a fact about state rather than about the source — all three defects above read
+ * perfectly in the files — so that half is asserted on the rendered screens, by `filledLabels`
+ * (`fill.testing.ts`) in `flow.test.tsx`, `list.test.tsx` and `download/download.test.tsx`.
+ *
+ * The hours step's own fix was **not** a weight change and is not held here: #192 took the
+ * segments off the fill and onto `theme.css`'s one `picked` mark, which *the one picked state*
+ * below guards. What holds it from this side is the flow walk, which now counts the fills on
+ * every step of every preset.
+ */
+describe("one solid fill, spent once (design change 3)", () => {
+  /**
+   * `bg-ink` as a whole class, so `bg-ink/40` is not caught by it.
+   *
+   * The distinction is the point rather than an escape hatch: a 40% wash over a screen is a scrim
+   * and not a fill, and #199 is about to spend exactly that on the sheet's `bg-black/40`, which
+   * is the one colour in the tool that is not a paper token.
+   */
+  const FILL = /\bbg-ink(?![\w-])(?!\/)/;
+
+  it("is written in the one button component and nowhere else", () => {
+    const offenders = others("./Button.tsx")
+      .filter(([, text]) => FILL.test(text))
+      .map(([path]) => path);
+    expect(offenders, "the solid fill is a weight, not a class to reach for").toEqual([]);
+  });
+
+  it("belongs to exactly one weight, so a screen cannot have two primaries by accident", () => {
+    const filled = Object.entries(WEIGHT).filter(([, classes]) => FILL.test(classes));
+    expect(filled.map(([name]) => name)).toEqual(["primary"]);
+  });
+
+  it("has one weight to step down to that is still the same box", () => {
+    // What a stepped-down primary becomes. *Differs from Continue only in fill* above is the
+    // measurement: the button that gives up the fill keeps its padding, radius, type and tap
+    // floor, so nothing moves on the screen when the fill travels.
+    expect(FILL.test(WEIGHT.secondary)).toBe(false);
+    expect(WEIGHT.secondary).toContain("bg-transparent");
+  });
+});
+
+/**
  * Every escape is the same button. `SPEC.md` §7.2, §7.4; design change 2 (#189).
  *
  * An escape is a **branch**, not a footnote: "we don't have set hours" is an answer, and the

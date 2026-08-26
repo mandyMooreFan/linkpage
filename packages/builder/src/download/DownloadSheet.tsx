@@ -4,7 +4,7 @@ import type { Draft } from "../project/index.js";
 import { sheetWarnings } from "../project/unusable.js";
 import { Hosting } from "./Hosting.js";
 import { HTML_TYPE, saveTextFile, type FileDownload } from "./save.js";
-import { Button } from "../ui/Button.js";
+import { Button, type ButtonWeight } from "../ui/Button.js";
 
 /**
  * Download: one sheet, two sections. `SPEC.md` §7.7, §8, §6.1.
@@ -255,7 +255,8 @@ export function DownloadSheet({
            * names the file rather than the act: `index.html` is anonymous in a downloads folder
            * and this is the last chance to say which one it is.
            */}
-          <SaveButton file={page} />
+          {/* The sheet’s one fill: it is what the button on the list was pressed for (§4). */}
+          <SaveButton file={page} weight="primary" />
           <Hosting />
         </section>
 
@@ -274,7 +275,12 @@ export function DownloadSheet({
             Keep it somewhere safe:{" "}
             <strong>if you lose it, you’d have to build your page again from scratch.</strong>
           </p>
-          <SaveButton file={projectDownload} fallbackName={PROJECT_FILENAME_FALLBACK} />
+          <SaveButton
+            file={projectDownload}
+            fallbackName={PROJECT_FILENAME_FALLBACK}
+            // The sentence above has already done the persuading (§4, design change 3).
+            weight="secondary"
+          />
         </section>
       </div>
     </div>
@@ -287,18 +293,40 @@ export function DownloadSheet({
  * Both sections use it, so the two downloads are the same control twice and cannot drift into
  * looking like different kinds of thing. It says the filename because §7.7's sentences do: what
  * the owner has to recognise later is a name in a folder, not a verb.
+ *
+ * **The weight is the caller's, and only one of the two is filled** (§4, §6; design change 3,
+ * B-19). The sheet used to render both solid, so a screen whose entire design is *first this,
+ * then that* said the two were equal and left the order to carry the distinction on its own. The
+ * page keeps the fill: it is what the button on the list was pressed for, and §4 gives the one
+ * filled object on a screen to the one action. **Section two's prose already does the persuading**
+ * — *if you lose it, you'd have to build your page again from scratch* is the one sentence on this
+ * sheet set in bold, and it is what carries the section, which is why the section is prose with a
+ * button in it rather than a button with a caption.
+ *
+ * Stepping down is not stepping back, and nothing else about section two moves: still second,
+ * still on this sheet rather than in a menu, still naming its own file, still unavailable rather
+ * than inert without one. §4's secondary shares every measurement with the primary above it and
+ * differs only in fill — photographed side by side while this landed, and the two frames differ
+ * in the fill and in nothing else, position and size included.
  */
 function SaveButton({
   file,
   fallbackName,
+  weight,
 }: {
   readonly file?: FileDownload;
   readonly fallbackName?: string;
+  /**
+   * **Required, with no default**, because there is one fill on this sheet and a default is a
+   * way of handing it out without deciding to. A third section added later has to say which of
+   * the two it is, and the rendered guard in `download.test.tsx` goes red if it says `primary`.
+   */
+  readonly weight: ButtonWeight;
 }): JSX.Element {
   return (
     <Button
       type="button"
-      weight="primary"
+      weight={weight}
       className="mt-4 [overflow-wrap:anywhere]"
       disabled={file === undefined}
       onClick={file?.save}
