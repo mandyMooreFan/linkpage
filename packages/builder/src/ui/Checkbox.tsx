@@ -17,7 +17,7 @@ import type { InputHTMLAttributes, JSX, Ref } from "react";
  * is the smallest change that puts the colour back on the ramp.
  *
  * **The box is stepped up to 1.25rem** from the browser's ~0.8125rem. At default size it reads as
- * a stray mark rather than as a control next to `text-lg` type.
+ * a stray mark rather than as a control next to the body type beside it.
  *
  * **The tap floor belongs to the row, not to the box** (§7.6). `tap` is `min-height: 2.75rem`,
  * and a checkbox 1.25rem wide by 2.75rem tall is a stretched rectangle in every engine that
