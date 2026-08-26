@@ -4,6 +4,13 @@
 [#181](https://github.com/mandyMooreFan/linkpage/issues/181). Audited **2026-08-25** against `main`
 @ `678af9d`.
 
+> **Amended since the audit.** The tables below are the audit as it stood, and are left as written.
+> One verdict has moved: **B-21's colour half**, recorded here as _deliberately left_ and as having
+> no ticket, went to the owner and was decided — one ink for every small text-only button — and
+> built by [#234](https://github.com/mandyMooreFan/linkpage/issues/234). `WEIGHT.quiet` names
+> `text-ink-quiet` and no call site names a colour on a `<Button>` at all. **R-6 is now the only
+> deliberate leave on the list with no ticket owning it.**
+
 ## Why this exists
 
 The map's destination is _both lists_ of

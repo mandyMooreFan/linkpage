@@ -120,6 +120,51 @@ const classLists = (text: string): string[] =>
   [...text.matchAll(/["'`]([^"'`]*)["'`]/g)].map((match) => match[1] ?? "");
 
 /**
+ * Every colour `theme.css` names, so a rule about colours cannot be written against a list of
+ * them typed out here and left behind the day an eleventh arrives.
+ */
+const COLOUR_NAMES = [...theme.matchAll(/--color-([a-z0-9-]+)\s*:/g)].map(([, name]) => name ?? "");
+
+/** The colour classes a class string sets **at rest** — `disabled:` and friends excluded. */
+const restingColours = (classes: string): string[] =>
+  classes
+    .split(/\s+/)
+    .filter((one) => !one.includes(":") && COLOUR_NAMES.some((name) => one === `text-${name}`));
+
+/**
+ * Every `<Button …>` element in a file, as the text of its opening tag.
+ *
+ * **Brace-matched rather than regex-terminated**, because the first `>` after `<Button` is very
+ * often the one in an `onClick={() => …}`. Anything inside braces or quotes is skipped, so the
+ * tag ends at the first `>` the JSX itself owns — which is what makes "no button spells its own
+ * colour" a rule about the *button* rather than about the whole file it happens to sit in.
+ */
+const buttonElements = (text: string): string[] => {
+  const found: string[] = [];
+  const opener = /<Button\b/g;
+  for (let hit = opener.exec(text); hit !== null; hit = opener.exec(text)) {
+    let depth = 0;
+    let quote = "";
+    for (let at = hit.index + hit[0].length; at < text.length; at += 1) {
+      const char = text[at];
+      if (quote !== "") {
+        if (char === quote) quote = "";
+      } else if (char === '"' || char === "'" || char === "`") {
+        quote = char;
+      } else if (char === "{") {
+        depth += 1;
+      } else if (char === "}") {
+        depth -= 1;
+      } else if (char === ">" && depth === 0) {
+        found.push(text.slice(hit.index, at));
+        break;
+      }
+    }
+  }
+  return found;
+};
+
+/**
  * The two halves of the one focus treatment, read out of `theme.css` (#179 variant A, #188).
  *
  * **The ring, for everything with no line to thicken**, lives in `@layer base` — and it is read
@@ -388,6 +433,118 @@ describe("the one button", () => {
       if (name === "inline") continue;
       expect(classes, `${name} needs a disabled treatment`).toContain("disabled:");
     }
+  });
+
+  /**
+   * **The half the rule above cannot see** — and #234 is why it is here. A `disabled:` class that
+   * restates something the weight already wears at rest satisfies "has a disabled treatment" and
+   * draws nothing: `quiet` used to say unavailable with `disabled:text-ink-quiet`, which was a
+   * real step back from an ink it inherited, and stopped being one the moment the weight rested
+   * at `ink-quiet` itself. That is B-1's defect — a declaration that styles nothing — arriving
+   * through a guard that only counted the presence of a prefix.
+   */
+  it("says it by drawing something it does not already draw", () => {
+    for (const [name, classes] of Object.entries(WEIGHT)) {
+      if (name === "inline") continue;
+      const worn = new Set(classes.split(/\s+/).filter((one) => !one.includes(":")));
+      const changed = classes
+        .split(/\s+/)
+        .filter((one) => one.startsWith("disabled:"))
+        .map((one) => one.slice("disabled:".length))
+        // A pointer is not paint, and `disabled:border-rule` is `secondary` saying out loud that
+        // its hairline is the one thing that does *not* step back. Neither is a mark on its own.
+        .filter((one) => one !== "cursor-default" && !worn.has(one));
+      expect(changed, `${name} draws nothing new when it is unavailable`).not.toEqual([]);
+    }
+  });
+});
+
+/**
+ * One ink for every small text-only button. `SPEC.md` §4, §7.4; finding B-21, ticket #234.
+ *
+ * **The owner's call, and it is a taste call rather than a deduction** — which is why it sat open
+ * from #183 (deferred out of a refactor) through #227 (which set out why B-29's reading does not
+ * settle it) to #231's audit, one of only two findings on the whole change list deliberately left.
+ * The rejected alternative split the weight by what the button *does*: navigation (`Back`) lighter
+ * than acting on your own work (`Remove`, `Cancel`, "Or type a code"). One rule won, because two
+ * buckets is one more thing to sort a new button into.
+ *
+ * **What was actually wrong on `main` was worse than a split — it was unwritten.** `WEIGHT.quiet`
+ * declared no colour, so five of the six small text-only buttons took whatever ink their screen
+ * set, and the single place the tertiary colour appeared anywhere in the tool was the *exception*:
+ * `text-ink-quiet` on `Back`'s own call site. So these rules are two: the weight names the ink,
+ * **and no call site names one** — the second is the whole of the ticket, and the reason the first
+ * one alone would be green while the tool still had two tertiary inks on it.
+ */
+describe("one ink for every small text-only button (B-21)", () => {
+  it("is named by the weight", () => {
+    expect(restingColours(WEIGHT.quiet)).toEqual(["text-ink-quiet"]);
+  });
+
+  /**
+   * **Identity, not a count** (#190, #198, and #199's `text-lg` guard going red inside a day).
+   * "Exactly one weight names a colour" would be satisfied by `primary` alone and by any colour
+   * at all, so each weight is named against the ink it is supposed to take: `primary`'s own,
+   * because it stands on a fill; none for `secondary`, which takes the ink of the surface; none
+   * for `inline`, which takes the ink of the sentence it is a word of.
+   */
+  it("leaves every other weight taking the ink around it", () => {
+    expect(restingColours(WEIGHT.primary), "sits on a fill").toEqual(["text-ground"]);
+    expect(restingColours(WEIGHT.secondary), "takes the screen's ink").toEqual([]);
+    expect(restingColours(WEIGHT.inline), "takes its sentence's ink").toEqual([]);
+  });
+
+  it("is never respelled on a button, anywhere in the builder", () => {
+    const offenders = everySource().flatMap(([path, text]) =>
+      buttonElements(text)
+        .flatMap((element) => classLists(element).flatMap(restingColours))
+        .map((colour) => `${path}: ${colour}`),
+    );
+    expect(offenders, "colour is the weight's business, not the call site's").toEqual([]);
+  });
+
+  /**
+   * The scanner above is a sweep, and a sweep that finds nothing passes. This names the one site
+   * the override lived at, so the rule cannot go green by failing to see a `<Button>` at all.
+   */
+  it("still reaches the call site the override was written at", () => {
+    const question =
+      everySource().find(([path]) => path.endsWith("flow/questions/Question.tsx"))?.[1] ?? "";
+    const back = buttonElements(question).find((element) => element.includes('weight="quiet"'));
+    expect(back, "Question.tsx renders `Back` as a quiet button").toBeDefined();
+    expect(back, "and hands it a rung of the ladder, which is all it hands it").toContain(
+      "LADDER.betweenSections",
+    );
+  });
+
+  /**
+   * **Name the backdrop, and check every backdrop the thing is drawn on** (#184). This one is not
+   * hypothetical: `Cancel` is a quiet button inside §7.8's replace confirmation, which renders in
+   * the list menu's panel — `bg-surface` — while `Back`, `Remove` and "Or type a code" stand on
+   * the ground. Both are asserted, worst case first.
+   *
+   * A button is text a person has to read, so it is §3.3's 4.5 rather than SC 1.4.11's 3:1. The
+   * same ink at the same numbers already carries the placeholder (5.60 on the ground); what is new
+   * is that it now carries a *control*, which is a different promise made of the same two hexes.
+   */
+  it("clears the body threshold on both backdrops", () => {
+    for (const backdrop of BACKDROPS) {
+      expect(between("ink-quiet", backdrop), `on ${backdrop}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  /**
+   * **The tension #227 raised, as an assertion rather than a hope.** §4's tertiary is grey and
+   * underlined, and #198 gave a hint `text-sm text-ink-quiet` — so a quiet button that drifted
+   * down to 14px, or a hint that grew an underline, would leave the tool with one recipe saying
+   * both *supporting text* and *press me*. Two instruments keep them apart: the size step, and the
+   * underline, which in paper **is** the control (§7.4).
+   */
+  it("still reads as a control and not as a hint", () => {
+    expect(WEIGHT.quiet, "a control is pressable, and says so").toMatch(/\bunderline\b/);
+    expect(TYPE.quietLine.className, "a hint is not").not.toMatch(/\bunderline\b/);
+    expect(WEIGHT.quiet).toContain(TYPE.answer.className);
+    expect(TYPE.answer.px, "and stands a step above one").toBeGreaterThan(TYPE.quietLine.px);
   });
 });
 
@@ -1379,6 +1536,12 @@ describe("the progress bar's two boundaries", () => {
  * settled vocabulary is `disabled:text-ink-quiet disabled:border-rule`: the text steps back to
  * the quiet ink and the boundary stays a hairline.
  *
+ * **`disabled:no-underline` joined it with B-21's ink** (#234). Stepping the text back to
+ * `ink-quiet` is the move a control makes when it is *not* already there, and once `quiet` rests
+ * at that ink it had nothing left to step back to — so the one mark it has left, the underline
+ * that makes it pressable, is what it gives up. The vocabulary still says the same sentence in
+ * each weight's own instrument: the fill leaves, the text quietens, the offer to press goes.
+ *
  * **The allowance is read off `WEIGHT` rather than re-spelled here**, so the component layer
  * stays the definition of what a disabled control looks like and a hand-written control can
  * only borrow from it.
@@ -1395,6 +1558,7 @@ describe("one disabled vocabulary", () => {
       "disabled:bg-rule",
       "disabled:border-rule",
       "disabled:cursor-default",
+      "disabled:no-underline",
       "disabled:text-ink-quiet",
     ]);
   });

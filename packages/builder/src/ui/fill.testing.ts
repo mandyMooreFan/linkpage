@@ -30,3 +30,29 @@ export function filledButtons(root: ParentNode = document): HTMLButtonElement[] 
 export function filledLabels(root: ParentNode = document): string[] {
   return filledButtons(root).map((button) => button.textContent?.trim() ?? "");
 }
+
+/**
+ * The small text-only buttons on a surface — test support for B-21's one ink (#234).
+ *
+ * Found the same way and for the same reason as `filledButtons`: `WEIGHT.quiet` verbatim, so a
+ * rename follows rather than quietly matching nothing. What it is for is the other half of the
+ * ink rule — `controls.test.ts` can say no call site *spells* a colour on a `<Button>`, and only
+ * a rendered screen can say what the buttons a person is actually looking at came out as.
+ */
+export function quietButtons(root: ParentNode = document): HTMLButtonElement[] {
+  return [...root.querySelectorAll("button")].filter((button) =>
+    button.className.includes(WEIGHT.quiet),
+  );
+}
+
+/**
+ * The `text-*` classes a rendered element carries, in the order they were written.
+ *
+ * `Button` renders `${WEIGHT[weight]} ${className}`, so the weight's own type and ink come first
+ * and anything a call site adds lands after them — which is what lets an assertion say *this
+ * size and this ink, with nothing laid over them* rather than merely *this ink is present
+ * somewhere*.
+ */
+export function textClasses(element: Element): string[] {
+  return element.className.split(/\s+/).filter((one) => one.startsWith("text-"));
+}
