@@ -4,7 +4,7 @@
  *
  * Paper says **type is the only decoration** (§7.4) — there is no card, no fill and no elevation
  * to make one thing outrank another, so the size a string is set at *is* the hierarchy. That makes
- * these six numbers load-bearing in the same way `ladder.ts`'s four are, and it is why they live in
+ * these seven numbers load-bearing in the same way `ladder.ts`'s four are, and it is why they live in
  * one place rather than in whichever `text-*` each screen reached for.
  *
  * The rule they answer to, from §2: **every size is a step from one scale**; hierarchy is made with
@@ -31,12 +31,14 @@
  * choosing, with nothing on screen to compare it against. `controls.test.ts` asserts every entry
  * here reaches a screen.
  *
- * **`text-lg` is deliberately absent, and it is not unused.** The ruled line sets the owner's own
- * answer at 18px (`TextInput.tsx`), and the reorder arrows draw their glyphs at the same step.
- * Finding B-29 proposed dropping the value's size to `text-base` and it is item 0's, not this
- * ticket's — it shipped with #183 unaddressed. Recording it here as a role would settle by
- * accident a question the change list has already asked out loud, so `LINE_CLASS` keeps owning it
- * and the finding stays open.
+ * **`text-lg` was the question this file left open, and `answer` is the answer** (B-29, #227).
+ * #198 recorded five roles and deliberately did not record 18px as a sixth: the ruled line set
+ * the owner's own answer a step *above* the label naming it, item 0 of the change list had
+ * already agreed that was wrong, and naming the step would have settled by accident a question
+ * #180 asked out loud. `answer` settles it the other way — the value comes down to the body step
+ * and takes its distinction from weight, colour and the line under it, which is the order §2 asks
+ * for. `text-lg` now reaches no type role at all; the two reorder arrows still draw their glyphs
+ * at that step, and a glyph sized to be pressable is not a level of hierarchy.
  */
 
 /**
@@ -77,6 +79,26 @@ export const HEADING = {
  * list to four font weights against §2's two, to say a thing the colour was already saying.
  */
 export const TYPE = {
+  /**
+   * What the owner types, on the ruled line they type it on — every text field, the address, the
+   * time boxes, the prefixed web address (`TextInput.tsx`).
+   *
+   * **The same step as the label that names it, which is the whole of B-29.** Every input in the
+   * tool was `text-lg` while its own label was `text-base` and its hint `text-sm`, so the control
+   * shouted and the thing naming it did not — and the placeholder, being the input's own type,
+   * came out *larger than the field's name* (B-71). §2 puts weight and colour before size and
+   * allows one step per level of hierarchy; a label and its answer are not two levels, they are
+   * one field. So the size is the thing held still here, and three instruments already say which
+   * is which: the label's `font-medium` against the answer's regular weight, `text-ink-quiet` on
+   * everything around it against full ink on the answer, and the underline, which in paper *is*
+   * the control (§7.4).
+   *
+   * **Declared rather than inherited**, for B-16's reason one component over: Tailwind's preflight
+   * gives a form control `font-size: 100%`, so an undeclared input takes whatever the surface
+   * around it happens to be set at — which is exactly how `primary` came to have no size of its
+   * own and read at whatever the serif chain gave it.
+   */
+  answer: { className: "text-base", px: 16 },
   /**
    * One quiet line — a preamble above a title, a hint under a label, a sample under the option it
    * belongs to, the arrival line above the list's own name.

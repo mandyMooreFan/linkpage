@@ -238,13 +238,19 @@
  *
  * **The thickening must not reflow, and the padding is where the pixel comes from.** `py-2` is
  * `calc(var(--spacing) * 2)`; the second pixel of the line is taken back out of the padding
- * beneath it, written as the same expression so the two cannot drift. The field's height is set
- * by its content (45px, above the 44px `tap` floor), so without this every hint, field and
- * button below a focused line would move by a pixel — and `theme.css`'s own argument is that a
- * focus style that reflows is a focus style people turn off. Measured in Chromium on the name
- * step: padding 8px → 7px, border 1px → 2px, the field's own box 45px tall either way, `Continue`
- * at the same `y` and the document the same height. `controls.test.ts` ties the three numbers
- * together so `py-2` cannot move without the compensation moving with it.
+ * beneath it, written as the same expression so the two cannot drift. Without it every hint,
+ * field and button below a focused line would move by a pixel — and `theme.css`'s own argument
+ * is that a focus style that reflows is a focus style people turn off. Measured in Chromium on
+ * the name step: padding 8px → 7px, border 1px → 2px, the field's own box the same height either
+ * way, `Continue` at the same `y` and the document the same height. `controls.test.ts` ties the
+ * three numbers together so `py-2` cannot move without the compensation moving with it.
+ *
+ * **What the compensation holds changed under B-29 (#227), and it is still load-bearing.** The
+ * single-line field used to be 45px, taller than §7.6's 44px floor, so the padding was the only
+ * thing keeping its *box* still. At `TYPE.answer` it is 41px and the floor holds it at 44, so the
+ * box could not have grown anyway — and what the pixel now buys is that the *typed characters*
+ * hold still: 44 − 8 − 8 − 1 and 44 − 8 − 7 − 2 are the same 27px of content box. The address
+ * `<textarea>` is four rows tall and still clears the floor, so there it is the box, as before.
  *
  * **The rectangle is turned transparent rather than off.** `outline-style: none` would leave a
  * text field with no focus indicator at all in Windows High Contrast, where a 2px border and a

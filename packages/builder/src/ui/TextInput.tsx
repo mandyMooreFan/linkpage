@@ -1,6 +1,8 @@
 import { useId, useRef } from "react";
 import type { InputHTMLAttributes, JSX, Ref, TextareaHTMLAttributes } from "react";
 
+import { TYPE } from "./type.js";
+
 /**
  * A text control, as a ruled line rather than as a box.
  *
@@ -44,10 +46,28 @@ import type { InputHTMLAttributes, JSX, Ref, TextareaHTMLAttributes } from "reac
  * draws the line is where it belongs, and the two things standing on the line get one treatment
  * rather than the `focus:` / `focus-within:` pair they had, which asked two different questions
  * about focus and answered them differently.
+ *
+ * **The answer is set at `TYPE.answer`, not a step above its own label** (B-29, B-71). This line
+ * was `text-lg` — 18px against a `text-base` label and a `text-sm` hint — so the loudest type in
+ * a field was the field's own contents, and on an empty one the *placeholder* outsized the name
+ * of the field. The size now sits in `type.ts` beside every other role so the three can be
+ * compared as numbers rather than as Tailwind spellings, and the ordering that was being done
+ * with size is done with weight, colour and this line, which is §2's order.
+ *
+ * **What it costs, measured rather than argued** (#188's proof, re-run): the field's own box goes
+ * 45px → 44px, where §7.6's `tap` floor catches it and holds it — so the line stops being taller
+ * than the floor and starts resting exactly on it. Focus still moves nothing: 8px padding + 24px
+ * of line + 8px + 1px is 41px against a 44px `min-height`, and thickening the border to 2px makes
+ * it 42px, so the box was never going to grow. **The compensation is still load-bearing, and for
+ * a better reason than before.** With the floor deciding the height, `padding-bottom` is what
+ * decides where the text sits inside it: 44 − 8 − 8 − 1 and 44 − 8 − 7 − 2 are the same 27px of
+ * content box, so the typed characters hold still too. And the address `<textarea>` is four rows
+ * tall — well past the floor — so there the pixel taken back is still the only thing keeping the
+ * box from growing. `controls.test.ts` holds all of it.
  */
 export const LINE_CLASS =
-  "tap w-full border-0 border-b border-control-edge bg-transparent px-0 py-2 font-sans text-lg " +
-  "focus-line";
+  `tap w-full border-0 border-b border-control-edge bg-transparent px-0 py-2 font-sans ` +
+  `${TYPE.answer.className} focus-line`;
 
 /** The one recipe. Exported so `controls.test.ts` can assert on it rather than re-spell it. */
 export const INPUT_CLASS = `${LINE_CLASS} placeholder:text-ink-quiet`;

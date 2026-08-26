@@ -169,6 +169,60 @@ describe("the one text input", () => {
   });
 
   /**
+   * The answer is not a size step above its own label (B-29, B-71, item 0; #227).
+   *
+   * The line was `text-lg` against a `text-base` label and a `text-sm` hint, so the loudest type
+   * inside a field was the field's contents — and on an empty one the *placeholder* came out
+   * bigger than the name of the field, which is B-71 and is the same defect seen from the front.
+   * §2 allows one step per level of hierarchy and puts weight and colour ahead of size; a label
+   * and its answer are one field rather than two levels, so the size is what holds still and the
+   * `font-medium` on the label, the ink against `text-ink-quiet` and the underline do the work.
+   *
+   * **Asserted by naming the recipe, not by counting sizes** (#190's lesson, #198's shape): a
+   * line that swapped its size for the hint's would still hold exactly one, and would read
+   * wrongly. So this says *which* role the line is set at, and that it sets nothing else.
+   */
+  it("sets the owner's answer at the role type.ts names, and at no size of its own", () => {
+    expect(LINE_CLASS).toContain(TYPE.answer.className);
+    const own = LINE_CLASS.replace(TYPE.answer.className, "");
+    expect(own, "one size on the line, and it comes from the scale").not.toMatch(
+      /\btext-(xs|sm|base|lg|[2-9]?xl)\b/,
+    );
+  });
+
+  it("keeps no text control above the size of the label naming it", () => {
+    // 16px, anchored on `Field`'s own label rather than restated here — the number this ticket
+    // settled is a *relation* between two elements, so the guard has to read both.
+    const question =
+      everySource().find(([path]) => path.endsWith("flow/questions/Question.tsx"))?.[1] ?? "";
+    expect(question, "Question.tsx was not read").not.toBe("");
+    expect(question, "the field label is the body step").toMatch(/\btext-base font-medium\b/);
+    expect(TYPE.answer.px).toBe(16);
+    expect(TYPE.answer.px, "and a hint stays below both").toBeGreaterThan(TYPE.quietLine.px);
+  });
+
+  /**
+   * `text-lg` reaches no text control anywhere, which is the sweep half of B-29.
+   *
+   * The finding named "every input" and listed six sites; they all come through this file now, so
+   * one string closes it — but a seventh could be hand-written tomorrow and would look entirely
+   * ordinary in a diff. The two reorder arrows are the deliberate exception and are named as
+   * such: an arrow glyph sized to be pressable is not a level of type hierarchy.
+   */
+  it("leaves 18px on nothing that holds type", () => {
+    const offenders = everySource()
+      .filter(([path]) => !path.endsWith("list/LinkButtons.tsx"))
+      .filter(([, text]) => /\btext-lg\b/.test(text))
+      .map(([path]) => path);
+    expect(offenders, "the value's size comes from the scale now").toEqual([]);
+    const arrows = everySource().find(([path]) => path.endsWith("list/LinkButtons.tsx"))?.[1] ?? "";
+    expect(
+      [...arrows.matchAll(/\btext-lg\b/g)],
+      "the two arrow glyphs, and nothing else in that file",
+    ).toHaveLength(2);
+  });
+
+  /**
    * §7.4 moves the exact-colour field's example *out of the hint and into the placeholder* so it
    * stops reading as instruction. That only works while the placeholder is readable — it is
    * carrying information, not decoration, so it is held to the body threshold rather than to a
@@ -257,7 +311,7 @@ describe("the two native controls", () => {
 
   it("paints the tick in the tool's own ink, at a size you can see", () => {
     expect(CHECKBOX_CLASS).toContain("accent-ink");
-    // Stepped up from the browser's ~0.8125rem, which reads as a stray mark beside `text-lg`.
+    // Stepped up from the browser's ~0.8125rem, which reads as a stray mark beside body type.
     expect(CHECKBOX_CLASS).toMatch(/\bsize-[5-9]\b/);
     // §7.6's floor is the pressable row's, not the box's: `tap` is a min-height, and a
     // 1.25rem-wide box 2.75rem tall is a stretched rectangle. See `Checkbox.tsx`.
@@ -724,10 +778,19 @@ describe("the one focus treatment", () => {
      * moving `py-2` to any other rung goes red here rather than shifting every hint and button
      * below a focused field by a pixel — which `theme.css` argues is how a focus style gets
      * turned off.
+     *
+     * **B-29 (#227) moved the line's height and this still holds.** The single-line field was
+     * 45px, over §7.6's floor, so the padding was the only thing keeping its box still; at
+     * `TYPE.answer` it is 41px and `tap` holds it at 44, so the box cannot grow either way. What
+     * the pixel buys now is that the typed characters do not move inside it — 44 − 8 − 8 − 1 and
+     * 44 − 8 − 7 − 2 are the same 27px of content box — and the four-row address `<textarea>`
+     * still clears the floor, so there it is the box, exactly as before. Re-measured in Chromium
+     * on the name step: box 44px both, `Continue` at y 329.5 both, document 900 both.
      */
     it("takes the extra pixel out of the padding, so nothing below the line moves", () => {
       const rung = /\bpy-(\d+)\b/.exec(LINE_CLASS)?.[1];
       expect(rung, "the line's resting padding is what the thickening spends").toBeDefined();
+      expect(LINE_CLASS, "and the floor is what the box now rests on").toMatch(/\btap\b/);
       const focused = Number(/border-bottom-width:\s*(\d+)px/.exec(focusLine())?.[1]);
       // `border-b` with no width is Tailwind's 1px, which is what the line rests at.
       expect(LINE_CLASS).toMatch(/\bborder-b\b(?!-)/);
