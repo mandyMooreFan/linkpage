@@ -166,6 +166,25 @@ function tokens(palette: Palette, chrome: Chrome): string {
  * left: the underline costs no contrast, is the same instrument the address line already
  * uses, and it is what makes the state visible on those pages.
  *
+ * **The focus ring is drawn in the page's ink** (finding R-9, #188). It used to be
+ * `--lp-accent-text` — the link's *own* colour — so on a link button the ring read as a halo
+ * thrown by the thing it was meant to be pointing at, and on a page whose accent and fill come
+ * from one brand colour it was the least distinguishable colour available: 1.15:1 against the
+ * fill it was ringing, on the populated fixture. `--lp-ink` is the one role §3.3 guarantees at
+ * **7:1 against both backdrops** the page paints — the accent is a body-text role, promised only
+ * 4.5 — and it is the one colour a button is never made of. On that same fixture the ring goes
+ * from 4.84:1 to **15.56:1** on the ground in light mode, and 5.10 to **16.64** in dark.
+ *
+ * `outline-offset:3px` is what keeps the ink's guarantee the applicable one, whatever the button
+ * is filled with: the ring stands clear of the fill with ground on both sides of it, so the ratio
+ * that governs is ink-on-ground and not ink-on-brand — which §3.3 does not cover and which on the
+ * same fixture is 2.80:1, under SC 1.4.11's line. That is the same clearing the builder's own
+ * swatch mark has to buy for itself; here the geometry gives it away free. An outline, so a page
+ * never reflows when a visitor tabs. **It costs no bytes** — `--lp-ink` is eight characters
+ * shorter than the role it replaces, so §6.5's chrome measurement went *down* by 8, which
+ * matters because the worst realistic page has ~340 bytes of headroom under `size.test.ts`'s
+ * tripwire.
+ *
  * **Two gaps repeat and are meant to.** An icon stands `--lp-space-2` from the words beside it
  * everywhere it appears — in a link button, in a contact row, beside the address, inside a
  * named social link — and a stacked list puts `--lp-space-3` between its items. Those were four
@@ -191,7 +210,7 @@ body{margin:0;padding:var(--lp-space-10) var(--lp-gutter) var(--lp-space-14);bac
 .lp-icon{flex:none}
 .lp-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 a{color:var(--lp-accent-text)}
-a:focus-visible{outline:2px solid var(--lp-accent-text);outline-offset:3px}
+a:focus-visible{outline:2px solid var(--lp-ink);outline-offset:3px}
 .lp-header{display:flex;flex-direction:column;align-items:center;gap:var(--lp-space-3);text-align:center}
 .lp-logo{display:block;width:auto;max-width:100%;height:auto;max-height:9rem}
 .lp-name{margin:0;font-family:var(--lp-font-head);font-size:var(--lp-text-xl);font-weight:var(--lp-head-weight);line-height:1.2;letter-spacing:var(--lp-head-track)}

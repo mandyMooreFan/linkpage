@@ -5,9 +5,11 @@ import type { InputHTMLAttributes, JSX, Ref, TextareaHTMLAttributes } from "reac
  * A text control, as a ruled line rather than as a box.
  *
  * Paper's whole idea is structure from space rather than from containers (`SPEC.md` §7.4), so a
- * field is a line you write on. The underline is the one border in the tool, and it recolours on
- * focus rather than moving anything — a control that reflows when you reach it is a control that
- * feels broken on a phone.
+ * field is a line you write on. The underline is the one border in the tool, and it thickens and
+ * recolours on focus rather than moving anything — a control that reflows when you reach it is a
+ * control that feels broken on a phone. See `focus-line` in `theme.css` for the whole of that
+ * treatment: it belongs to the line rather than to this component, which is what lets the
+ * prefixed row below take it without a second copy of it (#179 variant A, #188).
  *
  * **Which is why the line is drawn in `control-edge` rather than in `rule`** (item 1.2, B-23 and
  * B-64). If the underline *is* the control, it is the part of it that a person has to be able to
@@ -36,12 +38,19 @@ import type { InputHTMLAttributes, JSX, Ref, TextareaHTMLAttributes } from "reac
  * string in one file either way, which is the rule `controls.test.ts` holds — and it means the
  * `control-edge` split above reaches the prefixed field for free instead of leaving it behind
  * at the old colour, which is exactly the drift a second copy of this string would have caused.
+ *
+ * **`focus-line` is on the line for the same reason the colour is** (#188). The focus treatment
+ * *is* a fact about this hairline — it thickens it and recolours it in place — so the string that
+ * draws the line is where it belongs, and the two things standing on the line get one treatment
+ * rather than the `focus:` / `focus-within:` pair they had, which asked two different questions
+ * about focus and answered them differently.
  */
 export const LINE_CLASS =
-  "tap w-full border-0 border-b border-control-edge bg-transparent px-0 py-2 font-sans text-lg";
+  "tap w-full border-0 border-b border-control-edge bg-transparent px-0 py-2 font-sans text-lg " +
+  "focus-line";
 
 /** The one recipe. Exported so `controls.test.ts` can assert on it rather than re-spell it. */
-export const INPUT_CLASS = `${LINE_CLASS} placeholder:text-ink-quiet focus:border-ink`;
+export const INPUT_CLASS = `${LINE_CLASS} placeholder:text-ink-quiet`;
 
 export interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
   readonly ref?: Ref<HTMLInputElement>;
@@ -103,9 +112,11 @@ export function TextArea({ className, ...rest }: TextAreaProps): JSX.Element {
  * field in the tool. The only thing that changed is that two things now stand on the line
  * instead of one.
  *
- * **Focus follows the same rule it always did** — the line recolours and nothing moves — and
- * says `focus-within` because the thing that takes focus is now inside the thing that draws the
- * boundary. The ring on the box is untouched; that is #188's, and this is not it.
+ * **Focus follows the same rule it always did** — the line answers and nothing moves — and it
+ * follows it by standing on `LINE_CLASS`, which now carries `focus-line`: the utility asks both
+ * "did this take focus" and "does this contain what took focus", so the row needs nothing of its
+ * own. It said `focus-within:border-ink` until #188, which was a third spelling of focus in a
+ * tool that should have one; the ring inside the box is turned transparent by the same utility.
  *
  * **The prefix is a description, not a name.** It sits outside the `<label>` — `Field` points
  * rather than wraps, so nothing beside the box can join the accessible name (#91, #98) — and it
@@ -124,7 +135,7 @@ export function TextArea({ className, ...rest }: TextAreaProps): JSX.Element {
  * as **the address the project is about to store**, character for character. The colour is what
  * separates the part the field supplies from the part the owner typed, and it is enough.
  */
-export const URL_ROW_CLASS = `${LINE_CLASS} flex items-center focus-within:border-ink`;
+export const URL_ROW_CLASS = `${LINE_CLASS} flex items-center`;
 
 /** Quiet, and not selectable — it is the field's own furniture, not part of the answer. */
 export const URL_PREFIX_CLASS = "shrink-0 select-none text-ink-quiet";

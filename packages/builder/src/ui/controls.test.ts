@@ -115,6 +115,30 @@ const isWarm = ({ r, b }: Rgb): boolean => r > b;
 const classLists = (text: string): string[] =>
   [...text.matchAll(/["'`]([^"'`]*)["'`]/g)].map((match) => match[1] ?? "");
 
+/**
+ * The two halves of the one focus treatment, read out of `theme.css` (#179 variant A, #188).
+ *
+ * **The ring, for everything with no line to thicken**, lives in `@layer base` — and it is read
+ * from that block by name rather than by finding the first `:focus-visible` in the file, because
+ * there are two focus rules now and the other one is deliberately *not* a ring.
+ */
+const focusRing = (): string => /@layer base \{(?:[^{}]|\{[^{}]*\})*\}/.exec(theme)?.[0] ?? "";
+
+/** **The line, for the controls that are one**: `@utility focus-line { … }`, one level deep. */
+const focusLine = (): string =>
+  /@utility focus-line \{(?:[^{}]|\{[^{}]*\})*\}/.exec(theme)?.[0] ?? "";
+
+/**
+ * Every property a block sets, by name.
+ *
+ * A declaration opens a line and closes with a semicolon on it; a selector — `label:has(…)` — opens
+ * one the same way and closes with a brace, which is the whole reason the tail of this pattern is
+ * not optional.
+ */
+const propertiesIn = (block: string): string[] => [
+  ...new Set([...block.matchAll(/^\s*([a-z-]+):[^;{]*;/gm)].map((match) => match[1] ?? "")),
+];
+
 describe("the one text input", () => {
   it("is the only place the underlined-field recipe is written", () => {
     // The distinguishing part of the recipe: a bottom rule and nothing else, at input size.
@@ -186,11 +210,12 @@ describe("the prefixed web-address field", () => {
     expect(URL_BOX_CLASS).not.toMatch(/\bbg-(?!transparent\b)/);
   });
 
-  it("recolours the line on focus, since the thing focused is now inside it", () => {
-    // The same treatment the field always had — the line recolours and nothing moves. The ring
-    // on the box is #188's business and is deliberately untouched here.
-    expect(INPUT_CLASS).toContain("focus:border-ink");
-    expect(URL_ROW_CLASS).toContain("focus-within:border-ink");
+  it("answers focus on the line, since the thing focused is now inside it", () => {
+    // The same treatment the field always had — the line answers and nothing moves — and now
+    // literally the same one: `focus-line` sits on `LINE_CLASS` and asks both questions, so the
+    // row needs no `focus-within:` of its own. It said `focus-within:border-ink` until #188.
+    expect(URL_ROW_CLASS).toContain("focus-line");
+    expect(URL_ROW_CLASS).not.toMatch(/\bfocus-within:/);
   });
 
   it("keeps the prefix quiet, and out of the answer", () => {
@@ -565,9 +590,10 @@ describe("the one picked state", () => {
   });
 
   it("keeps focus outside, on the property it has always owned", () => {
-    const focus = /:focus-visible \{[^}]*\}/.exec(theme)?.[0] ?? "";
-    expect(focus, "focus is drawn outside the control").toMatch(/outline-offset:\s*\d/);
-    expect(focus).not.toMatch(/outline-offset:\s*-/);
+    // Read from `@layer base` rather than from the first `:focus-visible` in the file: since
+    // #188 the stylesheet holds two focus rules, and the other one is a *line*, not a ring.
+    expect(focusRing(), "focus is drawn outside the control").toMatch(/outline-offset:\s*\d/);
+    expect(focusRing()).not.toMatch(/outline-offset:\s*-/);
   });
 
   it("builds no faux border out of a bracket-valued shadow", () => {
@@ -613,6 +639,184 @@ describe("the one picked state", () => {
     for (const [path, text] of swatches) {
       expect(code(text), path).toContain("aria-pressed:picked");
     }
+  });
+});
+
+/**
+ * One focus treatment per species of control. `SPEC.md` §7.4; #179 variant A, #188.
+ *
+ * **The line owns focus on a text control; the ring owns it everywhere else.** A text field is a
+ * line at rest, so it is a line when you reach it: the underline thickens 1px → 2px and recolours
+ * to ink, in place, and the rectangle steps aside. Anything with no line to thicken — a button, a
+ * swatch, a segment — keeps the ring, because there is nothing there to thicken.
+ *
+ * **What these guard is the part no rendering test can see.** `:focus-visible` is precisely what
+ * jsdom does not model: it parses the selector and never matches it, so a suite that mounts a
+ * field and fires `focus` sees the resting styles and goes green whatever the stylesheet says.
+ * The pixels are checked in a browser by hand (see the ticket); what a test can hold is that the
+ * *rules* are still written down, and — the load-bearing half — that the three numbers the
+ * no-reflow promise is made of still agree with each other.
+ *
+ * **The blocks are asserted non-empty first.** Both readers fall back to `""` when their regex
+ * finds nothing, and every `not.toMatch` below would then pass while measuring an empty string —
+ * the same silent-green failure `readFileSync` exists to prevent one layer up.
+ */
+describe("the one focus treatment", () => {
+  it("is reading two real rules, not two empty strings", () => {
+    expect(focusLine(), "@utility focus-line went missing from theme.css").toContain(
+      ":focus-visible",
+    );
+    expect(focusRing(), "the base ring went missing from theme.css").toContain(":focus-visible");
+  });
+
+  it("is spelled twice in the whole tool: once as a line, once as a ring", () => {
+    expect([...theme.matchAll(/@utility focus-line\b/g)]).toHaveLength(1);
+    expect([...theme.matchAll(/@layer base\b/g)]).toHaveLength(1);
+  });
+
+  /**
+   * B-36's root, guarded. The recolour used to say `focus:` and the ring `:focus-visible`, so the
+   * two disagreed about what focus *is* — one fired on a mouse press and the other did not, and
+   * every input drew both at once. There is one question now and it is asked in one place, which
+   * is why no component may spell it for itself.
+   */
+  it("asks one question about focus, and no screen asks its own", () => {
+    for (const block of [focusLine(), focusRing()]) {
+      expect(block, "the keyboard's question, not any focus at all").not.toMatch(/:focus(?![-\w])/);
+      expect(block).not.toMatch(/:focus-within\b/);
+    }
+    const offenders = everySource().flatMap(([path, text]) =>
+      classLists(text)
+        .filter((list) => /\bfocus(?:-within)?:/.test(list))
+        .map(() => path),
+    );
+    expect(offenders, "`focus:` and `focus-within:` are the two spellings #188 removed").toEqual(
+      [],
+    );
+  });
+
+  describe("on a text control, where the line is the whole signal", () => {
+    it("thickens and recolours the line the field already draws", () => {
+      expect(focusLine()).toMatch(/border-bottom-width:\s*2px/);
+      expect(focusLine()).toMatch(/border-bottom-color:\s*var\(--color-ink\)/);
+    });
+
+    /**
+     * B-58: the ring was a rectangle drawn around a control that has no rectangle. It is turned
+     * **transparent** rather than off, because `outline-style: none` would leave a text field
+     * with no indicator at all in Windows High Contrast — where a 1px and a 2px border are both
+     * `CanvasText` and the thickening is nearly the whole signal. Forced colours repaint a
+     * transparent outline and cannot repaint an absent one.
+     */
+    it("draws no rectangle, and does not remove the one forced colours need", () => {
+      expect(focusLine(), "a line at rest is a line when you reach it").not.toMatch(
+        /outline:\s*\d/,
+      );
+      expect(focusLine()).not.toMatch(/outline-style/);
+      expect(focusLine()).toMatch(/outline-color:\s*transparent/);
+    });
+
+    /**
+     * **The no-reflow promise, as arithmetic rather than as prose.** The three numbers have to
+     * agree: the resting padding `LINE_CLASS` asks for, the width the line thickens to, and the
+     * pixel taken back out underneath. Written as `calc()` on the same token the utility uses, so
+     * moving `py-2` to any other rung goes red here rather than shifting every hint and button
+     * below a focused field by a pixel — which `theme.css` argues is how a focus style gets
+     * turned off.
+     */
+    it("takes the extra pixel out of the padding, so nothing below the line moves", () => {
+      const rung = /\bpy-(\d+)\b/.exec(LINE_CLASS)?.[1];
+      expect(rung, "the line's resting padding is what the thickening spends").toBeDefined();
+      const focused = Number(/border-bottom-width:\s*(\d+)px/.exec(focusLine())?.[1]);
+      // `border-b` with no width is Tailwind's 1px, which is what the line rests at.
+      expect(LINE_CLASS).toMatch(/\bborder-b\b(?!-)/);
+      expect(focusLine()).toContain(
+        `padding-bottom: calc(var(--spacing) * ${rung} - ${focused - 1}px)`,
+      );
+    });
+
+    it("moves nothing else at all", () => {
+      expect(propertiesIn(focusLine()).sort()).toEqual([
+        "border-bottom-color",
+        "border-bottom-width",
+        "outline-color",
+        "padding-bottom",
+      ]);
+    });
+
+    /**
+     * **It sits on the line rather than on the component**, which is what lets one treatment
+     * reach both things standing on that line: the plain field, which draws the line itself, and
+     * #197's prefixed row, where a `<span>` draws it around a scheme *and* a box. Hence the two
+     * selectors — the line either took focus or contains what took it.
+     */
+    it("belongs to the line, so both things standing on one get it once", () => {
+      expect(LINE_CLASS).toContain("focus-line");
+      for (const recipe of [INPUT_CLASS, TEXTAREA_CLASS, URL_ROW_CLASS]) {
+        expect(recipe).toContain("focus-line");
+      }
+      expect(focusLine(), "the line itself took focus").toMatch(/&:focus-visible/);
+      expect(focusLine(), "or the box standing on it did").toMatch(/&:has\(:focus-visible\)/);
+      expect(focusLine(), "and that box's own ring is the one turned transparent").toMatch(
+        /& :focus-visible/,
+      );
+      const offenders = others("./TextInput.tsx")
+        .filter(([, text]) => text.includes("focus-line"))
+        .map(([path]) => path);
+      expect(offenders, "one line, one treatment, one place it is written").toEqual([]);
+    });
+  });
+
+  describe("on everything else, where there is no line to thicken", () => {
+    it("is an outline, so reaching a control never moves the page", () => {
+      expect(focusRing()).toMatch(/outline:\s*\d+px solid var\(--color-notice\)/);
+      expect(focusRing(), "a ring utility is a shadow, and a shadow is not paper").not.toMatch(
+        /box-shadow/,
+      );
+      expect(propertiesIn(focusRing()).sort()).toEqual(["outline", "outline-offset"]);
+    });
+
+    /**
+     * **The ring is drawn on the thing you can see.** A segmented control puts its radio in
+     * `sr-only` (§7.10's hours step), so the element matching `:focus-visible` is a clipped 1px
+     * box and the ring around it is clipped away with it — the one control in the tool that had
+     * no working focus treatment at all. Forwarding it to the label is the whole fix, and it
+     * lives in the stylesheet so the ring stays spelled once. Scoped to `label` deliberately: an
+     * `sr-only` control with no label around it (the two file pickers, driven by a `Button`
+     * beside them) has no visible stand-in, and a `:has()` without it would ring whatever
+     * ancestor happened to hold the input. `HoursQuestion.test.tsx` holds the markup half.
+     */
+    it("reaches a control that hides its own input inside a label", () => {
+      expect(focusRing()).toMatch(/label:has\(>\s*\.sr-only:focus-visible\)/);
+    });
+
+    /**
+     * SC 1.4.11 asks 3:1 of a focus indicator against what is beside it, and #192 had to buy the
+     * `picked` mark a clearing of ground to get there. **Focus needs no such purchase, because it
+     * is drawn outside the control**: at a positive offset the pixels it colours were ground a
+     * moment ago and are `notice` now, so a brand colour is never adjacent to it and never under
+     * it. The corpus assertion is what makes that load-bearing rather than decorative — laid on
+     * the owner's colour this ring clears 3:1 on **none** of the twelve, from 1.04 to 1.66.
+     */
+    it("is measured against the ground, because it never touches the fill", () => {
+      expect(focusRing(), "drawn outside the control").toMatch(/outline-offset:\s*\d/);
+      expect(focusRing()).not.toMatch(/outline-offset:\s*-/);
+      for (const backdrop of BACKDROPS) {
+        expect(between("notice", backdrop), `on ${backdrop}`).toBeGreaterThanOrEqual(3);
+      }
+    });
+
+    it("would fail on the colour itself, which is what the offset is buying", () => {
+      const notice = token("notice");
+      const legibleOnTheColour = BRAND_SWATCHES.filter((swatch) => {
+        const hex = parseHex(swatch.hex);
+        return hex !== null && contrastRatio(notice, hex) >= 3;
+      });
+      expect(
+        legibleOnTheColour.length,
+        "if this ever reaches twelve the offset is free to go negative — until then it is not",
+      ).toBe(0);
+    });
   });
 });
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render } from "./render.js";
 import { SHAPES, shapeRules } from "./chrome.js";
+import { contrastRatio, parseHex } from "./color.js";
 import { POPULATED as full } from "./fixtures.js";
 import type { Project, Shape, Style } from "./project.js";
 
@@ -340,5 +341,86 @@ describe("ruledLeft stays on the inline axis (§4.1)", () => {
     expect(page.get(".lp-panel")?.get("padding-inline-start")).toBe(
       page.get(".lp-header")?.get("padding-inline-start"),
     );
+  });
+});
+
+/**
+ * The page's focus ring — finding R-9, settled by #179 and built by #188.
+ *
+ * It used to be drawn in `--lp-accent-text`, **the link's own colour**, so on a link button the
+ * ring read as a halo thrown by the thing it was meant to be pointing at rather than as a mark
+ * on it. And since the accent and the fill both come from one brand colour, it was the least
+ * distinguishable colour on the page for the job: on `POPULATED` it stood at 1.15:1 against the
+ * fill it ringed.
+ *
+ * **`--lp-ink` is the one colour a button is never made of, and the one role §3.3 pins at 7:1.**
+ * The accent is guaranteed 4.5:1 — a body-text promise — so moving the ring to the ink roughly
+ * triples the headroom it is entitled to as well as ending the halo: on `POPULATED` it goes from
+ * 4.84:1 to **15.56:1** on the ground in light mode, and 5.10 to **16.64** in dark.
+ *
+ * **Asserted on the resolved rule rather than on the role table**, because what a visitor gets is
+ * the declaration that ships. `palette.test.ts` carries the other half — that ink clears 7:1 on
+ * every backdrop, across the corpus and both modes.
+ */
+describe("the page's focus ring (R-9)", () => {
+  it("is not the colour of the link it is drawn around", () => {
+    const page = resolvedPage(full);
+    const ring = page.get("a:focus-visible")?.get("outline");
+    const accent = page.get("a")?.get("color");
+    expect(ring, "the page draws a focus ring at all").toBeDefined();
+    expect(accent, "and the links have a colour of their own to be told apart from").toBeDefined();
+    expect(ring).not.toContain(accent);
+    expect(ring).toContain(declaredTokens(full).get("--lp-ink"));
+  });
+
+  it("is drawn in the page's ink, on every shape", () => {
+    for (const shape of SHAPES) {
+      const project = shaped(shape);
+      const ink = declaredTokens(project).get("--lp-ink");
+      expect(resolvedPage(project).get("a:focus-visible")?.get("outline"), shape).toBe(
+        `2px solid ${ink}`,
+      );
+    }
+  });
+
+  /**
+   * **The positive offset is what makes the ratio above the right one to quote.** §3.3 guarantees
+   * the ink against the page's two backdrops and says nothing at all about the ink against a
+   * button's fill — and on `POPULATED` that pairing is **2.80:1** in light mode, under SC
+   * 1.4.11's line. At `+3px` the ring never touches the fill: page ground surrounds it on both
+   * sides, which is the same clearing the builder's own picked mark has to buy for itself. A
+   * negative offset would move it silently onto the brand colour and take it under the line, so
+   * the assertion is on the sign rather than on the number.
+   */
+  it("stands clear of the button it rings, so the ground is what it is measured against", () => {
+    for (const shape of SHAPES) {
+      const offset = resolvedPage(shaped(shape)).get("a:focus-visible")?.get("outline-offset");
+      expect(offset, shape).toMatch(/^\d/);
+    }
+  });
+
+  it("would be under the line if it were laid on the fill, which is what the offset buys", () => {
+    const tokens = declaredTokens(full);
+    const ink = parseHex(tokens.get("--lp-ink") ?? "");
+    const fill = parseHex(tokens.get("--lp-fill") ?? "");
+    const ground = parseHex(tokens.get("--lp-ground") ?? "");
+    expect(ink).not.toBeNull();
+    expect(fill).not.toBeNull();
+    expect(ground).not.toBeNull();
+    expect(
+      contrastRatio(ink!, fill!),
+      "if this ever clears 3:1 for every brand the offset is free to go — until then it is not",
+    ).toBeLessThan(3);
+    expect(
+      contrastRatio(ink!, ground!),
+      "which is where the ring is actually drawn",
+    ).toBeGreaterThanOrEqual(7);
+  });
+
+  it("moves nothing when it appears", () => {
+    // An outline, never a border or a shadow: a page that reflows as a visitor tabs through it
+    // is the argument `theme.css` makes in the builder, made on the page the builder makes.
+    const rule = resolvedPage(full).get("a:focus-visible");
+    expect([...(rule?.keys() ?? [])]).toEqual(["outline", "outline-offset"]);
   });
 });

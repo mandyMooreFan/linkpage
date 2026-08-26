@@ -143,7 +143,7 @@ body{margin:0;padding:var(--lp-space-10) var(--lp-gutter) var(--lp-space-14);bac
 .lp-icon{flex:none}
 .lp-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 a{color:var(--lp-accent-text)}
-a:focus-visible{outline:2px solid var(--lp-accent-text);outline-offset:3px}
+a:focus-visible{outline:2px solid var(--lp-ink);outline-offset:3px}
 .lp-header{display:flex;flex-direction:column;align-items:center;gap:var(--lp-space-3);text-align:center}
 .lp-logo{display:block;width:auto;max-width:100%;height:auto;max-height:9rem}
 .lp-name{margin:0;font-family:var(--lp-font-head);font-size:var(--lp-text-xl);font-weight:var(--lp-head-weight);line-height:1.2;letter-spacing:var(--lp-head-track)}
