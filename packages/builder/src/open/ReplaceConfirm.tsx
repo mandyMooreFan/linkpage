@@ -99,12 +99,14 @@ export function ReplaceConfirm({
       </p>
 
       {/*
-       * One alignment for the stack. `items-start` rather than three per-button decisions: the
-       * outlined and quiet weights already start-align themselves, and the filled one used to
-       * stretch to the full width, so a fork of three choices sat at two different left-to-right
-       * shapes at once.
+       * One alignment for the stack — and since #230 the stack does not have to say so. This was
+       * `items-start`, because the outlined and quiet weights start-aligned themselves while the
+       * filled one stretched, so a fork of three choices sat at two different left-to-right shapes
+       * at once (#200). B-72 moved that decision into the weights, where all three now say `w-fit`:
+       * `items-start` here would be a class that draws nothing, which is the defect it was put
+       * here to fix in the first place.
        */}
-      <div className="mt-3 flex flex-col items-start gap-2">
+      <div className="mt-3 flex flex-col gap-2">
         <Button
           type="button"
           weight="secondary"

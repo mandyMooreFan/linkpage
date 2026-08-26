@@ -7,7 +7,12 @@ import { serializeProject, writeDraft, readDraft, type Draft } from "../project/
 import { Flow } from "./Flow.js";
 import type { FlowEntry } from "./plan.js";
 import { PRESETS, type PresetId } from "./presets.js";
-import { filledButtons, quietButtons, textClasses } from "../ui/fill.testing.js";
+import {
+  filledButtons,
+  quietButtons,
+  textClasses,
+  widthDisagreements,
+} from "../ui/fill.testing.js";
 
 /**
  * The flow, driven screen by screen. `SPEC.md` §7.1–§7.3, §7.8, §7.9.
@@ -131,6 +136,14 @@ function decline(preset: PresetId, name = "Ada's Bakery", colour = 0): string[] 
         "text-ink-quiet",
       ]);
     }
+
+    /**
+     * B-72 (#230): **one width for every button**, on the screen rather than in the source. The
+     * flow is where the finding showed — `Continue` stretched this column while the same weight
+     * in the download sheet fit its words — and it is where the escape one line below it, a
+     * different weight in the same container, has to come out the same box.
+     */
+    expect(widthDisagreements(), `the width a weight names, on "${heading}"`).toEqual([]);
 
     if (heading === PRESET_QUESTION) {
       // Step one has no escape and no Continue: choosing *is* answering (§7.3).

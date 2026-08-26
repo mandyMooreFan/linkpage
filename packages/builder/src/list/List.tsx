@@ -584,7 +584,11 @@ function LangRow({
   return (
     // A picker and a field stacked, which is a field-to-field relationship whatever the two are
     // built from. The top offset is the open row's, once (B-42).
-    <div className={`flex w-full flex-col items-start ${LADDER.betweenFields.className}`}>
+    //
+    // No `items-start`: it was here to stop the two buttons stretching, and cost the fieldset and
+    // the typed field a `w-full` each to put the default back. The weights say `w-fit` now (B-72,
+    // #230), so the column can go back to being an ordinary column.
+    <div className={`flex w-full flex-col ${LADDER.betweenFields.className}`}>
       <fieldset className="m-0 flex w-full flex-col gap-2 border-0 p-0">
         <legend className="block text-base font-medium">Page language</legend>
         {/* The gapped fieldset owns the offset; `mt-1` on top of it was the third distance the

@@ -163,12 +163,13 @@ export function Preview({ project, onList = false, action, onCover }: PreviewPro
             Only you can see this. To share it, download the file and put it online.
           </p>
         )}
-        <Button
-          className="self-center"
-          aria-expanded={open}
-          aria-controls={drawerId}
-          onClick={() => setChoice(!open)}
-        >
+        {/*
+         * No `self-center`: it was here only to undo `WEIGHT.secondary`'s `self-start`, which
+         * overrode this row's `items-center`. Since #230 a weight says its width (`w-fit`) and
+         * says nothing about alignment, so the row decides where its objects sit — which is what
+         * `items-center` above was always for.
+         */}
+        <Button aria-expanded={open} aria-controls={drawerId} onClick={() => setChoice(!open)}>
           {open ? (onList ? "Edit your page" : "Hide the page") : "See the page"}
         </Button>
         {/*

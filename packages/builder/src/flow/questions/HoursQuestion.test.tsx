@@ -315,10 +315,17 @@ describe("the strays this screen was carrying (#199)", () => {
 
     it("sits on the group's own baseline, not the weight's (B-40)", () => {
       filledMonday();
-      // `WEIGHT.secondary` carries `self-start`, which overrides the group's `items-center`.
-      // Corrected at the call site: #228 owns `Button` next and a weight is not this ticket's.
+      // The group's `items-center` is the whole answer now, and that is B-72's doing (#230).
+      // `WEIGHT.secondary` used to carry `self-start` and override it, so each of these two
+      // buttons had to be handed `self-center` at the call site to get the row's own alignment
+      // back (#199). A weight says its width and nothing else, so nothing here countermands the
+      // row: the assertion is that these buttons hand over *no* alignment of their own.
       for (const name of ["to weekdays", "to every day"]) {
-        expect(screen.getByRole("button", { name }).className, name).toContain("self-center");
+        const alignment = screen
+          .getByRole("button", { name })
+          .className.split(/\s+/)
+          .filter((one) => one.startsWith("self-"));
+        expect(alignment, `${name} must not align itself`).toEqual([]);
       }
       expect(screen.getByText("Copy these times").parentElement?.className).toContain(
         "items-center",

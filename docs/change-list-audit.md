@@ -16,6 +16,14 @@
 > longer an unowned deliberate leave; it is a **settled scope decision**, recorded in the map's
 > _Out of scope_ section. **Every finding on this list is now either built, deliberately left with an
 > owner's decision behind it, or ticketed.**
+>
+> **B-72 is built** ([#230](https://github.com/mandyMooreFan/linkpage/issues/230)), so the last of
+> item 0's three agreed-and-never-built findings is closed and the "still open" rows below are
+> historical. A button is as wide as its words, said once on the weight: `w-fit` on `primary`,
+> `secondary` and `quiet`. The table's reading of the cause is worth correcting in passing — the
+> `shrink-0` it names is a _main-axis_ class and was drawing nothing at any of the five `primary`
+> sites; what stretched `Continue` was the flow column's own `align-items: stretch`, with the width
+> unwritten anywhere in the weights at all.
 
 ## Why this exists
 

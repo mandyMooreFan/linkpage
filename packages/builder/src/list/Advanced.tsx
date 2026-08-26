@@ -50,9 +50,16 @@ export function Advanced({ draft, onChange }: AdvancedProps): JSX.Element {
 
   return (
     <div className="mt-4 border-t border-rule pt-4" data-advanced>
+      {/*
+       * `self-start` came off this string with #230: the parent is an ordinary block, so
+       * `align-self` reached nothing here at any point — a declaration that styles nothing, which
+       * is B-1's defect in one word. The rest of the string is a hand-copied `quiet` recipe that
+       * never went through `Button`; it is on no list and is left for whoever picks up B-3's
+       * remainder.
+       */}
       <button
         type="button"
-        className="tap self-start bg-transparent py-2 font-sans underline underline-offset-4"
+        className="tap bg-transparent py-2 font-sans underline underline-offset-4"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen(!open)}

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FileDownload } from "../download/index.js";
 import { readProjectFile, type Refusal } from "../project/index.js";
 import { WEIGHT } from "../ui/Button.js";
+import { widthClasses, widthDisagreements } from "../ui/fill.testing.js";
 import { ProjectPicker } from "./ProjectPicker.js";
 import { RefusalNotice } from "./RefusalNotice.js";
 import { ReplaceConfirm } from "./ReplaceConfirm.js";
@@ -97,6 +98,31 @@ describe("naming what would go (§7.8)", () => {
 
     // Independent of all of that: an unaimed press still cannot be the one that replaces.
     expect(document.activeElement).toBe(button("Download my work first"));
+  });
+
+  /**
+   * **The stack no longer says how wide its three choices are** (B-72, #230).
+   *
+   * #200 gave it `items-start` because the fill stretched while the outline and the quiet one
+   * did not, so a fork of three choices sat at two left-to-right shapes at once — a container
+   * put there to countermand the weights. The weights say `w-fit` now, so the container went
+   * back to being a container, and this is the assertion that keeps it honest: no alignment on
+   * the stack, and three buttons that are nonetheless one width.
+   */
+  it("leaves the fork's three widths to the weights (B-72)", () => {
+    mount(
+      <ReplaceConfirm name="Ada" outgoing={outgoing()} onOpen={() => {}} onCancel={() => {}} />,
+    );
+
+    const stack = screen.getByRole("button", { name: "Cancel" }).parentElement as HTMLElement;
+    expect(
+      stack.className.split(/\s+/).filter((one) => one.startsWith("items-")),
+      "the stack aligns nothing; the weights are the width",
+    ).toEqual([]);
+
+    expect(widthDisagreements()).toEqual([]);
+    const widths = new Set(screen.getAllByRole("button").map((one) => widthClasses(one).join(" ")));
+    expect([...widths], "one box for all three choices").toEqual(["w-fit"]);
   });
 
   it("writes the outgoing project on the escape, and does not open anything", () => {
