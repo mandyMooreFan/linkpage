@@ -65,11 +65,21 @@
  * **Every cut is printed at the end of the run and written into `README.txt` beside the
  * pictures**, because a silent cap reads as "covered everything" when it did not — which is the
  * mistake the old default variant set made, quietly, for as long as it stood.
+ *
+ * ## Two runs of one commit come back byte for byte the same
+ *
+ * **That sentence is the ritual's whole method, and it was quietly false for three frames of
+ * eighty-four** (#242). Since #208 an identical pair carries meaning — *these shots did not move,
+ * and that is the result* — and #190, #194, #213 and #234 all read it that way. Three frames
+ * that differ when nothing changed can say neither "this moved" nor "this did not", and nothing
+ * in the run said which three. See `RASTER` for what it actually was, and `stability.mjs` for
+ * `--twice`, which takes the whole set again and reports whether the camera held still.
  */
 
 import { chromium } from "@playwright/test";
 
 import { portFor } from "./port.mjs";
+import { compare, digest, verdict } from "./stability.mjs";
 import { DEFAULT_VARIANTS, MODES, parseVariant, SHAPES, TYPES } from "./variants.mjs";
 import { execFileSync, spawn } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -83,6 +93,33 @@ const BUILDER = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const ROOT = resolve(fileURLToPath(new URL("../../../", import.meta.url)));
 
 const HOST = "127.0.0.1";
+
+/**
+ * **What made three frames in eighty-four come out with different bytes and the same picture.**
+ * [#242](https://github.com/mandyMooreFan/linkpage/issues/242).
+ *
+ * Chromium rasters a layer in tiles, and by default it *partially* rasters: when only part of a
+ * layer is dirty it redraws the damaged rectangle into the tile it already has, rather than the
+ * whole tile. Skia's analytic antialiasing of an edge that lands on the damage boundary then
+ * resolves to a coverage one greylevel off what a full-tile raster gives, so **a rounded corner
+ * comes out ±1/255 depending on what happened to be dirty just before the shutter**. That is
+ * timing, so it moves from run to run.
+ *
+ * Measured rather than assumed, because two earlier tickets guessed "preview-iframe sub-pixel
+ * noise" (#228, #230) and neither was right. A pair of runs differed in **4 pixels of 1,296,000**
+ * — the top-left corner arc of the drawer's own button — and, in another pair, 19 pixels on the
+ * chosen swatch's selection mark. The three named frames were not special: with the flow's view
+ * transitions disabled the same 4 pixels flipped on a *different* screen instead, which is what
+ * ruled the transition out. At the moment of every shutter `document.getAnimations()` held
+ * nothing unfinished, the button's `getBoundingClientRect()` was identical to the sub-pixel
+ * across contexts that disagreed, and forcing a full repaint before the shutter did not move it.
+ * With partial raster off, three consecutive full runs came back byte for byte identical.
+ *
+ * **It is a flag on the camera, not a change to the product.** Nothing about what is on the
+ * screen differs; what differs is only whether Chromium is allowed to reuse the undamaged part
+ * of a tile while photographing it. Confirm any time with `--twice`.
+ */
+const RASTER = ["--disable-partial-raster"];
 
 /** §7.6's two sizes, matching the design audit's baseline so old sets stay comparable. */
 const SIZES = [
@@ -150,6 +187,8 @@ if (has("help")) {
       "    --port <n>          override the port (default: derived from the label, so",
       "                        concurrent runs cannot photograph each other)",
       "    --keep-server       leave the preview server up when finished",
+      "    --twice             take the whole set twice and report whether the two came back",
+      "                        byte for byte the same — a check on the camera, not the design",
       "    --help              this",
       "",
       "  Run it once on the trunk and once on your branch, then look at the two folders.",
@@ -186,7 +225,9 @@ const PORT = Number(flag("port")) || portFor(label);
 const ORIGIN = `http://${HOST}:${PORT}`;
 const APP = `${ORIGIN}/linkpage/`;
 
-const outRoot = resolve(ROOT, flag("out", "review-shots"), label);
+/** Where this run's pictures go. `--twice` points it at a scratch folder for the second pass. */
+const runRoot = resolve(ROOT, flag("out", "review-shots"), label);
+let outRoot = runRoot;
 const only = flag("only");
 const variants = flag("variant") ? [flag("variant")] : DEFAULT_VARIANTS;
 
@@ -728,10 +769,11 @@ async function hoverShot(shot, size, combo) {
  * complete coverage, which is how the missing `floatingCard` + `dark` sat there unnoticed
  * through the ticket that most needed it.
  */
-async function report() {
+async function report(steadiness) {
   const ledger = [
     "Deliberately not photographed:",
     ...omissions.flatMap(({ what, why }) => [`  · ${what}`, `      ${why}`]),
+    ...(steadiness.length === 0 ? [] : ["", "The instrument:", ...steadiness.map((l) => `  ${l}`)]),
   ];
 
   log("");
@@ -756,68 +798,111 @@ async function report() {
   );
 }
 
+/**
+ * One complete set, into `into`.
+ *
+ * Pulled out of `main` so `--twice` can ask for a second one without a second process, a second
+ * build or a second server — everything that could differ between two runs for an honest reason
+ * is held still, which is what leaves the camera as the only variable.
+ */
+async function takeAll(browser, into) {
+  outRoot = into;
+  shots = 0;
+  omissions.length = 0;
+  await rm(outRoot, { recursive: true, force: true });
+
+  for (const size of SIZES) {
+    // `--only page` has no reason to walk the flow twice: the pages are taken at one size.
+    if (only === "page" && size.dir !== PAGE_SIZE) continue;
+    log(`· ${size.dir}`);
+    const context = await browser.newContext({
+      viewport: size.viewport,
+      deviceScaleFactor: size.deviceScaleFactor,
+      isMobile: size.isMobile ?? false,
+      hasTouch: size.isMobile ?? false,
+      // The fade is §7.11's language, not something a still can show. Photographing mid-fade
+      // is just noise in a before-and-after.
+      reducedMotion: "reduce",
+    });
+
+    const capture = only !== "page";
+    if (!capture) log("  · walking the flow to build a project (not photographing it)");
+    const page = await walkFlow(context, size, capture);
+    if (capture) await listScreens(page, size);
+    if (only !== "builder" && size.dir === PAGE_SIZE) await pageVariants(context, size, browser);
+    await context.close();
+  }
+
+  if (only !== "page") {
+    omit(
+      "how much of a long row editor fits on one phone screen",
+      "the row shots are of the row rather than of the viewport, so nothing is cut off the" +
+        " bottom — 51-list-rows and the flow's own shots are where the fold shows",
+    );
+  }
+
+  if (only !== "builder") {
+    omit(
+      "the hover state on every button but the first, and on colourBlock",
+      "`.lp-link:hover,.lp-link:active` is one rule, so one hovered button is the pressed" +
+        " state too; it is taken once per mode because the fill is derived per mode (#184)",
+    );
+    omit(
+      `the exported page at ${SIZES.filter((size) => size.dir !== PAGE_SIZE)
+        .map((size) => size.viewport.width)
+        .join(" and ")}px wide`,
+      "the renderer has no width media query and its column is min(100%, 25rem) centred, so a" +
+        " wide capture is the same column with more air (§7.6) — pages/*.html if you want it",
+    );
+    const combinations = SHAPES.length * TYPES.length * MODES.length;
+    if (variants.length < combinations) {
+      omit(
+        `${combinations - variants.length} of the ${combinations} style combinations`,
+        `the ${variants.length} taken cover every shape in both modes; the rest vary only the` +
+          " type pairing, which is token-valued (§6.1) — `--variant <combo>` reaches any of them",
+      );
+    }
+  }
+
+  return shots;
+}
+
+/**
+ * **The camera, checked against itself: the same commit, twice.** `--twice`.
+ *
+ * §7.4 refuses a screenshot-diffing suite, and this is not one — it compares a run against
+ * *itself*, never against a stored baseline, and it still cannot fail a build. What it measures
+ * is whether "these two folders are identical" is a sentence worth saying, which is the whole of
+ * what #208 bought and what four tickets have since spent (#190, #194, #213, #234).
+ *
+ * The second set is written beside the first and deleted, so what is left in the folder is one
+ * run and one verdict rather than two sets a reviewer then has to tell apart.
+ */
+async function checkSteady(browser, taken) {
+  const again = `${runRoot}--again`;
+  log("");
+  log("· taking the same set again, to check the camera (--twice)");
+  try {
+    await takeAll(browser, again);
+    const found = compare(await digest(runRoot), await digest(again));
+    return verdict(found);
+  } finally {
+    await rm(again, { recursive: true, force: true });
+    outRoot = runRoot;
+    shots = taken;
+  }
+}
+
 async function main() {
   let server;
   let browser;
   try {
     server = await serve();
-    await rm(outRoot, { recursive: true, force: true });
-    browser = await chromium.launch();
+    browser = await chromium.launch({ args: RASTER });
 
-    for (const size of SIZES) {
-      // `--only page` has no reason to walk the flow twice: the pages are taken at one size.
-      if (only === "page" && size.dir !== PAGE_SIZE) continue;
-      log(`· ${size.dir}`);
-      const context = await browser.newContext({
-        viewport: size.viewport,
-        deviceScaleFactor: size.deviceScaleFactor,
-        isMobile: size.isMobile ?? false,
-        hasTouch: size.isMobile ?? false,
-        // The fade is §7.11's language, not something a still can show. Photographing mid-fade
-        // is just noise in a before-and-after.
-        reducedMotion: "reduce",
-      });
-
-      const capture = only !== "page";
-      if (!capture) log("  · walking the flow to build a project (not photographing it)");
-      const page = await walkFlow(context, size, capture);
-      if (capture) await listScreens(page, size);
-      if (only !== "builder" && size.dir === PAGE_SIZE) await pageVariants(context, size, browser);
-      await context.close();
-    }
-
-    if (only !== "page") {
-      omit(
-        "how much of a long row editor fits on one phone screen",
-        "the row shots are of the row rather than of the viewport, so nothing is cut off the" +
-          " bottom — 51-list-rows and the flow's own shots are where the fold shows",
-      );
-    }
-
-    if (only !== "builder") {
-      omit(
-        "the hover state on every button but the first, and on colourBlock",
-        "`.lp-link:hover,.lp-link:active` is one rule, so one hovered button is the pressed" +
-          " state too; it is taken once per mode because the fill is derived per mode (#184)",
-      );
-      omit(
-        `the exported page at ${SIZES.filter((size) => size.dir !== PAGE_SIZE)
-          .map((size) => size.viewport.width)
-          .join(" and ")}px wide`,
-        "the renderer has no width media query and its column is min(100%, 25rem) centred, so a" +
-          " wide capture is the same column with more air (§7.6) — pages/*.html if you want it",
-      );
-      const combinations = SHAPES.length * TYPES.length * MODES.length;
-      if (variants.length < combinations) {
-        omit(
-          `${combinations - variants.length} of the ${combinations} style combinations`,
-          `the ${variants.length} taken cover every shape in both modes; the rest vary only the` +
-            " type pairing, which is token-valued (§6.1) — `--variant <combo>` reaches any of them",
-        );
-      }
-    }
-
-    await report();
+    const taken = await takeAll(browser, runRoot);
+    const steadiness = has("twice") ? await checkSteady(browser, taken) : [];
+    await report(steadiness);
 
     log("  Run this on the trunk too, then put the two folders side by side:");
     // Not `git switch main`: the trunk is usually checked out by another worktree, which
@@ -827,6 +912,13 @@ async function main() {
       `    git worktree add ../linkpage-trunk origin/main && (cd ../linkpage-trunk && pnpm install && pnpm shots)`,
     );
     log("");
+    if (!has("twice")) {
+      // Said here rather than left to be rediscovered: reading two folders as a before and after
+      // rests entirely on this holding, and for three frames it silently did not (#242).
+      log("  Two runs of one commit come back byte for byte the same, so a file that differs");
+      log("  between the two folders is a change. Check that any time with --twice.");
+      log("");
+    }
   } finally {
     if (browser) await browser.close();
     if (server && !has("keep-server")) server.kill();
