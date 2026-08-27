@@ -18,7 +18,20 @@
  * on what a page looks like. §7.4 rejected screenshot-diffing as "precisely the flaky instrument
  * this repo already refuses by setting `retries: 0`" — a dozen images diffed per push, failing on
  * font hinting and antialiasing, is that test a dozen times over. This script writes pictures for
- * a person to look at. It exits non-zero only when it could not do that at all.
+ * a person to look at.
+ *
+ * **Its two non-zero exits are both about the instrument and neither is about a picture.**
+ * **1** is *there are no pictures at all* — no browser, no server, no app (#208 added the two
+ * pre-flight checks that reach it deliberately). **2** is *the pictures are here and the set has
+ * a hole in it*: a screen this run meant to reach and could not. See `census.mjs` for why that is
+ * worth an exit code of its own rather than a line in the ledger, and #270 for the three months
+ * it cost to have said it in the ledger's voice.
+ *
+ * **Nothing it writes fails a build**, and §7.4's sentence still holds: this is hand-run, it is
+ * never wired to CI, and neither code says anything about what a picture looks like. Measured
+ * while adding it: through the `pnpm shots` alias pnpm reports its own **1** for any non-zero
+ * child, so the two are told apart by running the script directly. The loud section in the run
+ * and in `README.txt` is what a person reads either way; the code is for the shell.
  *
  * **Runs are named, so before and after sit side by side.** The label defaults to the current
  * branch, which is the shape the ritual actually takes:
@@ -66,6 +79,13 @@
  * pictures**, because a silent cap reads as "covered everything" when it did not — which is the
  * mistake the old default variant set made, quietly, for as long as it stood.
  *
+ * **And a cut is not the same thing as a miss** (#270). A screen left out on purpose is a
+ * decision with a reason; a screen this run meant to photograph and could not is a broken
+ * instrument, and for three months the two were printed in the same voice with the same `!` and
+ * the same exit 0. They are now two sections, the second one loud and worth an exit code — see
+ * `census.mjs`, which declares what the run is going for before it walks so that a screen going
+ * missing does not depend on some other line having noticed.
+ *
  * ## Two runs of one commit come back byte for byte the same
  *
  * **That sentence is the ritual's whole method, and it was quietly false for three frames of
@@ -78,6 +98,7 @@
 
 import { chromium } from "@playwright/test";
 
+import { covered, intended, missing, slug, unreached } from "./census.mjs";
 import { portFor } from "./port.mjs";
 import { compare, digest, verdict } from "./stability.mjs";
 import { DEFAULT_VARIANTS, MODES, parseVariant, SHAPES, TYPES } from "./variants.mjs";
@@ -193,6 +214,14 @@ if (has("help")) {
       "",
       "  Run it once on the trunk and once on your branch, then look at the two folders.",
       "",
+      "  Exit codes, both about the instrument and neither about a picture:",
+      "    0  every screen this run meant to reach is in the folder",
+      "    1  no pictures at all — no browser, no server, or someone else's server",
+      "    2  the pictures are here and a screen the run meant to reach is not, so the set",
+      "       cannot be read as a before-and-after until it is fixed",
+      "  (`pnpm shots` reports pnpm's own 1 for either; run the script directly to tell them",
+      "  apart. The COULD NOT PHOTOGRAPH section is there whichever way you ran it.)",
+      "",
     ].join("\n"),
   );
   process.exit(0);
@@ -258,6 +287,34 @@ const omissions = [];
 const omit = (what, why) => {
   if (!omissions.some((noted) => noted.what === what)) omissions.push({ what, why });
 };
+
+/**
+ * **Why the run gave up on a screen it was going for.** The other list, and not a kind of
+ * omission — see `census.mjs`.
+ *
+ * Every place the walk used to print `!` and carry on records here instead. It still prints,
+ * because somebody is watching the run — but printing was never the problem: the line scrolled
+ * past, the run exited 0, and the folder said nothing about it a week later (#270).
+ */
+const reasons = [];
+const miss = (what, why) => {
+  log(`  ! ${what} — ${why}`);
+  if (!reasons.some((noted) => noted.what === what)) reasons.push({ what, why });
+};
+
+/**
+ * What this run declared it was going for, and what it actually wrote.
+ *
+ * `wanted` is seeded from the run's own flags before the walk starts and grows as the walk meets
+ * things it can only name once it has seen them — the review list's rows. `taken` is appended by
+ * every shutter. The difference is the census.
+ */
+let wanted = [];
+const taken = new Set();
+/** Declare a frame the run means to produce. */
+const expect = (name) => wanted.push(name);
+/** Record one that arrived. */
+const got = (name) => taken.add(name);
 
 /** Whether anything at all is answering on this run's origin. */
 async function answering() {
@@ -339,6 +396,7 @@ async function shoot(page, size, name, of) {
   if (of) await of.screenshot({ path: file });
   else await page.screenshot({ path: file, fullPage: false });
   shots += 1;
+  got(`${size.dir}/${name}`);
   log(`  ${size.dir}/${name}.png`);
 }
 
@@ -347,14 +405,6 @@ async function heading(page) {
   const h = page.locator('[data-screen="flow"] h1').first();
   return (await h.count()) ? ((await h.textContent()) ?? "").trim() : null;
 }
-
-const slug = (s) =>
-  s
-    .toLowerCase()
-    .replace(/[“”'?]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 40);
 
 /**
  * Answer one step. Returns false when the step advances itself (the preset picker does).
@@ -443,11 +493,14 @@ async function walkFlow(context, size, capture) {
     if (!(await page.locator('[data-screen="flow"]').count())) break; // left the flow: the list
     const title = await heading(page);
     if (!title) {
-      log("  ! the flow is on screen but has no heading — stopping the walk.");
+      miss("the rest of the wizard", "the flow is on screen but has no heading to name it by");
       break;
     }
     if (seen.has(title) && seen.size > 1) {
-      log(`  ! “${title}” came round again — the walk stopped making progress, stopping here.`);
+      miss(
+        "the rest of the wizard",
+        `“${title}” came round again, so the walk stopped making progress`,
+      );
       break;
     }
     seen.add(title);
@@ -458,8 +511,10 @@ async function walkFlow(context, size, capture) {
 
     const spec = ANSWERS[title];
     if (!spec) {
-      log(`  ! no answer known for “${title}” — stopping the walk here.`);
-      log(`    Add it to ANSWERS in this script.`);
+      miss(
+        "the rest of the wizard",
+        `no answer known for “${title}” — add it to ANSWERS in this script`,
+      );
       break;
     }
 
@@ -482,7 +537,10 @@ async function walkFlow(context, size, capture) {
       else if ((await cont.count()) && (await cont.first().isEnabled())) await cont.first().click();
       else if (await escape.count()) await escape.first().click();
       else {
-        log(`  ! nothing to press on “${title}” — no enabled Continue and no escape.`);
+        miss(
+          "the rest of the wizard",
+          `nothing to press on “${title}” — no enabled Continue and no escape`,
+        );
         break;
       }
     }
@@ -495,7 +553,7 @@ async function walkFlow(context, size, capture) {
 /** The screens that are not the wizard: the list, its rows, the sheet, the menu, the import fork. */
 async function listScreens(page, size) {
   if (!(await page.locator('[data-screen="list"]').count())) {
-    log("  ! never reached the review list — skipping the list screens.");
+    miss("the review list and everything behind it", "the walk never reached the list at all");
     return;
   }
   // On a phone the run ends page-first: the preview covers the viewport and the rows are behind
@@ -560,7 +618,7 @@ async function rowScreens(page, size) {
   const rows = page.locator("[data-row]");
   const count = await rows.count();
   if (count === 0) {
-    log("  ! the list has no rows — skipping the row screens.");
+    miss("every review-list row", "the list came up with no [data-row] on it");
     return;
   }
 
@@ -569,6 +627,15 @@ async function rowScreens(page, size) {
     const id = (await row.getAttribute("data-row")) ?? String(index);
     const header = row.locator("button").first();
     const name = `52-${String(index + 1).padStart(2, "0")}-${slug(id)}`;
+
+    // Declared here rather than in `census.mjs` because this is the first moment the run can
+    // name it: which rows the list has, and what they are called, comes from the answers the
+    // walk just gave. Declaring it *before* the press is the point — if the shot does not
+    // happen the census says which row went missing, without this loop having to notice.
+    expect(`${size.dir}/${name}`);
+    // §7.4 puts the advanced disclosure at the foot of the style row, so a run that comes back
+    // without a picture of it has lost a screen rather than skipped an optional one.
+    if (id === "style") expect(`${size.dir}/${name}-advanced`);
 
     await header.click();
     await row.evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
@@ -597,10 +664,30 @@ async function rowScreens(page, size) {
  * after were byte-identical with no picture of the thing it rebalanced. It got its pair out of a
  * throwaway script instead, which is the failure mode this ritual exists to remove.
  *
- * **`setInputFiles` on the picker's own input is the way in.** The control is the menu item and
- * the input is what it reaches through (`ProjectPicker`), so handing the file to the input is
- * the same event the OS dialog would have produced — no stub, no seam in the app, and the
- * picker is named by its accessible name rather than by anything about how it is styled.
+ * **The way in is the menu item, and the file arrives through the file chooser** (#270).
+ *
+ * This used to reach past the control and call `setInputFiles` on the clipped
+ * `input[type=file]`, found by `aria-label="Open a project file"`. #254 removed that label — its
+ * whole argument was that the input had stopped being a control, so the accessible name moved to
+ * the visible button and the input went `aria-hidden` — and from `be7aaff` this function found
+ * nothing, said `!` once, and both frames were absent from every set taken since.
+ *
+ * **The lesson is about what kind of thing a locator may hold on to.** §7.4's rule is roles and
+ * `data-*` hooks, never utilities, "so a script that reviews design changes does not break when
+ * the design changes". An `aria-label` looked like it was on the safe side of that line and is
+ * not: it is part of the control's accessibility contract, so it moves when the accessibility is
+ * *corrected*, which is exactly a change this ritual exists to photograph. **It was closer to a
+ * class than to a hook.**
+ *
+ * So the walk now does what an owner does: it presses **the menu item, by role and by its own
+ * visible words**, and takes the file chooser that press raises. Playwright's `filechooser`
+ * event is the OS dialog, so the file arrives by the route §7.7 describes rather than beside it.
+ * Nothing here names the input at all — and the input is free to change again. What this holds
+ * on to is the thing the reviewer would point at.
+ *
+ * A second thing falls out of it for free: **the press is now part of what is photographed.** If
+ * the menu item ever stops opening the dialog, this walk stops, where the old shape would have
+ * carried on happily driving an input nobody could reach.
  *
  * **Two files, in the order that leaves nothing behind.** A file the tool refuses first (§7.9's
  * message, in the menu's own surface with the project intact behind it), then the real one,
@@ -614,15 +701,24 @@ async function rowScreens(page, size) {
  * either way.
  */
 async function importScreens(page, size) {
-  const picker = page.locator('input[type="file"][aria-label="Open a project file"]');
-  if (!(await picker.count())) {
-    log("  ! no project picker on the list — skipping the import screens.");
+  // The menu's own item, by role and by the words on it (§7.8). `…` is part of the label, so the
+  // match is anchored at the start and left open at the end — the ellipsis is a typographic
+  // decision and this should not be the thing that breaks when somebody revisits it.
+  const opener = page.getByRole("button", { name: /^Open a project file/ });
+  if (!(await opener.count())) {
+    miss(
+      "§7.9's refusal and §7.8's replace confirmation",
+      "the menu has no “Open a project file…” item to press",
+    );
     return;
   }
 
   const bytes = await page.evaluate(() => localStorage.getItem("linkpage.project"));
   if (bytes === null) {
-    log("  ! no project in storage — skipping the import screens.");
+    miss(
+      "§7.9's refusal and §7.8's replace confirmation",
+      "there is no project in storage to hand back to the tool as a file",
+    );
     return;
   }
 
@@ -632,14 +728,23 @@ async function importScreens(page, size) {
   await writeFile(refused, "<!doctype html>\n<p>not a project file</p>\n", "utf8");
   await writeFile(real, bytes, "utf8");
 
+  /** Press the menu item and hand the dialog a file — the owner's own route in (§7.7). */
+  const choose = async (what) => {
+    const [chooser] = await Promise.all([
+      page.waitForEvent("filechooser", { timeout: 5_000 }),
+      opener.first().click(),
+    ]);
+    await chooser.setFiles(what);
+  };
+
   try {
     // The menu opens itself when it has something to say, so these do not depend on it being
     // left open — but it is, and that is the screen being photographed.
-    await picker.setInputFiles(refused);
+    await choose(refused);
     await page.locator("[data-refusal]").first().waitFor({ timeout: 5_000 });
     await shoot(page, size, "62-menu-file-refused");
 
-    await picker.setInputFiles(real);
+    await choose(real);
     await page.locator("[data-replace]").first().waitFor({ timeout: 5_000 });
     await shoot(page, size, "63-menu-replace-confirm");
 
@@ -647,8 +752,12 @@ async function importScreens(page, size) {
     if (await cancel.count()) await cancel.first().click();
   } catch (error) {
     // A ritual that dies here has thrown away every screen after it, and this is the newest and
-    // most fragile part of the walk. Say which screen went missing and carry on.
-    log(`  ! the import fork did not come up (${error.message.split("\n")[0]}) — skipping it.`);
+    // most fragile part of the walk. Say which screen went missing and carry on — and now the
+    // census names the frames whatever this sentence turns out to say.
+    miss(
+      "§7.9's refusal and §7.8's replace confirmation",
+      `the import fork did not come up: ${error.message.split("\n")[0]}`,
+    );
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -696,12 +805,12 @@ async function pageVariants(context, size, browser) {
 
     const frame = page.locator("[data-preview-frame]").first();
     if (!(await frame.count())) {
-      log("  ! no preview frame on screen — skipping the page variants.");
+      miss("the exported page, in every combination", "there is no preview frame on the screen");
       return;
     }
     const html = await frame.getAttribute("srcdoc");
     if (!html) {
-      log(`  ! ${combo}: the preview frame had no srcdoc`);
+      miss(`the exported page as ${combo}`, "the preview frame had no srcdoc to photograph");
       continue;
     }
 
@@ -719,6 +828,7 @@ async function pageVariants(context, size, browser) {
       fullPage: true,
     });
     shots += 1;
+    got(`${size.dir}/pages/${combo}`);
     log(`  ${size.dir}/pages/${combo}.png`);
 
     await hoverShot(shot, size, combo);
@@ -756,7 +866,7 @@ async function hoverShot(shot, size, combo) {
       ? shot.getByRole("link").first()
       : shot.getByRole("link", { name: first, exact: false }).first();
   if (!(await link.count())) {
-    log(`  ! ${combo}: no link button on the page — skipping the hover shot.`);
+    miss(`the hovered link button on ${combo}`, "the exported page has no link button on it");
     return;
   }
 
@@ -767,6 +877,7 @@ async function hoverShot(shot, size, combo) {
     fullPage: true,
   });
   shots += 1;
+  got(`${size.dir}/pages/${combo}-hover`);
   log(`  ${size.dir}/pages/${combo}-hover.png`);
 }
 
@@ -778,8 +889,13 @@ async function hoverShot(shot, size, combo) {
  * complete coverage, which is how the missing `floatingCard` + `dark` sat there unnoticed
  * through the ticket that most needed it.
  */
-async function report(steadiness) {
+async function report(steadiness, gone) {
+  const coverage = gone.length === 0 ? covered(wanted) : unreached(gone, reasons);
   const ledger = [
+    // First, because it is the thing that changes how everything under it should be read, and
+    // because `README.txt` is opened by somebody who is about to compare two folders (#270).
+    ...coverage,
+    "",
     "Deliberately not photographed:",
     ...omissions.flatMap(({ what, why }) => [`  · ${what}`, `      ${why}`]),
     ...(steadiness.length === 0 ? [] : ["", "The instrument:", ...steadiness.map((l) => `  ${l}`)]),
@@ -818,6 +934,18 @@ async function takeAll(browser, into) {
   outRoot = into;
   shots = 0;
   omissions.length = 0;
+  reasons.length = 0;
+  taken.clear();
+  // Declared before a single shutter, so the run is committed to a set it can then be held to.
+  // The rows are added as the walk meets them — see `rowScreens`.
+  wanted = intended({
+    answers: ANSWERS,
+    sizes: SIZES.map((size) => size.dir),
+    only,
+    pageSize: PAGE_SIZE,
+    variants,
+    hovered,
+  });
   await rm(outRoot, { recursive: true, force: true });
 
   for (const size of SIZES) {
@@ -909,9 +1037,13 @@ async function main() {
     server = await serve();
     browser = await chromium.launch({ args: RASTER });
 
-    const taken = await takeAll(browser, runRoot);
-    const steadiness = has("twice") ? await checkSteady(browser, taken) : [];
-    await report(steadiness);
+    const count = await takeAll(browser, runRoot);
+    // Read off the run that is actually in the folder, before `--twice` walks a second one over
+    // the top of these two lists. It throws if the run declared nothing, which is exit 1's own
+    // failure — there are no pictures — discovered from the other end.
+    const gone = missing(wanted, taken);
+    const steadiness = has("twice") ? await checkSteady(browser, count) : [];
+    await report(steadiness, gone);
 
     log("  Run this on the trunk too, then put the two folders side by side:");
     // Not `git switch main`: the trunk is usually checked out by another worktree, which
@@ -927,6 +1059,16 @@ async function main() {
       log("  Two runs of one commit come back byte for byte the same, so a file that differs");
       log("  between the two folders is a change. Check that any time with --twice.");
       log("");
+    }
+    // Last thing on the screen and the last thing the shell sees. The ledger above is where a
+    // reader who scrolled up finds this; the exit code is for the reader who did not (#270).
+    if (gone.length > 0) {
+      process.stderr.write(
+        `review-shots: ${gone.length} screen${gone.length === 1 ? "" : "s"} this run meant to` +
+          ` reach ${gone.length === 1 ? "is" : "are"} missing. The set is incomplete —` +
+          ` see COULD NOT PHOTOGRAPH above and in README.txt.\n\n`,
+      );
+      process.exitCode = 2;
     }
   } finally {
     if (browser) await browser.close();
