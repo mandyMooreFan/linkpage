@@ -240,7 +240,7 @@ describe("the picker (§7.7)", () => {
     const onPick = vi.fn();
     mount(<ProjectPicker onPick={onPick} />);
 
-    const input = screen.getByLabelText("Open a project file") as HTMLInputElement;
+    const input = document.querySelector("[data-file-picker]") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(["{}"], "project.json")] } });
 
     expect(onPick).toHaveBeenCalledTimes(1);
@@ -252,7 +252,7 @@ describe("the picker (§7.7)", () => {
   it("hints at .json without deciding anything by it", () => {
     mount(<ProjectPicker onPick={() => {}} />);
 
-    const input = screen.getByLabelText("Open a project file");
+    const input = document.querySelector("[data-file-picker]") as HTMLInputElement;
     expect(input.getAttribute("accept")).toBe(".json,application/json");
   });
 

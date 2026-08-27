@@ -2,6 +2,7 @@ import { useRef, type JSX, type ReactNode } from "react";
 import { PRESETS, type PresetId } from "../presets.js";
 import { Question } from "./Question.js";
 import { Button } from "../../ui/Button.js";
+import { FilePicker } from "../../ui/FilePicker.js";
 import { Panel } from "../../ui/Panel.js";
 import { TYPE } from "../../ui/type.js";
 
@@ -90,22 +91,14 @@ export function PresetQuestion({
             </p>
             {/*
              * The picker itself. `.json` rather than a bespoke type because that is what the
-             * file is; import validates by content, not by filename (§7.7). Resetting `value`
-             * afterwards is what lets the owner pick the *same* file again after a refusal,
-             * which is the recovery §7.9 is designed around.
+             * file is; import validates by content, not by filename (§7.7).
+             *
+             * `FilePicker` rather than a clipped `<input type="file">` written here (#254): the
+             * copy that was here sat between `Open it.` and the preview's own control as a tab
+             * stop nobody could see, and named itself `Open a project file` in the accessibility
+             * tree beside the visible `Open it.` — two buttons on this screen for one action.
              */}
-            <input
-              ref={picker}
-              type="file"
-              accept=".json,application/json"
-              className="sr-only"
-              aria-label="Open a project file"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.target.value = "";
-                if (file) onOpenFile(file);
-              }}
-            />
+            <FilePicker ref={picker} accept=".json,application/json" onPick={onOpenFile} />
             {/*
              * `Panel`, not a hand-rolled copy of its recipe (B-47) — and `Panel` renders a
              * `<div>` rather than a `<p>`, which is what this site needs anyway: §4.6 puts the

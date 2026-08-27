@@ -9,7 +9,7 @@
  * **What a screen needs from here is three things:**
  *
  * ```ts
- * <input type="file" accept={LOGO_ACCEPT} />           // policy.ts
+ * <FilePicker accept={LOGO_ACCEPT} onPick={…} />       // policy.ts, ui/FilePicker.tsx
  * const result = await importLogo(file, browserImageCodec());
  * setDraft(applyIntake(draft, result));                // a no-op if it failed
  * ```

@@ -25,7 +25,13 @@ afterEach(cleanup);
 
 const LOGO: Logo = { src: "data:image/png;base64,iVBORw0KGgo=", width: 1200, height: 400 };
 
-const picker = (): HTMLInputElement => screen.getByLabelText("Choose a logo file");
+/**
+ * Reached by its §7.4 hook rather than by role or by name, because #254 took both away from
+ * it: the input is `aria-hidden` and out of the tab order, and the button above it is the
+ * control. `pickers.test.tsx` is what holds that.
+ */
+const picker = (): HTMLInputElement =>
+  document.querySelector("[data-file-picker]") as HTMLInputElement;
 const pick = (): boolean =>
   fireEvent.change(picker(), { target: { files: [new File(["x"], "logo.png")] } });
 
