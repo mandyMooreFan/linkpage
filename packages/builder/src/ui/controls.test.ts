@@ -1507,6 +1507,81 @@ describe("the one focus treatment", () => {
 });
 
 /**
+ * `prefers-reduced-motion` collapses **every** duration a screen change runs (`SPEC.md` §7.11).
+ *
+ * **The gap this exists to keep closed is the half nobody writes.** A view transition runs two
+ * kinds of animation and the stylesheet only ever named one of them: the `old`/`new` fades are
+ * ours, so they were in the reduced-motion block from the first day; the **group** animation is
+ * the browser's own, is put on every named group whether we ask for it or not, and ran the full
+ * 250 ms under `reduce` because nothing here mentioned it. §7.11 says the reduced form
+ * "shortens durations toward instant"; measured in Chromium before this rule existed, a flow
+ * screen change took **291 ms under `reduce` against 354 ms at full motion** — 18 % off, not
+ * instant.
+ *
+ * **So the rule is written against the names, not against a list typed here.** Every
+ * `view-transition-name` the builder declares gets a group; `root` gets one whether anything
+ * asks or not. Reading the names out of the sources is what makes a third name — the day
+ * someone scopes a second transition — fail this rather than slip past it, which is exactly how
+ * `flow-content`'s own group slipped past for the life of the language.
+ */
+describe("the motion language collapses under reduced motion (§7.11)", () => {
+  /** The one `@media (prefers-reduced-motion: reduce)` block, and proof it was found. */
+  const reducedBlock = (): string => {
+    const at = theme.indexOf("@media (prefers-reduced-motion: reduce)");
+    expect(at, "theme.css has no prefers-reduced-motion block at all").toBeGreaterThan(-1);
+    const open = theme.indexOf("{", at);
+    let depth = 0;
+    let end = open;
+    for (let i = open; i < theme.length; i += 1) {
+      if (theme[i] === "{") depth += 1;
+      if (theme[i] === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+      }
+    }
+    const body = theme.slice(open + 1, end);
+    expect(body.trim(), "the reduced-motion block is empty").not.toBe("");
+    return body;
+  };
+
+  /** `root`, plus every name the builder puts on an element itself. */
+  const groupNames = (): string[] => {
+    const declared = everySource().flatMap(([, text]) =>
+      [...text.matchAll(/view-transition-name:\s*([a-zA-Z][\w-]*)/g)].map(([, name]) => name ?? ""),
+    );
+    // Non-vacuity: the builder scopes at least one transition of its own, and if this read ever
+    // comes back with only `root` in it the loop below would assert almost nothing.
+    expect(declared, "no view-transition-name found in the builder's sources").not.toEqual([]);
+    return ["root", ...new Set(declared)];
+  };
+
+  it("shortens every group the browser will animate, not only the fades we wrote", () => {
+    const block = reducedBlock();
+    for (const name of groupNames()) {
+      expect(
+        block,
+        `::view-transition-group(${name}) still runs the browser's own 250ms under reduce`,
+      ).toContain(`::view-transition-group(${name})`);
+    }
+  });
+
+  it("shortens the two fades it always did, and the arrival fade with them", () => {
+    const block = reducedBlock();
+    for (const selector of [
+      ".enter-fade",
+      "::view-transition-old(flow-content)",
+      "::view-transition-new(flow-content)",
+    ]) {
+      expect(block, `${selector} is no longer collapsed under reduce`).toContain(selector);
+    }
+    expect(block, "the block sets no duration").toMatch(/animation-duration:\s*1ms/);
+  });
+});
+
+/**
  * The narrow container, and the one alignment (design change 9; B-53, B-54, B-67, B-70).
  *
  * **All three of these guard a layout rule that has no rendered form in jsdom**, so they read

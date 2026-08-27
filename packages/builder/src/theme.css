@@ -157,7 +157,9 @@
  * bar and everything around the content never so much as flickers. Browsers without view
  * transitions swap instantly, which is the language's own honest reduced form, and
  * `prefers-reduced-motion` collapses every duration toward instant rather than switching to a
- * lesser language. Durations are §7.11's felt-approved values.
+ * lesser language — **every**, including the two animations the browser writes rather than us;
+ * see the reduced-motion block below, which named only ours until it was walked in a browser.
+ * Durations are §7.11's felt-approved values.
  */
 @keyframes fade-in {
   from {
@@ -189,10 +191,33 @@
   animation: fade-in 320ms ease-out both;
 }
 
+/**
+ * **A view transition runs two kinds of animation, and only one of them is ours.**
+ *
+ * The `old`/`new` pair above is the fade this language is written in, so it was in here from the
+ * first day. The **group** is the browser's own: it is put on `root` and on every named group
+ * whether anything asks for it or not, it runs 250 ms, and nothing here mentioned it — so a flow
+ * screen change under `reduce` took **291 ms against 354 ms at full motion**, measured in
+ * Chromium; with both groups named it takes **47 ms**, and full motion is untouched. Eighteen
+ * per cent off is not §7.11's "toward instant", and the fades reaching 1 ms while the surviving
+ * 250 ms belongs to the browser is the least visible way for that to be wrong: *nothing on the
+ * glass moves*, so nothing about the screen says the language is not doing what it claims. It
+ * took driving the flow with `document.getAnimations()` open to see it at all.
+ *
+ * Both are named, because both animate. `root` is pinned still above and its duration is still
+ * 250 ms of transition lifetime; `flow-content`'s group tweens the question's own height —
+ * 349.5 px to 429.5 px on the name-to-tagline step — which the fades happen to mask at full
+ * motion and would not, if a future screen changed width rather than height.
+ *
+ * `controls.test.ts` reads the names off the elements that declare them rather than out of a
+ * list typed here, so the day a second transition is scoped, this block is what goes red.
+ */
 @media (prefers-reduced-motion: reduce) {
   .enter-fade,
   ::view-transition-old(flow-content),
-  ::view-transition-new(flow-content) {
+  ::view-transition-new(flow-content),
+  ::view-transition-group(root),
+  ::view-transition-group(flow-content) {
     animation-duration: 1ms;
   }
 }
