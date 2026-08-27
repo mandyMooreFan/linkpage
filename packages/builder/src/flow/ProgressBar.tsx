@@ -72,6 +72,21 @@ export function barUnits(steps: readonly Step[]): readonly BarUnit[] {
   return units;
 }
 
+/**
+ * The fill — §7.11's one movement that is not a fade, and the tween is `theme.css`'s to name.
+ *
+ * **This used to carry `transition-[width] duration-500 ease-out` and that was the defect** (#246).
+ * A duration written on an element has no name a stylesheet can select, so the reduced-motion
+ * block could not reach it: measured in Chromium under `prefers-reduced-motion: reduce`, every
+ * other animation on a screen change finished at 1 ms while the bar slid on for **483 ms alone**
+ * — a reader who asked for less motion got the only motion. The class is `bar-tween` now and the
+ * block collapses it with everything else; full motion is unchanged, curve included.
+ *
+ * Exported so `controls.test.ts` can hold the last third of that rule — that the component
+ * actually wears it — which no amount of correct stylesheet would prove on its own.
+ */
+export const BAR_FILL = "block h-2 rounded-full bg-progress bar-tween";
+
 export interface ProgressBarProps {
   readonly steps: readonly Step[];
   /** The screen the owner is on. */
@@ -133,10 +148,7 @@ export function ProgressBar({
           className="mt-2 block h-2 overflow-hidden rounded-full bg-progress-track"
           aria-hidden="true"
         >
-          <span
-            className="block h-2 rounded-full bg-progress transition-[width] duration-500 ease-out"
-            style={{ width: `${(finished / units.length) * 100}%` }}
-          />
+          <span className={BAR_FILL} style={{ width: `${(finished / units.length) * 100}%` }} />
         </span>
       </button>
       {/*

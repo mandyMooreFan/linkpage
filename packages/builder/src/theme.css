@@ -150,16 +150,19 @@
 /**
  * §7.11: the frame motion language — still chrome, fading content, one verb.
  *
- * **The fade is the only movement the builder makes.** A surface earns `enter-fade` when it
- * arrives (a run beginning, the list on arrival, the drawer opening); a *screen change inside
+ * **The fade is the only movement the builder makes, bar one.** A surface earns `enter-fade` when
+ * it arrives (a run beginning, the list on arrival, the drawer opening); a *screen change inside
  * the flow* is the two-phase version — fade out, swap, fade in — carried by a view transition
  * scoped to the one element named `flow-content`, while the root pair is pinned still so the
- * bar and everything around the content never so much as flickers. Browsers without view
- * transitions swap instantly, which is the language's own honest reduced form, and
- * `prefers-reduced-motion` collapses every duration toward instant rather than switching to a
- * lesser language — **every**, including the two animations the browser writes rather than us;
- * see the reduced-motion block below, which named only ours until it was walked in a browser.
- * Durations are §7.11's felt-approved values.
+ * bar and everything around the content never so much as flickers. The exception is the progress
+ * bar's fill, which §7.11 asks to *tween* rather than blink: see `bar-tween` below, named here so
+ * that it is reachable rather than written on the element where nothing could reach it.
+ *
+ * Browsers without view transitions swap instantly, which is the language's own honest reduced
+ * form, and `prefers-reduced-motion` collapses every duration toward instant rather than
+ * switching to a lesser language — **every**, which has now twice meant something this block did
+ * not say: the two animations the browser writes rather than us (#201), and the one duration
+ * written outside this file altogether (#246). Durations are §7.11's felt-approved values.
  */
 @keyframes fade-in {
   from {
@@ -174,6 +177,33 @@
 
 @utility enter-fade {
   animation: fade-in 320ms ease-out both;
+}
+
+/**
+ * §7.11's one piece of motion that is not a fade: the progress bar's fill (`ProgressBar.tsx`).
+ *
+ * **It is named here rather than written in the markup, and that is the whole of #246.** As
+ * `transition-[width] duration-500 ease-out` on the element it was perfectly good CSS in a place
+ * the reduced-motion block below has no way to reach — a duration on a utility class has no name
+ * a stylesheet can select. So the language's one exception was also the one thing `reduce` never
+ * touched: measured in Chromium, everything else on a screen change finished at 1 ms and the bar
+ * went on sliding **483 ms alone**, which is the inverse of what the preference asks for.
+ *
+ * The tween itself is not in question at full motion — §7.11 asked for it, and it is the fix for
+ * the bar blinking along with every screen. Collapsing it under `reduce` is not that blink: the
+ * blink was a *remount*, and this fill is the same element across a screen change (`Flow.tsx`
+ * keeps the bar outside the keyed subtree). It keeps its identity and only stops interpolating.
+ */
+@utility bar-tween {
+  /*
+   * The curve is spelled out because CSS's `ease-out` and Tailwind's are not the same function —
+   * `cubic-bezier(0, 0, 0.58, 1)` against `cubic-bezier(0, 0, 0.2, 1)` — and the bar has always
+   * run the latter. §7.11's durations are indicative and tunable, but this change is about
+   * `reduce`; moving full motion as a side effect of moving the rule somewhere else would be a
+   * look change riding along in a fix, and the appearance ritual cannot photograph motion to
+   * catch it.
+   */
+  transition: width 500ms cubic-bezier(0, 0, 0.2, 1);
 }
 
 ::view-transition-image-pair(root) {
@@ -219,6 +249,9 @@
   ::view-transition-group(root),
   ::view-transition-group(flow-content) {
     animation-duration: 1ms;
+  }
+  .bar-tween {
+    transition-duration: 1ms;
   }
 }
 

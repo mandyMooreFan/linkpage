@@ -1964,14 +1964,26 @@ reads as a layout shift, not motion._
   than in space.
 - **The bar advances by tween, never by remount** — its fill slides to the new width (~500ms,
   ease-out). This falls out of the bar being static chrome, and it is the fix for the bar blinking
-  along with every screen.
+  along with every screen. **It is the language's one movement that is not a fade**, so it is a
+  named class in the stylesheet like the fades are, and never a duration written on an element:
+  motion nobody can select is motion the rule below cannot reach (#246).
 - **The drawer fades**, and §7.6's run-end arrival — the finished page rising to meet the owner — is a
   fade-in, the language's one set-piece.
 - **The list moves exactly as the flow does** (§7.1: both or neither).
 - **§7.9's messages are ordinary content** — they appear with standard form validation and carry no
   arrival choreography of their own (#142).
-- **`prefers-reduced-motion` is honest by construction**: the language is already opacity-only, so the
-  reduced form shortens durations toward instant rather than substituting a lesser language.
+- **`prefers-reduced-motion` shortens every duration toward instant rather than substituting a
+  lesser language** — **every**, the bar's tween included. This used to read _"honest by
+  construction: the language is already opacity-only"_, and that reason was not true: the bar
+  widens, which is the one thing here that is not opacity. The reason mattered, because a language
+  that is reduced by construction is a language nobody has to maintain a rule for — so the tween
+  was written on the element, out of the stylesheet's reach, and under `reduce` the bar was the
+  only thing on the screen still moving, for **483 ms after everything else had settled** (#246).
+  A reader who asks for less motion should not be left with the most. Collapsing the tween is not
+  the blink the tween exists to prevent: that blink was a _remount_, and the fill keeps its
+  identity and only stops interpolating. **So it is a rule, not a property**, and the rule is
+  worth what its coverage is worth — twice now it has missed something (#201, #246), and both
+  times the thing it missed was a duration written somewhere it did not look.
 - **Motion is reviewed the way it was judged — a person walking flow and list on a phone.**
   `scripts/review-shots.mjs` remains the appearance ritual; stills cannot review motion, and no
   automated capture is added. The language is a handful of named classes, so the review is
