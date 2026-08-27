@@ -42,6 +42,14 @@ export const ROW_LIST = "m-0 list-none divide-y divide-rule border-y border-rule
  *
  * 16px against the 2px inside a two-line row is 8:1, comfortably past §1's ≥4× floor. It is the
  * measurement the language picker's `py-2` failed at exactly 4:1.
+ *
+ * **The ratio was always right and the row it described was not** (#245). The reading is padding
+ * against the gap *inside* a row, so it held at any height — while a real project turned the
+ * review row into fourteen lines of concatenated button labels and 8:1 went on being true of a
+ * shape nothing produced. It is `rows.ts` that makes "a two-line row" a fact again, by summarising
+ * rather than by clamping: **a summary is one line because of what it contains**, so the number
+ * above and the row on the screen have gone back to being about the same thing. Nothing here
+ * enforces that, and nothing here should — a padding constant cannot know what a row is holding.
  */
 export const ROW_PADDING = { className: "py-4", px: 16 } as const;
 

@@ -1,4 +1,4 @@
-import { hoursView, socialLabel, vocabulary, type Hours } from "@linkpage/renderer";
+import { hoursView, vocabulary, type Hours } from "@linkpage/renderer";
 import { colourName } from "../flow/index.js";
 import { uncoveredTopics } from "../flow/plan.js";
 import { TOPIC_LABELS, TOPICS, type Topic } from "../flow/topics.js";
@@ -45,7 +45,10 @@ export interface Row {
   /** What the row is, named as the thing rather than as the act (see `TOPIC_LABELS`). */
   readonly label: string;
   /**
-   * The answer, in one line.
+   * **What is there, in one line — not what it says** (§7.4, #253).
+   *
+   * One *line*, and it is one because of what it contains rather than because anything cuts it
+   * off: a row holding a list of things reports how many. See `topicSummary`.
    *
    * Never empty on a row that is showing, which is a property rather than a convention: a
    * topic row exists only when `hasContent` says so, and the three that are always there are
@@ -112,39 +115,85 @@ function join(parts: readonly (string | undefined)[]): string {
 }
 
 /**
- * The hours row, with the times (§7.4).
+ * `n things`, with the singular kept.
+ *
+ * A list of one is an ordinary state on every row that counts — one link button, one account,
+ * one day open — and `1 accounts` is the tell that a tool is talking to itself rather than to
+ * the person reading it (§7.4's owner is not a developer).
+ */
+function count(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+/**
+ * The hours row: **how many days the page says you are open** (§7.4).
  *
  * **Built from the renderer's own `hoursView`**, so the row and the page beside it cannot
- * disagree about which days are shown or how a time reads — the same discipline §7.10's box
- * follows, for the same reason.
+ * disagree about which days there are — the same discipline §7.10's box follows, for the same
+ * reason. The page's language still decides that reading, and no longer decides a word of this
+ * row: what the row says is now the tool's own English, like every label around it.
  *
- * **Uncollapsed, and that is §2.3's decision rather than an oversight.** `Mon–Fri` would cost
- * nothing here — the builder has no localisation layer, no §6.5 budget and no determinism
- * guarantee — and was rejected on adjacency: the page preview sits beside this list, so a
- * collapsed row against five rows in the preview reads as the page being broken.
+ * **It showed the times until [#245](https://github.com/mandyMooreFan/linkpage/issues/245), and
+ * the argument that kept them has not changed — it has stopped reaching.** §2.3 refused to
+ * collapse the row to `Mon–Fri` on *adjacency*: the page preview sits beside this list, and a
+ * collapsed run against five rows in the preview reads as the page being broken. That objection
+ * is about a **smaller copy** of the block next door. _Open 7 days_ is not a copy of the hours
+ * block any more than `1200 × 400` is a copy of the logo, so nothing in the preview contradicts
+ * it. The page's own rows are still never collapsed; §2.3's refusal is untouched.
  *
- * Paper is what makes this affordable: §7.4 chose it partly because a carded direction clipped
- * this very row, and a summary that is allowed to wrap can hold seven days and a note.
+ * **Three states, because the block has three.** Days with times; days that are all *closed*,
+ * which is a thing the owner said (§2.3) and not an absence; and — reachable only from a
+ * hand-edited file (§4.5) — a note with no days under it at all.
+ *
+ * *No days open* rather than *closed every day*: an owner can mark Sunday closed and leave the
+ * rest unspecified, and the page then claims nothing about Monday. The row must not either.
  */
 function hoursSummary(hours: Hours | undefined, lang: string | undefined): string {
   if (hours === undefined) return "";
   const view = hoursView(hours, vocabulary(lang));
   if (view === undefined) return "";
 
-  const days = view.rows.map((row) =>
-    row.intervals.length === 0
-      ? `${row.label} ${view.closed}`
-      : `${row.label} ${row.intervals.join(", ")}`,
-  );
-  return join([...days, view.note]);
+  // The row is showing because *something* is in the block, and with no day in it this is what
+  // that something is. `hoursView` only answers at all when there is a day or a note.
+  if (view.rows.length === 0) return "Just a note";
+
+  const open = view.rows.filter((row) => row.intervals.length > 0).length;
+  return join([
+    open === 0 ? "No days open" : `Open ${count(open, "day", "days")}`,
+    // Said to be there, never quoted: the note is free text and the one thing on this row with
+    // no ceiling on its length (§2.3 keeps it for what structure cannot model).
+    view.note === undefined ? undefined : "a note",
+  ]);
 }
 
 /**
- * One line per topic, saying what the owner said.
+ * One line per topic, saying **what is there rather than what it says** ([#253](https://github.com/mandyMooreFan/linkpage/issues/253), §7.4).
  *
- * Deliberately the owner's own words wherever there are any — the labels of their buttons, the
- * lines of their address — rather than a count. A row reading "3 buttons" would make the list an
- * index of the page; §7.4 wants it to *be* the page's answers.
+ * A row whose answer is a **list of things** reports how many there are — *12 link buttons*,
+ * *Open 7 days*, *11 accounts*. A row whose answer is **one short thing** still shows it: a
+ * tagline is already a line, and already says what is there.
+ *
+ * **This is the logo row's rule applied to the other eight, not a new idea imported.** The logo
+ * has always described what it holds — `1200 × 400`, or `Added` — because there was never
+ * anything else it could say. Every other row concatenated the owner's own words, and with a
+ * real project that produced a paragraph: at 390px, twelve button labels end to end made the
+ * Link buttons row **fourteen lines**, seven days of times made Opening hours ten, and the first
+ * screen held three rows of nine ([#245](https://github.com/mandyMooreFan/linkpage/issues/245)).
+ * §7.4 wants the list read at a glance — *see every topic of your page at once and press the one
+ * you want* — and that was gone before the owner had done anything unusual.
+ *
+ * **What it costs was stated and taken, so nothing here quietly puts words back to help.** You
+ * can no longer spot a typo in a button label without opening the row. A row that needs its
+ * answer visible is a change to this rule rather than a detail of it.
+ *
+ * **Nothing is cut off.** The row carries a different sentence; it does not carry a shortened
+ * one. Trimming was offered and refused (#253) — a trimmed web address is unreadable, and a
+ * clamp would hide [#244](https://github.com/mandyMooreFan/linkpage/issues/244) rather than fix
+ * it.
+ *
+ * **A count is of what the row holds, not of what the page can use.** A button whose address
+ * cannot become a target is still a button the owner added; it is `mark` — §7.9's quiet line —
+ * that says it will not work. The summary and the mark are not two opinions about one thing.
  */
 export function topicSummary(draft: Draft, topic: Topic): string {
   switch (topic) {
@@ -158,7 +207,7 @@ export function topicSummary(draft: Draft, topic: Topic): string {
     }
 
     case "links":
-      return draft.links.map((link) => link.label).join(", ");
+      return count(draft.links.length, "link button", "link buttons");
 
     case "hours":
       return hoursSummary(draft.hours, draft.lang);
@@ -170,11 +219,11 @@ export function topicSummary(draft: Draft, topic: Topic): string {
       return join([(draft.address?.lines ?? []).join(", "), draft.address?.directionsUrl]);
 
     case "social":
-      // An unrecognised platform is the owner's own word and is shown as they wrote it
-      // (§4.4): `socialLabel` answers `""` for anything it has no mark for.
-      return (draft.social ?? [])
-        .map((entry) => socialLabel(entry.platform) || entry.platform)
-        .join(", ");
+      // The platform names are on the row's own screen, a press away. §4.4's "shown as they
+      // wrote it" is about the page's fallback for a platform we have no mark for, and it is
+      // `SectionQuestions.tsx` that keeps it here — an unrecognised platform is not a reason
+      // for this row to become a list of eleven names.
+      return count((draft.social ?? []).length, "account", "accounts");
   }
 }
 

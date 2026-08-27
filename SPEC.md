@@ -124,10 +124,14 @@ data to do it has been available all along.
 > non-empty one. Minimum run length 3. **Correctness was never the obstacle**, which is exactly why the
 > reason above has to be the one on record.
 
-**The builder's review row does not collapse either**, although `Mon–Fri` would cost nothing there — the
-builder has no localisation layer, no §6.5 budget and no determinism guarantee (§3.1). The page preview
-sits beside the list, so `Mon–Fri` in the row against five rows in the preview reads as the page being
-broken.
+**The builder's review row no longer shows the times at all** (§7.4). It did, uncollapsed, and the
+argument that kept it uncollapsed has not changed — it has stopped reaching. `Mon–Fri` would have cost
+nothing there (the builder has no localisation layer, no §6.5 budget and no determinism guarantee, §3.1)
+and was refused on **adjacency**: the page preview sits beside the list, so `Mon–Fri` in the row against
+five rows in the preview reads as the page being broken. That objection is about a **smaller copy** of
+the block next door. The row now reads _Open 7 days_, which is a description rather than a copy — no
+more a version of the hours block than `1200 × 400` is a version of the logo — so nothing in the preview
+contradicts it. **The refusal above, about the page, is untouched.**
 
 The seven weekday abbreviations and the word for a closed day are **the whole of the translatable text
 the page writes**, and they are written in the page's own language — see §2.5.
@@ -1535,7 +1539,7 @@ content is an acknowledgement that has to be dismissed.
 > that already existed, where _your page is ready_ is not quite true. **No second line is added for that
 > case** — the row now showing its content is its own confirmation.
 
-**Three rows say what they control instead of describing it.**
+**Two rows say what they control instead of describing it.**
 
 - **The colour row reads `● Raspberry · Centred · Light`**, and `● #7a5c3e · Centred · Light` for a typed
   colour. Three of the six controls rather than all six: the row's job is recognition, the page preview
@@ -1555,7 +1559,30 @@ content is an acknowledgement that has to be dismissed.
   developer. **A quiet "or type a code" escape stays**, and not as a nicety: §4.5 preserves unknown values,
   so a hand-edited file declaring `sw` — English words, correct tag, a perfectly sensible state — must be
   displayable without the control silently rewriting it to `en`.
-- **The hours row shows the times**, uncollapsed, for §2.3's reason: the preview sits beside it.
+  **A collapsed row says what is there, not what it says. Every row is one short line.**
+
+A row whose answer is a **list of things** reports how many of them — _12 link buttons_, _Open 7 days_,
+_11 accounts_. A row whose answer is **one short thing** still shows it, because a tagline is already a
+line and already says what is there.
+
+**This is the logo row's own rule applied to the rest, not a new idea imported.** The logo has always
+described what it holds — `1200 × 400`, or `Added` — because there was never anything else it could say;
+every other row concatenated the owner's answer. With a real project that produced a paragraph: at 390px,
+twelve button labels end to end made the Link buttons row **fourteen lines**, seven days of times made
+Opening hours **ten**, and the first screen held **three rows of nine**. The list's job — _see every
+topic of your page at once and press the one you want_ — was gone before the owner had done anything
+unusual.
+
+**What it costs is on the record rather than discovered later: you can no longer spot a typo in a button
+label without opening the row.** That was put and taken. A row that needs its answer visible is a change
+to this rule, not a detail of it.
+
+**Nothing is cut off.** A row is one line because of what it _contains_, so **trimming stays refused** —
+here and for the address. A trimmed web address is unreadable, and a clamp would have hidden the address
+row's sideways scroll rather than fixed it. If a row still will not fit one line, that is a finding
+rather than a reason to reach for a clamp: with the worst realistic project the rows still over one line
+are the three holding a single long answer — a long business name, a long tagline, and a phone and an
+email together — and none of them is a list.
 
 **A row whose value we cannot use is marked** — a quiet note that this one will not work, in §7.9's words.
 Editing the row opens the same question, with the same message.
