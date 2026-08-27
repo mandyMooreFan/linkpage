@@ -1547,6 +1547,17 @@ describe("the motion language collapses under reduced motion (§7.11)", () => {
     return body;
   };
 
+  /**
+   * Whether a selector list names this exact selector.
+   *
+   * **Not `toContain`, and the difference is a real one this guard was caught by.** Renaming
+   * `.enter-fade` to `.enter-fade-BROKEN` in the block left the substring intact, so a
+   * `toContain(".enter-fade")` went green over a rule that no longer collapses anything. The
+   * parenthesised pseudo-elements are self-delimiting and were never at risk; the class was.
+   */
+  const names = (block: string, selector: string): boolean =>
+    new RegExp(`${selector.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*[,{]`).test(block);
+
   /** `root`, plus every name the builder puts on an element itself. */
   const groupNames = (): string[] => {
     const declared = everySource().flatMap(([, text]) =>
@@ -1562,9 +1573,9 @@ describe("the motion language collapses under reduced motion (§7.11)", () => {
     const block = reducedBlock();
     for (const name of groupNames()) {
       expect(
-        block,
+        names(block, `::view-transition-group(${name})`),
         `::view-transition-group(${name}) still runs the browser's own 250ms under reduce`,
-      ).toContain(`::view-transition-group(${name})`);
+      ).toBe(true);
     }
   });
 
@@ -1575,7 +1586,7 @@ describe("the motion language collapses under reduced motion (§7.11)", () => {
       "::view-transition-old(flow-content)",
       "::view-transition-new(flow-content)",
     ]) {
-      expect(block, `${selector} is no longer collapsed under reduce`).toContain(selector);
+      expect(names(block, selector), `${selector} is no longer collapsed under reduce`).toBe(true);
     }
     expect(block, "the block sets no duration").toMatch(/animation-duration:\s*1ms/);
   });
