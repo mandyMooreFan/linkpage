@@ -93,6 +93,19 @@ export interface ListProps {
   readonly onAdd: (topic: Topic) => void;
   /** §7.7's sheet, wired by #35. Absent leaves the button out rather than dead. */
   readonly onDownload?: () => void;
+  /**
+   * Whether §7.7's sheet is currently over this screen (#250).
+   *
+   * The list neither raises nor lowers it — `App` holds the one boolean and mounts the sheet —
+   * and this screen reads it for one reason only: while the sheet is up it is the screen, and it
+   * carries its own filled *Download index.html*, so the button that raised it steps down (see
+   * the `download` node below).
+   *
+   * **The state, never the sheet.** Nothing here reaches into what the sheet renders, the same
+   * way `importConfirm` is read for its presence and never its contents. A boolean is all a
+   * weight can honestly depend on.
+   */
+  readonly downloading?: boolean;
   /** §7.8's menu entry, wired by #36. Absent leaves it out rather than dead. */
   readonly onImport?: () => void;
   /**
@@ -122,6 +135,7 @@ export function List({
   onChange,
   onAdd,
   onDownload,
+  downloading = false,
   onImport,
   importConfirm,
   importError,
@@ -159,67 +173,125 @@ export function List({
    * reader on the size that needs it least.
    *
    * **It carries the screen's one fill, and hands it over whenever something else on the screen
-   * is the action** (§4, §6; design change 3, B-18/B-51). Two things can be:
+   * is the action** (§4, §6; design change 3, B-18/B-51). Three things can be:
    *
    * - **An open row**, which is a form with its own Save — so the screen showed two solid ink
    *   fills a few centimetres apart, disagreeing about what the owner is in the middle of.
    * - **§7.8's replace confirmation** (#228), whose *Open the file* is the errand the owner is on
    *   (#200) and which renders a couple of centimetres away in the menu's own panel, in this same
-   *   bar. #190 found this fourth double-fill and left it; the owner asked for it.
+   *   bar. #190 found this double-fill and left it; the owner asked for it.
+   * - **§7.7's own Download sheet** (#250), which is `fixed inset-0` over everything this screen
+   *   has — bar, list *and drawer* — and carries its own filled *Download index.html*. #228 found
+   *   this one and argued it away; the owner overturned that. The argument, and what beat it, are
+   *   under **The sheet, and the verdict that moved** below.
    *
-   * §4 gives the one filled object to the one action, and neither of those actions is Download —
-   * so it steps down, and takes the fill back when the row closes or the fork is answered.
+   * §4 gives the one filled object to the one action, and none of those three actions is this
+   * button — so it steps down, and takes the fill back when the row closes, the fork is answered
+   * or the sheet is shut.
    *
    * Three things make that a step down rather than a flicker:
    *
-   * - **It follows the screen's mode, never the pointer.** Nothing that raises or drops either
-   *   mode is Download: rows open from their own header and close on their Save or on the escape
-   *   inside them, and the confirmation arrives when a file comes back from the OS picker and
-   *   leaves on one of its own three buttons. The fill never leaves a button under a press.
+   * - **It follows the screen's mode, never the pointer.** Rows open from their own header and
+   *   close on their Save or on the escape inside them, and the confirmation arrives when a file
+   *   comes back from the OS picker and leaves on one of its own three buttons.
    *
    *   It reads *a file is waiting on a decision*, not *the panel is visible*, so pressing Escape
    *   to put the menu away leaves Download stepped down with the fork still unanswered — the same
    *   reading that lets an open row keep the fill while it is scrolled off the top, deliberately,
    *   because the alternative is to hang the weight on the menu's own open state and move it on a
    *   press of the Menu button, which is the flicker this rule exists to forbid.
+   *
+   *   **The sheet is the one term where the mode is raised by this button**, so the strict form of
+   *   #190's rule — *the fill never leaves a button under a press* — does not survive #250 and is
+   *   not claimed here any more. What replaces it is the reason the rule was written: a fill that
+   *   moves should be the screen changing, not the pointer being followed. Pressing Download puts
+   *   a `fixed inset-0` sheet over the whole viewport and moves the keyboard into it, which is as
+   *   large a mode change as this tool has; the fill does not wander off to some third control,
+   *   it is **handed forward to the same errand, larger and nearer the thumb**; and it comes
+   *   straight back, because `DownloadSheet` restores focus to whatever opened it, so the fill and
+   *   the caret land on this button together.
    * - **`secondary`, not `quiet`.** The same box — padding, radius, type and tap floor are shared
    *   with `primary` and asserted to be (`controls.test.ts`, *differs from Continue only in
    *   fill*) — so nothing moves or resizes; a hairline arrives where the fill was. `quiet` would
    *   make a footnote of the one thing §7.4 pins to this screen, which is the defect #189 spent a
    *   ticket undoing for the escapes.
-   * - **`covered` outranks both**, because the screen is what is on the glass. With the page up on
-   *   a phone the drawer is an opaque `fixed inset-0` surface, and the open row *and the menu
-   *   panel holding the confirmation* are both underneath it — so there is no second fill on the
-   *   screen to make room for, and a drawer whose only control was an outline is exactly what #186
-   *   was raised to fix (B-48). Where Download travels, it travels filled.
+   * - **`covered` outranks two of the three, and not the sheet**, because the screen is what is on
+   *   the glass. With the page up on a phone the drawer is an opaque `fixed inset-0` surface, and
+   *   the open row *and the menu panel holding the confirmation* are both underneath it — so there
+   *   is no second fill on the screen to make room for, and a drawer whose only control was an
+   *   outline is exactly what #186 was raised to fix (B-48). Where Download travels, it travels
+   *   filled.
    *
-   *   On a phone the two are barely even simultaneous: the menu is in the bar, so reaching it
+   *   On a phone those two are barely even simultaneous: the menu is in the bar, so reaching it
    *   means pressing *Edit your page* first (#200 hit this taking the confirmation's photographs).
    *   The phone gets the step-down like everything else — it gets it in the state where the bar is
    *   the screen, which on that size is the only state the confirmation is legible in.
    *
-   * **The set of surfaces this has to answer for is closed, and was enumerated** (#228). The whole
-   * builder writes `weight="primary"` in five places: the flow's Continue and a row's Save
-   * (`Question.tsx`), `LangRow`'s own Save below, §7.8's *Open the file*, §7.7's *Download my
-   * page*, and this. Of those, four can share a viewport with this button and three are answered
-   * above — both Saves are `open !== null`, the confirmation is `importConfirm`. The two that are
-   * deliberately *not* terms:
+   *   **`downloading` is the one term that outranks `covered` instead**, and it has to, which is
+   *   the next section.
+   *
+   * ## The sheet, and the verdict that moved
+   *
+   * **#228 examined this case, judged it the `covered` case in another costume, and wrote the
+   * argument down. The owner read §4 the other way and overturned it (#250). The argument is kept
+   * here because it is a good one and because the next reader should see what lost.**
+   *
+   * What #228 argued: the sheet is `fixed inset-0 z-30`, `role="dialog"`, `aria-modal="true"`,
+   * over a full-viewport `bg-ink/40` scrim, so the strip of list left showing is *behind glass* —
+   * dimmed, which is this design's one way of saying *not the screen*, the same thing `covered`
+   * says with an opaque drawer. And the second fill is **Download itself**, the control that
+   * raised the sheet, not a competing errand; pressing it again does nothing.
+   *
+   * **What beat it is the photograph, not a counter-argument.** `60-download-sheet` is a viewport
+   * shot at both sizes, and on both of them the bar's Download is in the frame: a solid ink
+   * rectangle, plainly legible through the scrim, a couple of centimetres from the sheet's own
+   * solid ink *Download index.html*. **A 40% veil dims; it does not remove.** That is the whole
+   * difference between the two costumes, and it is a fact about pixels rather than about roles:
+   * `bg-surface` is opaque and takes the competitor off the glass, so `covered` really does leave
+   * one fill on screen; `bg-ink/40` leaves both on it. §4 counts what is on the glass, and under
+   * the scrim there were two.
+   *
+   * The second half of #228's argument turns out to cut the other way too. That the surviving
+   * fill is *Download itself* would be a reason to keep it if the fill meant *this is the thing
+   * you came for*; it means *this is the action on this screen*, and on this screen it is not —
+   * pressing it does nothing at all. The fill was being spent on an inert control, which is a
+   * worse way to spend it than on a competing one.
+   *
+   * **So `downloading` outranks `covered`.** The `covered` argument is that the drawer is the
+   * screen; when the sheet is up, the drawer is not the screen either — the sheet is over the
+   * drawer as much as over the bar (`z-30` against `z-20`), and the drawer's header shows through
+   * the same scrim, filled Download and all. Photographed: the phone's page-first landing with
+   * the sheet raised straight out of the drawer's header shows *Edit your page* as a hairline and
+   * Download as solid ink under the veil, above a sheet carrying a second solid ink fill. **B-48
+   * is not re-made by this**, because B-48 is about a screen having no filled action to press,
+   * and the screen here is the sheet, which has one. The moment it shuts, `downloading` goes false
+   * and the fill is back in the drawer's header where #186 put it.
+   *
+   * ## The set of surfaces this has to answer for is closed, and was enumerated (#228)
+   *
+   * The whole builder hands out the fill in five places, across four files: the flow's Continue
+   * and a row's Save (one call site in `Question.tsx`, since the list re-asks the flow's own
+   * question), `LangRow`'s own Save below, §7.8's *Open the file*, §7.7's *Download index.html*,
+   * and this. Of those, **four can share a viewport with this button and all four are now terms**
+   * — both Saves are `open !== null`, the confirmation is `importConfirm`, the sheet is
+   * `downloading`. **None is left over**, and `controls.test.ts`'s *closed set of filled buttons*
+   * asserts the census against the sources, so a fifth file cannot start spending the fill without
+   * this decision being taken again.
+   *
+   * One surface is deliberately *not* a term and never was:
    *
    * - **`importError`.** §7.9's refusal is prose and a disclosure; `RefusalNotice` renders no
    *   button at all, let alone a filled one. Stepping Download down for it would leave a screen
    *   with no filled object on it, claiming more than there is.
-   * - **§7.7's Download sheet.** It carries its own filled action and the list is still behind it,
-   *   so by the letter of §4 that is a fifth double-fill — but it is the `covered` case rather
-   *   than this one. The sheet is `fixed inset-0`, `role="dialog"`, `aria-modal`, over a
-   *   full-viewport `bg-ink/40` scrim: the strip of list left showing is *behind glass*, dimmed,
-   *   which is the design's one way of saying this is not the screen. And the second fill there is
-   *   Download itself — the control that raised the sheet, not a competing errand. Examined and
-   *   left, rather than not looked at.
    */
   const download = (
     <Button
       type="button"
-      weight={!covered && (open !== null || importConfirm !== undefined) ? "secondary" : "primary"}
+      weight={
+        downloading || (!covered && (open !== null || importConfirm !== undefined))
+          ? "secondary"
+          : "primary"
+      }
       disabled={onDownload === undefined}
       onClick={onDownload}
     >

@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
 import { useState, type JSX, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { FileDownload } from "../download/index.js";
+import { DownloadSheet, type FileDownload } from "../download/index.js";
 import { POPULATED } from "../fixtures.js";
 import type { Topic } from "../flow/topics.js";
 import { ReplaceConfirm } from "../open/index.js";
@@ -25,7 +25,14 @@ import { List, MENU_PANEL } from "./List.js";
 
 afterEach(cleanup);
 
-/** The list with a draft that moves, which is what makes a round trip expressible. */
+/**
+ * The list with a draft that moves, which is what makes a round trip expressible.
+ *
+ * **`sheet` wires §7.7 the way `App` does** (#250), and nothing about it is a stand-in: one
+ * boolean raises the real `DownloadSheet` and is handed back to the list as `downloading`, so a
+ * test presses Download and Close rather than setting a prop from outside. It is off by default
+ * because every other claim here is about the list on its own.
+ */
 function editing(
   initial: Draft = POPULATED,
   props: {
@@ -34,25 +41,36 @@ function editing(
     onImport?: () => void;
     importConfirm?: ReactNode;
     importError?: ReactNode;
+    sheet?: boolean;
   } = {},
 ) {
   const seen: Draft[] = [];
 
   function Harness(): JSX.Element {
     const [draft, setDraft] = useState<Draft>(initial);
+    const [downloading, setDownloading] = useState(false);
     return (
-      <List
-        draft={draft}
-        onChange={(next) => {
-          seen.push(next);
-          setDraft(next);
-        }}
-        onAdd={props.onAdd ?? (() => {})}
-        {...(props.onDownload === undefined ? {} : { onDownload: props.onDownload })}
-        {...(props.onImport === undefined ? {} : { onImport: props.onImport })}
-        {...(props.importConfirm === undefined ? {} : { importConfirm: props.importConfirm })}
-        {...(props.importError === undefined ? {} : { importError: props.importError })}
-      />
+      <>
+        <List
+          draft={draft}
+          onChange={(next) => {
+            seen.push(next);
+            setDraft(next);
+          }}
+          onAdd={props.onAdd ?? (() => {})}
+          {...(props.sheet === true
+            ? { onDownload: () => setDownloading(true), downloading }
+            : props.onDownload === undefined
+              ? {}
+              : { onDownload: props.onDownload })}
+          {...(props.onImport === undefined ? {} : { onImport: props.onImport })}
+          {...(props.importConfirm === undefined ? {} : { importConfirm: props.importConfirm })}
+          {...(props.importError === undefined ? {} : { importError: props.importError })}
+        />
+        {props.sheet === true && downloading && (
+          <DownloadSheet draft={draft} onClose={() => setDownloading(false)} />
+        )}
+      </>
     );
   }
 
@@ -593,13 +611,24 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
    * more term in the same expression rather than a mechanism of its own, so it is tested here
    * beside the other three and not somewhere new.
    *
-   * **The weight follows the screen's mode, never the pointer.** Nothing that changes the mode is
-   * Download itself: rows open from their own header and close on Save or on the escape inside
-   * them, and the confirmation arrives with a file from the OS picker and leaves on one of its own
-   * three buttons — so the fill never leaves a button under a press. And the step is to
-   * `secondary` rather than `quiet` — the same box, the same padding, radius and type, one
-   * hairline instead of the fill (`controls.test.ts`, *differs from Continue only in fill*).
-   * Download does not move, resize or leave; what the eye sees is the fill travelling.
+   * **§7.7's own sheet is the fifth, and it took two tickets to settle** (#250). #228 enumerated
+   * it, judged it the `covered` case in another costume — a `role="dialog"` over a `bg-ink/40`
+   * scrim, with the surviving fill being Download itself — and wrote the argument into
+   * `List.tsx`. The owner overturned that. The picture is what beat it: `60-download-sheet` is a
+   * viewport shot at both sizes and the bar's solid ink Download is in the frame on both, a
+   * couple of centimetres from the sheet's own solid ink *Download index.html*. **A 40% veil dims
+   * and does not remove**, which is the whole difference from the opaque drawer.
+   *
+   * **The weight follows the screen's mode, never the pointer.** Rows open from their own header
+   * and close on Save or on the escape inside them, and the confirmation arrives with a file from
+   * the OS picker and leaves on one of its own three buttons. The sheet is the exception and the
+   * exception is decided, not overlooked: it is raised **by this very button**, so #190's strict
+   * *the fill never leaves a button under a press* did not survive #250 and is not asserted
+   * anywhere below. What survives is its reason — a fill that moves is the screen changing, and a
+   * `fixed inset-0` dialog taking the keyboard is as large a mode change as this tool has. And
+   * the step is to `secondary` rather than `quiet` — the same box, the same padding, radius and
+   * type, one hairline instead of the fill (`controls.test.ts`, *differs from Continue only in
+   * fill*). Download does not move, resize or leave; what the eye sees is the fill travelling.
    *
    * **The screen is what is on the glass.** On a phone the open drawer is an opaque
    * `fixed inset-0` surface with the list behind it (#186), so an open row — *and the menu panel
@@ -608,15 +637,21 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
    * `matchMedia`, which the drawer reads as the phone, so that is the default here and the laptop
    * is stubbed in where a test wants the other size.
    *
-   * **The ritual can photograph one of these four and not the others.**
+   * **`onGlass()` below is the drawer's rule and not the sheet's**, and the sheet tests say so by
+   * scoping to the whole document instead. That is not a shortcut: `bg-surface` is opaque and
+   * genuinely takes what is under it off the glass, which is what `onGlass()` encodes;
+   * `bg-ink/40` leaves both fills legible in one viewport, so the viewport is the honest scope.
+   * The difference between the two scopes **is** the finding #250 turned on.
+   *
+   * **The ritual can photograph two of these five and not the others.**
    * `63-menu-replace-confirm` (#209) is a *viewport* shot taken from the top of the list with the
-   * page put away, so the bar and its Download are in the frame behind the panel — the
-   * confirmation case moves a real picture. The row cases still move none: `pnpm shots` opens
-   * every row, but a row shot is an *element* shot of the row alone, so the bar is outside the
-   * frame, and `51-list-rows` is taken with every row closed. #190's before-and-after came out of
-   * a patched copy of the script, taken once and thrown away. Worth knowing before reading a
-   * byte-identical pair as "the change did nothing", which is exactly the misreading #208 was
-   * raised to stop.
+   * page put away, so the bar and its Download are in the frame behind the panel; so is
+   * `60-download-sheet`, at both sizes, which is where #250 was decided from. The row cases still
+   * move none: `pnpm shots` opens every row, but a row shot is an *element* shot of the row alone,
+   * so the bar is outside the frame, and `51-list-rows` is taken with every row closed. #190's
+   * before-and-after came out of a patched copy of the script, taken once and thrown away. Worth
+   * knowing before reading a byte-identical pair as "the change did nothing", which is exactly the
+   * misreading #208 was raised to stop.
    */
   describe("one filled button per screen (design change 3)", () => {
     /**
@@ -725,6 +760,83 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
       // it has to: a drawer whose only control was an outline is B-48 all over again.
       expect(onGlass(), "the drawer should be the screen here").toBe(drawerRoot());
       expect(filledLabels(onGlass())).toEqual(["Download"]);
+    });
+
+    /**
+     * §7.7's sheet, the real one, raised by pressing the real button (#250).
+     *
+     * **Not a `downloading` prop set from outside.** The harness wires the one boolean the way
+     * `App` does, so what these press is Download and Close and what they read is the composed
+     * screen. A `List` on its own with the flag turned on could only ever say *this button is not
+     * filled*, which goes green against a screen that has no fill anywhere — #213's trap, and the
+     * reason `ReplaceConfirm` is mounted for real two tests above.
+     *
+     * **Scoped to the whole document, deliberately** — see the note on this block. The sheet is
+     * `fixed inset-0` over the bar, the list and the drawer alike, and its scrim leaves every one
+     * of them legible underneath, so the viewport is the screen and `filledLabels()` over it is
+     * the honest census.
+     */
+    it("hands the fill to the sheet it raised, and takes it back when the sheet shuts (#250)", () => {
+      editing(POPULATED, { sheet: true });
+      putThePageAway();
+      expect(filledLabels()).toEqual(["Download"]);
+
+      fireEvent.click(screen.getByRole("button", { name: "Download" }));
+
+      // One filled object in the viewport and it is the sheet's, not two solid ink rectangles a
+      // couple of centimetres apart with the top one inert. **Identified, never counted**: a
+      // census that had wandered onto Close or onto section two's copy passes any count.
+      expect(filledLabels()).toEqual(["Download index.html"]);
+
+      // Stepped down, not stepped out — the same box, a hairline where the fill was (#189).
+      const download = screen.getByRole("button", { name: "Download" });
+      expect(download).toHaveProperty("disabled", false);
+      expect(download.className).toContain(WEIGHT.secondary);
+
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
+      expect(filledLabels()).toEqual(["Download"]);
+    });
+
+    /**
+     * **The ordering, and the one place the answer differs from the other three terms (#250).**
+     *
+     * `covered` outranks an open row and outranks the confirmation, because an opaque drawer puts
+     * them off the glass. It does **not** outrank the sheet, because the sheet is over the drawer
+     * too (`z-30` against `z-20`) and its scrim removes nothing: the drawer's own header, filled
+     * Download and all, shows straight through it. Photographed on the phone's page-first landing
+     * while this was built — *Edit your page* as a hairline and Download as solid ink under the
+     * veil, above a sheet carrying a second solid ink fill.
+     *
+     * B-48 is not re-made by this. B-48 is a screen with no filled action on it; the screen here
+     * is the sheet, which has one, and the drawer takes its fill straight back on Close.
+     */
+    it("steps down under the sheet even where the page covers the list (#250)", () => {
+      editing(POPULATED, { sheet: true });
+
+      // No press: on a phone the list lands page-first, so Download is already in the drawer's
+      // header and this is the `covered` case from the start.
+      expect(onGlass(), "the drawer should be holding Download here").toBe(drawerRoot());
+      fireEvent.click(screen.getByRole("button", { name: "Download" }));
+
+      // It has not moved — #186's placement is untouched and the drawer still holds the one
+      // Download — it has given up the fill, and the drawer is left with no filled object because
+      // the drawer is no longer the screen.
+      expect(onGlass(), "Download stays where #186 put it").toBe(drawerRoot());
+      expect(filledLabels(drawerRoot())).toEqual([]);
+      expect(filledLabels()).toEqual(["Download index.html"]);
+    });
+
+    it("steps down under the sheet at the size where the page sits beside the list (#250)", () => {
+      const roomy = laptop();
+      editing(POPULATED, { sheet: true });
+
+      // The other size, visibly stubbed: the bar is the screen and the drawer is open beside it.
+      expect(onGlass(), "the bar should be the screen at this size").toBe(document);
+      expect(drawerRoot().dataset.open).toBe("true");
+
+      fireEvent.click(screen.getByRole("button", { name: "Download" }));
+      expect(filledLabels()).toEqual(["Download index.html"]);
+      roomy.restore();
     });
   });
 
