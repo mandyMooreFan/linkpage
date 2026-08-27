@@ -21,6 +21,7 @@ import { REORDER_CLASS } from "../list/LinkButtons.js";
 import { MENU_PANEL, MENU_SURFACE } from "../list/List.js";
 import { ROW_BUTTON, ROW_OPEN, ROW_PADDING, ROW_STACK_PADDING } from "./row.js";
 import { BRAND_SWATCHES } from "../flow/index.js";
+import { BAR_FILL } from "../flow/ProgressBar.js";
 
 /**
  * The control layer holds, and the two colours it spends.
@@ -1707,6 +1708,83 @@ describe("the motion language collapses under reduced motion (§7.11)", () => {
     }
     expect(block, "the block sets no duration").toMatch(/animation-duration:\s*1ms/);
   });
+
+  /**
+   * Every motion `theme.css` names, read off the stylesheet rather than listed here.
+   *
+   * The same method as `groupNames()` one test up, for the same reason: a list typed into this
+   * file goes stale the day a second piece of motion is written, and going stale is precisely
+   * how the bar's tween sat outside the block for the life of the language. `@utility` is where
+   * the builder's motion lives, so whatever declares an `animation` or a `transition` there is
+   * what the reduced form has to name.
+   */
+  const motionUtilities = (): string[] =>
+    [...theme.matchAll(/@utility\s+([\w-]+)\s*\{([^{}]*)\}/g)]
+      // Longhands too (`transition-duration`, `animation-name`): a motion split across
+      // properties is still motion, and matching only the shorthand would let one through.
+      .filter(([, , body]) => /(?:animation|transition)[\w-]*\s*:/.test(body ?? ""))
+      .map(([, name]) => name ?? "");
+
+  it("names every motion the stylesheet declares, the tween included (#246)", () => {
+    const block = reducedBlock();
+    const found = motionUtilities();
+    // Non-vacuity: if this read ever comes back empty the loop asserts nothing at all, which is
+    // the shape of guard this suite has already been bitten by.
+    expect(found, "theme.css declares no motion utility at all").not.toEqual([]);
+    for (const name of found) {
+      expect(
+        names(block, `.${name}`),
+        `.${name} runs its full duration under reduce — nothing in the block names it`,
+      ).toBe(true);
+    }
+    expect(block, "the block collapses no transition, only animations").toMatch(
+      /transition-duration:\s*1ms/,
+    );
+  });
+
+  /**
+   * **The structural half, and the actual cause of #246.**
+   *
+   * The bar's fill was `transition-[width] duration-500 ease-out` in the markup. Nothing about
+   * that is wrong as CSS; what is wrong is *where it is written*. A duration on a utility class
+   * has no name the stylesheet can reach, so the reduced-motion block above could not collapse
+   * it however carefully it was maintained — and under `reduce` the bar went on sliding for half
+   * a second after every other animation on the screen had finished at 1 ms.
+   *
+   * So the rule is that the builder writes no duration in its markup. Motion is a named class in
+   * `theme.css` (`enter-fade`, `bar-tween`) and the block above names them all; the day someone
+   * writes `duration-200` on an element, this is what says so rather than the next browser walk.
+   */
+  it("writes no duration in the markup, which is what put the tween out of reach", () => {
+    const offenders = everySource()
+      .flatMap(([path, text]) =>
+        classLists(text)
+          .flatMap((list) => list.split(/\s+/))
+          .map((one): [string, string] => [path, one]),
+      )
+      .filter(([, one]) => /(?:^|:)(?:transition|duration|animate|ease)-/.test(one))
+      .map(([path, one]) => `${path}: ${one}`);
+    expect(offenders, "motion belongs in theme.css, where the reduced form can name it").toEqual(
+      [],
+    );
+  });
+
+  /**
+   * **And the third of the rule that source guards keep missing: the component wears it.**
+   *
+   * Two files of perfect source rules once coexisted with five controls that rendered nothing,
+   * so a named tween in the stylesheet is worth nothing until the fill is the thing wearing it.
+   */
+  it("is worn by the bar's fill, which is the one thing in the builder that tweens", () => {
+    expect(BAR_FILL.split(/\s+/), "the fill carries the named tween").toContain("bar-tween");
+    const bar = sources["../flow/ProgressBar.tsx"] ?? "";
+    expect(bar, "reading the real component, not a missing glob key").toContain(
+      "data-progress-bar",
+    );
+    expect(code(bar), "the fill is rendered from the constant, not a second copy").toContain(
+      "className={BAR_FILL}",
+    );
+  });
 });
 
 /**
@@ -1967,11 +2045,13 @@ describe("the stray sweep (design change 12)", () => {
       "max-w-[min(20rem,calc(100vw-2.5rem))]",
       // The panel 4px under the button that opens it — off the form ladder on purpose. `List.tsx`.
       "top-[calc(100%+0.25rem)]",
-      // Plumbing: naming the property to transition has no utility equivalent. `ProgressBar.tsx`.
-      "transition-[width]",
+      // `transition-[width]` was here, on the bar's fill, and is gone: the tween is `bar-tween`
+      // in `theme.css` now, because a duration in the markup is one `prefers-reduced-motion`
+      // cannot reach (#246). The arbitrary value was the smaller half of that; being out of the
+      // stylesheet was the whole of it.
     ].sort();
 
-    it("holds exactly the six the builder has written a reason for", () => {
+    it("holds exactly the arbitrary values the builder has written a reason for", () => {
       const found = [
         ...new Set(
           everyUtility()
