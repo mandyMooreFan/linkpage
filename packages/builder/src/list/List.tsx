@@ -159,6 +159,48 @@ export function List({
    * only thing that knows both its own open state and whether there was room beside the list);
    * this screen decides what to do about it, which is to hand its primary action to the surface
    * that is actually on screen.
+   *
+   * ## And to go out of reach while it is under there (#255)
+   *
+   * #186 moved **one** control out, because §4 binds the primary action to the screen and the
+   * change list called that broken (B-48). Everything else this column holds stayed exactly where
+   * it was — Menu, every row, the arrival line — focusable, tabbable and in the accessibility
+   * tree behind an opaque surface. **The screen disagreed with itself**: a sighted owner had one
+   * screen, a keyboard or screen-reader owner had two stacked on top of each other, and the
+   * bottom one was the one #186 had just finished declaring off the glass. `covered` was already
+   * this screen's word for *the list is not what is on the glass* — it was being spent on a
+   * single button.
+   *
+   * **Which of the three readings this is.** Not a **modal**: the tool has one, §7.7's sheet, and
+   * it is a *detour* — something raises it, it takes the keyboard, it hands the screen back and
+   * restores focus to whoever opened it. Nothing raises the drawer on the list; it is the default
+   * arrival (§7.6, #147), and on this size it **is** the screen rather than a layer over one.
+   * Not a **full-width panel with the list still live behind it** either: §7.6 says *over the
+   * whole screen* and means it, `bg-surface` is opaque, and #250 settled that opacity is exactly
+   * what takes a thing off the glass where a 40% veil does not. It is the third thing — **two
+   * halves of one screen, shown side by side where there is room for both and one at a time where
+   * there is not.**
+   *
+   * **So the fix is `inert` and is not a focus trap.** `inert` states *this subtree is not part
+   * of the page right now*, which is true; `role="dialog"` plus `aria-modal` would announce a
+   * layer that is not one, and a keyboard cage would be a second design for one of the two sizes
+   * — the split `Preview` exists to avoid. The way out is already there and already first in
+   * reach: the drawer's own header control, *Edit your page*, plus the Escape the drawer answers
+   * at both sizes. Nothing new is added to the screen.
+   *
+   * **The one case where focus has to move**, checked in Chrome: narrowing a laptop window past
+   * the breakpoint with the keyboard on, say, Menu makes the column inert underneath it, and the
+   * browser drops focus to `<body>` — its own behaviour for a focused element that goes inert.
+   * The next Tab lands on *Edit your page*, which is the way back. Nothing is done about it here
+   * on purpose: holding the caret on a control that is now behind an opaque page is the worse of
+   * the two, and it is the same thing that happens to the eye.
+   *
+   * **What it costs.** While the page is up, the menu cannot be opened and no row can be edited —
+   * which was already true for anyone looking at the screen, and is why §7.8's confirmation could
+   * never coincide with a covered list in the first place (the argument under *The sheet* below
+   * relies on the same fact). §7.4's arrival line goes with the column: it is a `role="status"`
+   * that is present from the list's first commit, so it was never announced on arrival anyway,
+   * and §7.4 already describes it as *first seen when the owner steps back to the list*.
    */
   const [covered, setCovered] = useState(false);
 
@@ -322,8 +364,18 @@ export function List({
        * `flex-1` (#148): when the rows run short of a phone screen, the drawer's control below
        * still sits at the bottom edge rather than floating mid-screen. Wide is items-start, so
        * this changes nothing there.
+       *
+       * **`inert` while the page is over it** (#255). This column is everything the drawer comes
+       * down on top of, so `covered` — the fact `onCover` reports, and the same fact that decides
+       * where Download is — decides whether it is in reach. **One rule, one statement of it, true
+       * at both sizes: what is on the glass is in reach, and what is not, is not.** Wide, the two
+       * sit side by side, `covered` is false and nothing here changes; no width is consulted about
+       * what the owner may do, which is `Preview`'s standing rule.
+       *
+       * **This is not a modal and not a focus trap** — the argument is on `covered` above, and
+       * `DownloadSheet.tsx` is what a modal actually costs here.
        */}
-      <div className="mx-auto w-full max-w-lg flex-1 wide:mx-0 wide:flex-1">
+      <div className="mx-auto w-full max-w-lg flex-1 wide:mx-0 wide:flex-1" inert={covered}>
         <div className="flex items-center justify-between gap-2">
           <Menu onImport={onImport} confirm={importConfirm} error={importError} />
           {/* In the bar whenever the bar is the screen — which is every width but a phone with
