@@ -337,8 +337,10 @@ describe("which screen the owner gets", () => {
     fireEvent.click(document.querySelector("[data-progress-bar] > button") as Element);
     fireEvent.click(screen.getByRole("button", { name: "Done for now" }));
     expect(title()).toBe("Ada's Bakery");
-    // And it is a row now, with the answer in it, rather than a tick-on.
-    expect(screen.getByRole("button", { name: /^Link buttons\s*Our menu/ })).toBeTruthy();
+    // And it is a row now, with the answer in it, rather than a tick-on. The answer is what is
+    // there rather than what it says (§7.4, #245) — the button the run just added, counted;
+    // *Our menu* itself is in the row's own fields, a press away (`list.test.tsx`).
+    expect(screen.getByRole("button", { name: /^Link buttons\s*1 link button/ })).toBeTruthy();
   });
 
   it("autosaves each answer as it is given, not at the end", () => {

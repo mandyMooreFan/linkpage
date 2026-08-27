@@ -1,3 +1,4 @@
+import { vocabulary, type Interval } from "@linkpage/renderer";
 import { describe, expect, it } from "vitest";
 import { POPULATED } from "../fixtures.js";
 import { uncoveredTopics } from "../flow/plan.js";
@@ -89,25 +90,160 @@ describe("what the list is a list of", () => {
   });
 });
 
-describe("every answer is a row (§7.4)", () => {
+/**
+ * **A row says what is there, not what it says** (§7.4, #253).
+ *
+ * The rule is one sentence and it splits the nine rows in two: a row whose answer is a *list of
+ * things* reports how many, and a row whose answer is *one short thing* still shows it. What is
+ * asserted below is the wording itself, exactly, because the wording is the decision — and then
+ * the property underneath it, which is that **nothing an owner can type reaches a counted row,
+ * however much of it there is**.
+ *
+ * **Nothing here counts lines or characters.** That shape of guard has been written in this repo
+ * and bitten it, and it would be the wrong instrument twice over: a row is one line because of
+ * what it *contains* (#253 refused a clamp outright), and the length that matters is measured in
+ * a browser at 390px, which is what #245 did. These hold the content rule; the pictures hold
+ * the look.
+ */
+describe("every answer is a row, saying what is there (§7.4)", () => {
   const summary = (draft: Draft, id: string): string =>
     listRows(draft).rows.find((row) => row.id === id)?.summary ?? "";
 
-  it("says what the owner said, in their words", () => {
+  it("shows one short answer in the owner's own words", () => {
     expect(summary(POPULATED, "businessName")).toBe("Ada & Sons <Bakers>");
-    expect(summary(POPULATED, "links")).toBe("See the menu, Order for pickup");
+    expect(summary(POPULATED, "tagline")).toBe(
+      'Sourdough, pastries, and "the best" cheese scone in town',
+    );
     expect(summary(POPULATED, "contact")).toBe("+44 20 7946 0100 · hello@adasbakery.example");
     expect(summary(POPULATED, "address")).toBe("12 Mill Lane, Hebden Bridge, HX7 8AA");
-    expect(summary(POPULATED, "social")).toBe("Instagram");
-    expect(summary(POPULATED, "logo")).toBe("1200 × 400");
-    expect(summary(POPULATED, "hours")).toBe(
-      "Mon 7:00 AM – 2:00 PM · Sat Closed · Sun Closed · Closed bank holidays",
-    );
   });
 
-  it("keeps an unrecognised platform as the owner wrote it (§4.4)", () => {
-    const draft: Draft = { ...POPULATED, social: [{ platform: "linkedin", url: "https://x" }] };
-    expect(summary(draft, "social")).toBe("linkedin");
+  it("reports how many, on a row holding a list", () => {
+    expect(summary(POPULATED, "links")).toBe("2 link buttons");
+    expect(summary(POPULATED, "social")).toBe("1 account");
+    expect(summary(POPULATED, "hours")).toBe("Open 1 day · a note");
+  });
+
+  it("describes the logo exactly as it always did", () => {
+    // The row this rule was taken *from*: it has always said what is there, because there was
+    // never anything else it could say. It should now look like it belonged all along.
+    expect(summary(POPULATED, "logo")).toBe("1200 × 400");
+    const drawn: Draft = {
+      ...POPULATED,
+      header: {
+        ...POPULATED.header,
+        logo: { src: "data:image/png;base64,x", width: 0, height: 0 },
+      },
+    };
+    expect(summary(drawn, "logo")).toBe("Added");
+  });
+
+  it("keeps the singular, because a list of one is an ordinary project", () => {
+    const one: Draft = {
+      ...POPULATED,
+      links: [{ label: "See the menu", url: "https://adasbakery.example/menu" }],
+    };
+    expect(summary(one, "links")).toBe("1 link button");
+    expect(summary(POPULATED, "social")).toBe("1 account");
+    expect(summary(POPULATED, "hours")).toBe("Open 1 day · a note");
+  });
+
+  /**
+   * **The claim that makes this a rule rather than three strings.**
+   *
+   * A summary that merely happened to be short for the fixture would be no better than the one
+   * this replaced. So the row is asked twice with the owner's words changed underneath it and
+   * nothing else changed: the answer must not move. Twelve buttons with those labels is the
+   * renderer's own `MAXIMAL`, which is the project #245 measured at fourteen lines.
+   */
+  it("says how many, and nothing the owner typed decides it", () => {
+    const twelve = (label: (i: number) => string): Draft => ({
+      ...POPULATED,
+      links: Array.from({ length: 12 }, (_, i) => ({
+        label: label(i),
+        url: `https://hebdenbridgebakehouse.example/order/${i}`,
+      })),
+    });
+    const wordy = twelve((i) => `Order ${i} online for collection or delivery`);
+    const terse = twelve(() => "x");
+
+    // The haystack really is what #245 measured, before anything is asked about the needle.
+    expect(wordy.links.map((link) => link.label).join(", ").length).toBeGreaterThan(400);
+
+    expect(summary(wordy, "links")).toBe("12 link buttons");
+    expect(summary(terse, "links")).toBe(summary(wordy, "links"));
+    for (const link of wordy.links) expect(summary(wordy, "links")).not.toContain(link.label);
+  });
+
+  it("counts an unrecognised platform like any other account (§4.4)", () => {
+    // §4.4's "shown as they wrote it" is about the *page*'s fallback for a platform we have no
+    // mark for. It was never a reason for this row to become a list of names, and the name is
+    // on the row's own screen a press away.
+    const draft: Draft = {
+      ...POPULATED,
+      social: [
+        { platform: "instagram", url: "https://instagram.example/a" },
+        { platform: "linkedin", url: "https://linkedin.example/b" },
+      ],
+    };
+    expect(summary(draft, "social")).toBe("2 accounts");
+    expect(summary(draft, "social")).not.toContain("linkedin");
+  });
+
+  /**
+   * The hours block has three states, so the row has three sentences.
+   *
+   * **Closed is a thing the owner said** (§2.3) and absent is not, which is why the middle case
+   * cannot read *closed every day*: marking Sunday closed and leaving the rest unspecified says
+   * nothing about Monday, and neither may the row.
+   */
+  describe("the hours row", () => {
+    const withHours = (hours: Draft["hours"]): Draft => ({ ...POPULATED, hours });
+
+    it("counts the days there are times for", () => {
+      const open: Interval[] = [["07:30", "17:15"]];
+      const week = { mon: open, tue: open, wed: open, thu: open, fri: open, sat: open, sun: open };
+      expect(summary(withHours({ clock: "12h", weekStart: "mon", days: week }), "hours")).toBe(
+        "Open 7 days",
+      );
+    });
+
+    it("says a note is there without saying what it says", () => {
+      const note = "Bank holidays vary — we post the week's hours on Instagram every Sunday.";
+      const draft = withHours({
+        clock: "12h",
+        weekStart: "mon",
+        days: { mon: [["07:30", "17:15"]] },
+        note,
+      });
+      expect(summary(draft, "hours")).toBe("Open 1 day · a note");
+      expect(summary(draft, "hours")).not.toContain("Instagram");
+    });
+
+    it("does not claim a day the owner never spoke about", () => {
+      const draft = withHours({ clock: "12h", weekStart: "mon", days: { sun: [] } });
+      expect(summary(draft, "hours")).toBe("No days open");
+    });
+
+    it("answers a hand-edited file that has a note and no days at all (§4.5)", () => {
+      const draft = withHours({ clock: "12h", weekStart: "mon", days: {}, note: "Ring first" });
+      expect(summary(draft, "hours")).toBe("Just a note");
+      expect(summary(draft, "hours")).not.toContain("Ring first");
+    });
+
+    it("is the tool's own English, whatever language the page declares", () => {
+      // It used to be the page's words — the seven abbreviations and the word for closed (§2.5)
+      // — because it quoted the page. It no longer quotes it, so the row now reads like every
+      // other label in the builder, and the language decides only which days `hoursView` finds.
+      // The language really does change the page's words, or this test is blind to nothing.
+      expect(vocabulary("cy").closed).not.toBe(vocabulary("en").closed);
+      expect(vocabulary("cy").days).not.toEqual(vocabulary("en").days);
+
+      const day: Interval[] = [["09:00", "17:00"]];
+      const draft = withHours({ clock: "24h", weekStart: "mon", days: { mon: day } });
+      expect(summary({ ...draft, lang: "cy" }, "hours")).toBe("Open 1 day");
+      expect(summary({ ...draft, lang: "en-GB" }, "hours")).toBe("Open 1 day");
+    });
   });
 
   it("shows the brand colour exactly as it was typed (§3.3)", () => {

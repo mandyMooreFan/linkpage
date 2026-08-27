@@ -288,6 +288,35 @@ describe("the list's ladder and emphasis (§1, §2)", () => {
     expect(label.className).toContain("text-ink-quiet");
   });
 
+  /**
+   * **The other half of the bargain a counted row strikes** (#245, #253).
+   *
+   * A row holding a list now says *how many* rather than reading them out, and the owner took
+   * that with the cost stated: you can no longer spot a typo in a button label without opening
+   * the row. What makes it a summary rather than a loss is that the words are **one press
+   * away** — so the claim worth a DOM is the round trip, collapsed to open, on the real list.
+   *
+   * `rows.test.ts` holds the wording. This holds that the wording is what the screen shows, and
+   * that what it stopped showing is still there — which is exactly the pair a source guard
+   * cannot make, since a summary function has no opinion about what the open row renders.
+   */
+  it("counts what a row holds, and gives the words back when it opens", () => {
+    editing();
+    const labels = POPULATED.links.map((link) => link.label);
+    // There is something to be missing, or the two loops below prove nothing.
+    expect(labels.length).toBeGreaterThan(1);
+
+    expect(row("links").querySelector("[data-row-summary]")?.textContent).toBe("2 link buttons");
+    for (const label of labels) expect(row("links").textContent).not.toContain(label);
+
+    openRow(/^Link buttons/);
+
+    // In the fields that can change them, which is the only place an answer belongs once its
+    // row is open (B-63, the test below).
+    const typed = [...row("links").querySelectorAll("input")].map((field) => field.value);
+    for (const label of labels) expect(typed).toContain(label);
+  });
+
   it("stops showing the summary while the row is open, so the value appears once (B-63)", () => {
     editing();
     const tagline = POPULATED.header.tagline ?? "";
