@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POPULATED } from "../fixtures.js";
 import { pageHtml } from "../page.js";
 import { DownloadSheet, PROJECT_FILENAME_FALLBACK } from "./DownloadSheet.js";
+import { LEAD_IN_LIST } from "./Hosting.js";
 import { installDownloads, type FakeDownloads } from "./downloads.testing.js";
 import type { Draft } from "../project/index.js";
 import type { FileDownload } from "./save.js";
@@ -233,6 +234,72 @@ describe("section one describes the shape, not the steps (§8)", () => {
     open();
     // The trap a business owner falls into and never finds out about until it matters.
     expect(section("page").textContent).toMatch(/free does not always mean allowed/i);
+  });
+
+  /**
+   * §8's two lists are the same list twice, and the lead-in leads (B-46, #248).
+   *
+   * The audit read the source; [#201](https://github.com/mandyMooreFan/linkpage/issues/201) put a
+   * browser on it and measured what had drifted — 12px of row gap against 8px, and lead-ins at
+   * `#1f1b16` against `#6b6257`, the same grey as the sentences they introduce. Not a readability
+   * failure (quiet ink on the ground is 5.60:1) but a lead-in that does not lead, on the two
+   * sentences §8 says must be put outright.
+   *
+   * **Rendered as well as read** (#213). `controls.test.ts` can say the recipe is written once and
+   * that no `<ul>` in `Hosting.tsx` was tuned by hand; only a mounted sheet can say the lists a
+   * person is actually looking at came out of it. Both halves are needed, and neither is the
+   * other: a recipe written once that reaches nothing passes the source rule perfectly.
+   *
+   * **Derived from `LEAD_IN_LIST`, never re-typed** — the day someone changes the recipe these
+   * follow it rather than quietly holding a string nothing wears any more.
+   */
+  it("gives both of §8's lists the one recipe, so neither can drift again (B-46)", () => {
+    open();
+
+    // Named rather than counted: each list is identified by the sentence it opens with, so a read
+    // that found no lists fails here instead of passing on an empty comparison.
+    expect(
+      [...section("page").querySelectorAll("ul")].map((list) => ({
+        opens: list.querySelector("strong")?.textContent ?? "",
+        className: list.className,
+      })),
+    ).toEqual([
+      { opens: "Ask whoever looks after your website.", className: LEAD_IN_LIST },
+      { opens: "Free does not always mean allowed.", className: LEAD_IN_LIST },
+    ]);
+  });
+
+  it("leaves no bold sentence on the sheet quieter than the rest of them (B-46)", () => {
+    open({ projectDownload: { filename: "adas-bakery.linkpage.json", save: () => {} } });
+
+    /** The ink a `<strong>` resolves to, read off the nearest ancestor that states one. */
+    const inkOf = (bold: Element): string => {
+      for (let node = bold.parentElement; node !== null; node = node.parentElement) {
+        const classes = node.className.split(/\s+/);
+        // The `<ul>` states both; the `[&_strong]` variant is the one that reaches a `<strong>`.
+        if (classes.includes("[&_strong]:text-ink")) return "text-ink";
+        if (classes.includes("text-ink-quiet")) return "text-ink-quiet";
+        if (classes.includes("text-ink")) return "text-ink";
+      }
+      return "inherited";
+    };
+
+    const bold = [...document.querySelectorAll("strong")].map((node) => ({
+      says: node.textContent ?? "",
+      ink: inkOf(node),
+    }));
+
+    // The two §8 warnings by name — the ones that were grey, and the proof this found something.
+    expect(bold.map(({ says }) => says)).toEqual(
+      expect.arrayContaining([
+        "Free does not always mean allowed.",
+        "Your link will look plain when you share it.",
+      ]),
+    );
+    // Every bold run in the builder outside these two lists already rendered at full ink: the
+    // project name in §7.8's confirmation, the sheet's *if you lose it* sentence, and the outcome
+    // check between the two lists. Bold-at-full-ink is the grammar; this is the whole of it.
+    expect(bold.filter(({ ink }) => ink !== "text-ink")).toEqual([]);
   });
 
   it("names no host and numbers no steps", () => {

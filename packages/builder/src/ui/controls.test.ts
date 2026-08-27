@@ -17,6 +17,7 @@ import { LADDER } from "./ladder.js";
 import { PANEL_CLASS, PANEL_EDGE } from "./Panel.js";
 import { HEADING, TYPE } from "./type.js";
 import { SHEET_SURFACE } from "../download/DownloadSheet.js";
+import { LEAD_IN_LIST } from "../download/Hosting.js";
 import { REORDER_CLASS } from "../list/LinkButtons.js";
 import { MENU_PANEL, MENU_SURFACE } from "../list/List.js";
 import { ROW_BUTTON, ROW_OPEN, ROW_PADDING, ROW_STACK_PADDING } from "./row.js";
@@ -235,6 +236,7 @@ describe("the sources every rule below reads", () => {
     "../list/List.tsx",
     "../list/LinkButtons.tsx",
     "../download/DownloadSheet.tsx",
+    "../download/Hosting.tsx",
   ];
 
   it("is the builder itself, and not an empty glob", () => {
@@ -1305,6 +1307,81 @@ describe("the one hairline-separated row", () => {
     expect(ROW_OPEN.bottomPx).toBeGreaterThan(LADDER.betweenSections.px);
     expect(ROW_OPEN.topPx).toBeGreaterThanOrEqual(LADDER.betweenFields.px);
     expect(ROW_OPEN.bottomPx).toBeGreaterThan(ROW_OPEN.topPx);
+  });
+});
+
+/**
+ * The other kind of list: prose whose items open with a bold run-in head. §8, §6; finding B-46.
+ *
+ * `Hosting.tsx` holds two of them and they are **the same list twice** — a quiet block below the
+ * sentence that introduces it, each item led by the phrase you are meant to scan. They had come
+ * apart one edit at a time, exactly the way B-43's four rows did: `gap-3 … [&_strong]:text-ink` on
+ * the first and `gap-2` with the ink rule missing on the second, so §8's two outright warnings
+ * were the only bold sentences in the builder set in the same grey as the body around them.
+ *
+ * **Unifying them is worth little on its own** — nobody wrote them apart on purpose — so what is
+ * held here is that there is one recipe and that every list on that screen is handed it. The
+ * rendered half is in `download/download.test.tsx`, which mounts the real sheet and names the
+ * lead-ins it found: a recipe that is written once and reaches no `<ul>` is #213's shape again.
+ *
+ * **Scoped to the one screen**, deliberately, the way the row rule is scoped to `list/`. The
+ * flow's own `<ul>`s are option lists and field stacks rather than prose, and the map is explicit
+ * that a ticket widening its own scope is arguing with a closed map.
+ */
+describe("the two lists that are the same list twice (B-46)", () => {
+  /** Hosting's source, comments stripped — the docblock quotes both class strings. */
+  const hosting = (): string => code(sources["../download/Hosting.tsx"] ?? "");
+
+  /** Every `<ul>` on the screen that was not handed the shared recipe. */
+  const handTuned = (text: string): string[] =>
+    openingTags(text, "ul").filter((tag) => !tag.includes("{LEAD_IN_LIST}"));
+
+  it("knows a list tuned by hand from one handed the recipe", () => {
+    // Pinned against the two strings that were live on `main`, per #240: the rule has to catch
+    // the defect before it is pointed at the builder at all. A reader that finds nothing — the
+    // vacuous break every absence below would survive — turns this one red on its own.
+    const before =
+      `<ul className={LEAD_IN_LIST}><li /></ul>` +
+      `<ul className="m-0 mt-4 flex list-none flex-col gap-2 p-0 text-ink-quiet"><li /></ul>`;
+    expect(handTuned(before)).toEqual([
+      '<ul className="m-0 mt-4 flex list-none flex-col gap-2 p-0 text-ink-quiet"',
+    ]);
+  });
+
+  it("hands it to every list on the screen, so neither can be tuned on its own", () => {
+    expect(hosting(), "Hosting.tsx was not read").toContain("data-hosting");
+    expect(handTuned(hosting())).toEqual([]);
+  });
+
+  it("is the only place that recipe is written", () => {
+    // Named before it is swept for, so the rule cannot go green by looking for a string the
+    // recipe stopped containing.
+    expect(LEAD_IN_LIST, "the lead-in ink is what the finding is about").toContain(
+      "[&_strong]:text-ink",
+    );
+    const offenders = others("../download/Hosting.tsx")
+      .filter(([, text]) => text.includes("[&_strong]:text-ink"))
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  /**
+   * The direction, written down as an assertion so flipping it means confronting the argument.
+   *
+   * Both-to-ink and both-to-quiet were each internally consistent; what settled it is that the
+   * sheet's own prose is `text-ink` (`SHEET_SURFACE`), so #234's *the tool's words recede* is a
+   * ranking of controls under §4 rather than a rule about sentences — and that six of the
+   * builder's eight `<strong>`s already render at full ink. §8 asks for these two to be said
+   * outright, and §2 puts weight *and* colour ahead of size.
+   */
+  it("recedes the block and promotes the lead-in, rather than doing one of the two", () => {
+    expect(restingColours(LEAD_IN_LIST), "the block is supporting text").toEqual([
+      "text-ink-quiet",
+    ]);
+    expect(LEAD_IN_LIST, "and the lead-in is not").toContain("[&_strong]:text-ink");
+    expect(SHEET_SURFACE, "which is the ink the sheet's other bold sentences take").toContain(
+      "text-ink",
+    );
   });
 });
 
