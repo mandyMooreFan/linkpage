@@ -1565,6 +1565,13 @@ A row whose answer is a **list of things** reports how many of them — _12 link
 _11 accounts_. A row whose answer is **one short thing** still shows it, because a tagline is already a
 line and already says what is there.
 
+**The address row shows the address, then says a link is there** — _12 Bridge Street, Hebden Bridge, HX7
+8AA · directions link_. You can tell at a glance that you added one; the link itself appears in the field
+that can change it when the row is open. The same middle dot as the hours row's note, and for the same
+reason: it reads as _and also_ without claiming a grammar. What the row says about the link is decided by
+whether there is one, never by what it is — so a hand-edited file that is a link and no address still has
+this much to say.
+
 **This is the logo row's own rule applied to the rest, not a new idea imported.** The logo has always
 described what it holds — `1200 × 400`, or `Added` — because there was never anything else it could say;
 every other row concatenated the owner's answer. With a real project that produced a paragraph: at 390px,
@@ -1581,8 +1588,26 @@ to this rule, not a detail of it.
 here and for the address. A trimmed web address is unreadable, and a clamp would have hidden the address
 row's sideways scroll rather than fixed it. If a row still will not fit one line, that is a finding
 rather than a reason to reach for a clamp: with the worst realistic project the rows still over one line
-are the three holding a single long answer — a long business name, a long tagline, and a phone and an
-email together — and none of them is a list.
+are the four holding a single long answer — a long business name, a long tagline, a phone and an email
+together, and an address written on five lines — and none of them is a list.
+
+**A word wider than the column breaks, rather than running off the edge.** Wrapping breaks at spaces, so a
+run of characters with none in it — a pasted web address, a long email, a place name — is as wide as it is,
+and no column above it can make it narrower. The ink then runs past the right edge and **the whole screen
+scrolls sideways**, which is the failure §7.4 already knows this layout has and §7.6 refuses on the size the
+shape was chosen for: with the directions URL printed in the address row, the review list measured **754px
+against a 390px phone**, on arrival and on every collapsed row. **The owner's own words are printed on this
+screen in exactly two places** — its heading, which is their business name, and a row's summary, which is
+their answer; everything else here is either the tool's own words or a field they can scroll. Both of those
+two say the word may break anywhere. It is a floor and not a look: it fires only on a word the column cannot
+hold, which the tool's own words never are, so no screen the review ritual photographs moves at all.
+
+> Worth writing down, because the obvious spelling is the wrong one. **`overflow-wrap: break-word` is not
+> this floor.** It breaks a word that will not fit on a line but leaves the box's _minimum_ width at the
+> whole word, so a summary — which is a flex line — goes on refusing to shrink and the row overflows
+> exactly as before. Measured: with `break-word` at both places, a maps URL typed as a business name still
+> made the list 846px wide inside a 390px viewport and the row never wrapped, while the heading, an
+> ordinary block, was fixed. `anywhere` is the one that reaches how narrow a box is allowed to be.
 
 **A row whose value we cannot use is marked** — a quiet note that this one will not work, in §7.9's words.
 Editing the row opens the same question, with the same message.

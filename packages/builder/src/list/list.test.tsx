@@ -317,6 +317,92 @@ describe("the list's ladder and emphasis (§1, §2)", () => {
     for (const label of labels) expect(typed).toContain(label);
   });
 
+  /**
+   * The same bargain on the address row, which is the arm #245 left for
+   * [#244](https://github.com/mandyMooreFan/linkpage/issues/244).
+   *
+   * The row says a link is there rather than printing it (#253). What makes that a summary
+   * rather than a loss is the same thing as for a counted row: the link itself is one press
+   * away, in the field that can change it — and `rows.test.ts` cannot say that, because a
+   * summary function has no opinion about what the open row renders.
+   */
+  it("says a directions link is there, and gives the link back when the row opens", () => {
+    const url = "https://maps.example/?q=12+Bridge+Street";
+    editing({
+      ...POPULATED,
+      address: { lines: ["12 Bridge Street", "Hebden Bridge", "HX7 8AA"], directionsUrl: url },
+    });
+
+    expect(row("address").querySelector("[data-row-summary]")?.textContent).toBe(
+      "12 Bridge Street, Hebden Bridge, HX7 8AA · directions link",
+    );
+    expect(row("address").textContent).not.toContain("maps.example");
+
+    openRow(/^Address/);
+
+    // Back in full, split across the line's scheme and the box the way §7.9's one web-address
+    // field holds every address (#197) — so what the summary stopped showing is not gone.
+    const field = screen.getByLabelText("A link to directions") as HTMLInputElement;
+    expect(field.value).toBe("maps.example/?q=12+Bridge+Street");
+    expect(row("address").textContent).toContain("https://");
+  });
+
+  /**
+   * **A word wider than the column** ([#244](https://github.com/mandyMooreFan/linkpage/issues/244)).
+   *
+   * #245 took the directions URL out of the address row, which closed the one instance the walk
+   * found. It did not make the row safe: business name, tagline and phone-and-email still print
+   * the owner's raw text, and so does the list's own heading — any of them is a single
+   * unbreakable token the moment somebody pastes a web address or types a long email, and a
+   * token wider than the column takes the whole screen sideways with it.
+   *
+   * **jsdom lays nothing out**, so the width itself is not assertable here and is not asserted:
+   * it was measured in Chromium at 390px and the numbers are on the ticket. What this holds is
+   * the half a browser measurement cannot — that **the two places the list prints the owner's
+   * words both carry the rule**, on the real mounted component (#213) rather than on a class
+   * string in a source file, and with the owner's unbreakable text actually in them so the
+   * assertion cannot pass over an empty element.
+   */
+  describe("a word wider than the column (#244)", () => {
+    /** A maps URL, which is what an owner pastes: no space in it, and wider than 350px. */
+    const PASTED =
+      "https://www.google.com/maps/place/The+Old+Weaving+Shed/@53.7420,-2.0130,17z/data=!3m1!4b1";
+
+    const typed: Draft = {
+      ...POPULATED,
+      header: { ...POPULATED.header, name: PASTED },
+    };
+
+    it("says what to do with one, in both places the list prints the owner's words", () => {
+      editing(typed);
+
+      const heading = screen.getByRole("heading", { level: 1 });
+      const summaries = [...document.querySelectorAll("[data-row-summary]")];
+      // The owner's unbreakable text really is on the screen, in both kinds of place, before
+      // anything is asked about what the screen does with it.
+      expect(heading.textContent).toBe(PASTED);
+      expect(summaries.map((summary) => summary.textContent)).toContain(PASTED);
+
+      for (const element of [heading, ...summaries]) {
+        expect(element.className, "the owner's own words, in a column they cannot widen").toContain(
+          "[overflow-wrap:anywhere]",
+        );
+      }
+    });
+
+    it("keeps the tool's own words out of it, so the rule cannot spread by being handy", () => {
+      editing(typed);
+      // A row's label and §7.9's mark are sentences we wrote and can keep short. The rule is
+      // about strings we did not choose the words of, and naming the two sites is what stops it
+      // becoming "everything on the screen breaks anywhere".
+      const ours = document.querySelectorAll("[data-row-label], [data-arrival]");
+      expect(ours.length, "there are labels to check").toBeGreaterThan(0);
+      for (const element of ours) {
+        expect(element.className).not.toContain("[overflow-wrap:anywhere]");
+      }
+    });
+  });
+
   it("stops showing the summary while the row is open, so the value appears once (B-63)", () => {
     editing();
     const tagline = POPULATED.header.tagline ?? "";

@@ -246,6 +246,66 @@ describe("every answer is a row, saying what is there (§7.4)", () => {
     });
   });
 
+  /**
+   * **The address says the address, then says a link is there** ([#253](https://github.com/mandyMooreFan/linkpage/issues/253), §7.4).
+   *
+   * The one arm #245 left alone, and the one the contract wrote out in full: the row reads
+   * *12 Bridge Street, Hebden Bridge, HX7 8AA · directions link*. Printing the URL is what made
+   * the list scroll sideways on a phone ([#244](https://github.com/mandyMooreFan/linkpage/issues/244));
+   * trimming it was offered to the owner and refused, because a trimmed web address is
+   * unreadable and a clamp would have hidden that scroll rather than fixed it.
+   *
+   * **Nothing here counts characters.** What is asserted is the wording, and then the property
+   * underneath it: the second half of this row is decided by whether a link is there, never by
+   * what the link is.
+   */
+  describe("the address row", () => {
+    const withDirections = (directionsUrl: string): Draft => ({
+      ...POPULATED,
+      address: { lines: ["12 Bridge Street", "Hebden Bridge", "HX7 8AA"], directionsUrl },
+    });
+
+    it("says the address, then that a link is there", () => {
+      expect(summary(withDirections("https://maps.example/?q=12+Bridge+Street"), "address")).toBe(
+        "12 Bridge Street, Hebden Bridge, HX7 8AA · directions link",
+      );
+    });
+
+    it("says the same thing whatever the link is, and never says the link", () => {
+      // The two really are different links, or the comparison below compares nothing.
+      const short = "https://maps.example/?q=12+Bridge+Street";
+      const long =
+        "https://www.google.com/maps/place/The+Old+Weaving+Shed/@53.7420,-2.0130,17z/data=!3m1!4b1";
+      expect(short).not.toBe(long);
+      expect(withDirections(long).address?.directionsUrl).toBe(long);
+
+      expect(summary(withDirections(long), "address")).toBe(
+        summary(withDirections(short), "address"),
+      );
+      for (const url of [short, long]) {
+        expect(summary(withDirections(url), "address")).not.toContain(url);
+        expect(summary(withDirections(url), "address")).not.toContain("http");
+      }
+    });
+
+    it("says nothing about a link when there is none", () => {
+      // `POPULATED`'s address has no directions link, and the row is the address alone.
+      expect(POPULATED.address?.directionsUrl).toBeUndefined();
+      expect(summary(POPULATED, "address")).toBe("12 Mill Lane, Hebden Bridge, HX7 8AA");
+      expect(summary(POPULATED, "address")).not.toContain("directions link");
+    });
+
+    it("still has something to say for a file that is only a link (§4.5)", () => {
+      // `hasContent` lets a hand-edited address be a directions link with no lines under it, and
+      // §7.4's "never empty on a row that is showing" has to survive that.
+      const draft: Draft = {
+        ...POPULATED,
+        address: { lines: [], directionsUrl: "https://maps.example/?q=here" },
+      };
+      expect(summary(draft, "address")).toBe("directions link");
+    });
+  });
+
   it("shows the brand colour exactly as it was typed (§3.3)", () => {
     // Not the derivation's version of it: the row reports the answer, the page beside it
     // reports what was made of the answer.

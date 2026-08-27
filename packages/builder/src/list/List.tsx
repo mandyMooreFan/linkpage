@@ -65,6 +65,29 @@ import { TextInput } from "../ui/TextInput.js";
  * whether the drawer has room to sit open beside the list, which is a decision `list.css` and
  * `preview.css` make with the same media query.
  *
+ * **A word wider than the column breaks rather than running off the edge**
+ * ([#244](https://github.com/mandyMooreFan/linkpage/issues/244)). Normal wrapping breaks at
+ * spaces, so a run of characters with none in it — a pasted web address, a long email, a Welsh
+ * place name — has a minimum width equal to its whole rendered width, and the column cannot make
+ * it narrower. What happened instead was that the ink ran past the right edge and **every screen
+ * of the list scrolled sideways**, which is the failure §7.4 already knows this layout has and
+ * §7.6 refuses on the size the shape was chosen for. The owner's own words are printed on this
+ * screen in exactly **two** places — the heading, which is their business name, and a row's
+ * summary, which is their answer; everything else here is either the tool's own words or a field
+ * they can scroll. So the rule is stated at those two, and `controls.test.ts` holds the whole set
+ * of sites by name.
+ *
+ * **It has to be `overflow-wrap: anywhere` and not `break-word`, which was measured rather than
+ * reasoned about.** `break-word` breaks a word that will not fit a line but leaves the box's
+ * *min-content* size at the whole word, so a summary — which is a flex line — goes on refusing to
+ * shrink: with `break-words` at both sites, a maps URL typed as a business name still made the
+ * document 846px wide inside a 390px viewport, and the row never wrapped at all. It fixed the
+ * heading, which is an ordinary block, and left the row exactly where it was. Two spellings of
+ * one intention, one of which is inert at the site that needed it.
+ *
+ * **This is a floor, not a look.** It fires only on a run of characters wider than the column,
+ * which the tool's own words never are — the review ritual's whole set is unmoved by it.
+ *
  * **Download goes where the screen is** (#186). §7.4 puts Download in the bar, and that is where
  * it lives — except on a phone with the page up, where the bar is underneath an opaque drawer
  * that defaults open and the bar is not the screen any more. There it travels into the drawer's
@@ -417,7 +440,15 @@ export function List({
             </p>
           )}
 
-          <h1 className={HEADING.page.className}>{draft.header.name}</h1>
+          {/*
+           * One of the two places this screen prints the owner's own words — see the rule at the
+           * top of this file. A business name with no space in it is one token: measured at 725px
+           * inside a 350px column, which is the address row's defect with a different field
+           * behind it.
+           */}
+          <h1 className={`${HEADING.page.className} [overflow-wrap:anywhere]`}>
+            {draft.header.name}
+          </h1>
         </div>
 
         <ul className={`mt-6 ${ROW_LIST}`}>
@@ -638,7 +669,13 @@ function RowItem({
           {row.label}
         </span>
         {!open && (
-          <span className="flex items-center gap-2 text-base text-ink" data-row-summary>
+          // The other one, and the site #244 was raised about: whatever `rows.ts` decided a row
+          // says, three of the nine still carry the owner's raw text and any of them can be one
+          // unbreakable token. See the rule at the top of this file.
+          <span
+            className="flex items-center gap-2 text-base text-ink [overflow-wrap:anywhere]"
+            data-row-summary
+          >
             {row.swatch !== undefined && row.swatch !== "" && (
               // Decorative: the name beside it is the accessible content (§7.4).
               <span

@@ -2184,6 +2184,66 @@ describe("the stray sweep (design change 12)", () => {
     });
   });
 
+  /**
+   * **What the tool does with a word wider than the column, and where that is said**
+   * ([#244](https://github.com/mandyMooreFan/linkpage/issues/244)).
+   *
+   * Normal wrapping breaks at spaces, so a run of characters with none in it cannot be made
+   * narrower than itself and the ink runs off the right edge — which on the review list meant the
+   * whole screen scrolled sideways on a phone (§7.6), 754px against a 390px viewport. Paper does
+   * not cut anything off (§7.4, and #253 refused trimming outright), so the answer is that the
+   * word breaks.
+   *
+   * **This was already the tool's answer at three files and #244 is the fourth**, which is why
+   * the rule below is a set rather than a site: a refusal's technical detail and the export's
+   * filename are both strings the builder prints without choosing the words, and both were
+   * written this way long before the list was. B-39's instrument, for a rule instead of a number
+   * — **the whole set against a written one**, so a new site arrives in the failure message by
+   * path and whoever added it comes here and says what string it prints.
+   */
+  describe("a word wider than the column (#244)", () => {
+    /** Every file that prints a string whose words the tool did not choose, and what it prints. */
+    const SITES: Readonly<Record<string, string>> = {
+      // The owner's business name in the heading, and their answer in a row's summary — the two
+      // places the review list prints their own words rather than putting them in a field.
+      "../list/List.tsx": "the list's heading and a row's summary",
+      // Whatever was inside the file §7.9 refused, for the person who broke it in a text editor.
+      "../open/RefusalNotice.tsx": "an import refusal's technical detail",
+      // The export's filename, in §7.7's own sentence and again inside Download's label.
+      "../download/DownloadSheet.tsx": "the filename, in the prose and in the button",
+    };
+
+    it("says it at every site that prints a string the tool did not choose, and nowhere else", () => {
+      const sites = everySource()
+        .filter(([, text]) => text.includes("overflow-wrap"))
+        .map(([path]) => path)
+        .sort();
+      expect(sites).toEqual(Object.keys(SITES).sort());
+    });
+
+    it("uses the one spelling that reaches a flex row, and never the near miss", () => {
+      // `break-words` is `overflow-wrap: break-word`, which breaks a word that will not fit on a
+      // line but leaves the box's **min-content** size at the whole word — so a flex item goes on
+      // refusing to shrink and the row overflows exactly as before. A row summary is a flex line.
+      // Measured in Chromium rather than reasoned about: with `break-words` at both list sites, a
+      // maps URL typed into the business name still made the document 846px wide inside a 390px
+      // viewport and the row never wrapped at all, while the heading — an ordinary block — was
+      // fixed. Two spellings of one intention, one of them inert at the site that needed it.
+      const spelled = everySource()
+        .filter(([, text]) => text.includes("[overflow-wrap:anywhere]"))
+        .map(([path]) => path)
+        .sort();
+      expect(spelled, "the corpus really holds the rule before the near miss is ruled out").toEqual(
+        Object.keys(SITES).sort(),
+      );
+
+      const nearMisses = everyUtility()
+        .filter(([, u]) => /^(?:break-words|break-all|wrap-anywhere|wrap-break-word)$/.test(u))
+        .map(([path, u]) => `${path}: ${u}`);
+      expect(nearMisses).toEqual([]);
+    });
+  });
+
   describe("the aside surface, which had four copies and no callers (B-47)", () => {
     it("is written in the one component and nowhere else", () => {
       // `border-s-2` is the distinguishing half of the recipe: a rule on the leading edge is what

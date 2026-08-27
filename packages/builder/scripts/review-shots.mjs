@@ -401,12 +401,21 @@ async function fill(page, spec) {
       await f.nth(1).fill("hello@adasbakery.example");
       return true;
     }
-    case "address":
+    case "address": {
       await page
         .locator('[data-screen="flow"] textarea')
         .first()
         .fill("12 Mill Lane\nHebden Bridge\nHX7 8AA");
+      /*
+       * **And the directions link, which the walk used to leave empty** (#244). It is optional,
+       * so skipping it looked harmless — but it is the field that decides what the address row
+       * says (§7.4) *and* whether the exported page turns the address into a link at all (§2.3),
+       * so two decisions had no picture anywhere in the set. The fifth instance of this script's
+       * standing failure: a screen that exists only once something optional has been answered.
+       */
+      await page.getByLabel("A link to directions").fill("maps.example/?q=12+Mill+Lane");
       return true;
+    }
     case "skip":
       return true;
     default:

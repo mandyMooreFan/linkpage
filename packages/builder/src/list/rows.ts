@@ -215,8 +215,20 @@ export function topicSummary(draft: Draft, topic: Topic): string {
     case "contact":
       return join([draft.contact?.phone, draft.contact?.email]);
 
-    case "address":
-      return join([(draft.address?.lines ?? []).join(", "), draft.address?.directionsUrl]);
+    case "address": {
+      // **The address, and then that a link is there** (#253) — never the link itself. Same
+      // shape as the hours row's note, using the same middle dot: you can tell at a glance
+      // that you added one, and the link appears in the field that can change it when the row
+      // is open. Printing it was #244's sideways scroll; trimming it was refused, because a
+      // trimmed web address is unreadable and would have hidden that scroll rather than fixed
+      // it. A file with a link and no lines (§4.5) still has this much to say.
+      const address = draft.address;
+      const directions = address?.directionsUrl ?? "";
+      return join([
+        (address?.lines ?? []).join(", "),
+        directions.trim() === "" ? undefined : "directions link",
+      ]);
+    }
 
     case "social":
       // The platform names are on the row's own screen, a press away. §4.4's "shown as they
