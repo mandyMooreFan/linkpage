@@ -1043,6 +1043,123 @@ describe("one solid fill, spent once (design change 3)", () => {
 });
 
 /**
+ * **The set of filled buttons is closed, and the review list answers all of it.** #228, #250.
+ *
+ * The rule above says there is one way to spell the fill. This says **how many places spend it**,
+ * which is the question the review list's Download has had to be re-decided against four times:
+ * a row's Save (#190), `LangRow`'s Save (#190), §7.8's *Open the file* (#228) and §7.7's sheet
+ * (#250). Each time the work was the same — enumerate the `primary` sites, ask which of them can
+ * stand in one viewport with Download, and answer the ones that can. After #250 **all four that
+ * can are terms and none are left over**, so the next filled button added anywhere in the builder
+ * is a decision nobody has taken.
+ *
+ * **So this is a census with an expected answer, not a search for offenders.** Every other rule
+ * in this file is an absence and goes quiet when the corpus goes empty; an equality against a
+ * named, non-empty set cannot — `[]` fails it as loudly as a sixth site would. That is deliberate
+ * belt and braces on top of *the sources every rule below reads* at the top of the file, because
+ * this is the one guard whose entire job is to be the thing that speaks up later.
+ *
+ * **Names, never a count** (#190, #198, #199): a count of five passes on any five files, and a
+ * count is what went red on a change that moved no pixel within a day of being written.
+ *
+ * What this cannot say is what the terms *do* — that is state, and it is held on the rendered
+ * screens by `filledLabels` in `list.test.tsx` (all five cases, both sizes) and `App.test.tsx`
+ * (the two round trips). Source guards are two-thirds of a rule (#213).
+ */
+describe("the closed set of filled buttons (#228, #250)", () => {
+  /**
+   * A `"primary"` written as a weight.
+   *
+   * `Button.tsx` is excluded by `others` below because it is where the *name* is declared —
+   * `ButtonWeight`'s union and the `WEIGHT` record — rather than a place the fill is handed out.
+   * Comments are already stripped by `code()`, so `List.tsx`'s docblock quoting `weight="primary"`
+   * at length is not a site and does not become one.
+   */
+  const HANDS_OUT_THE_FILL = /"primary"/;
+
+  /**
+   * Every source that can put §4's one fill on a screen, and — for those that can stand in a
+   * viewport with the review list's Download — the term in `List.tsx`'s weight expression that
+   * answers it.
+   *
+   * `../list/List.tsx` is here twice over: it writes `LangRow`'s Save, which is a row like any
+   * other, and it writes the Download under discussion.
+   */
+  const SITES: Record<string, string> = {
+    // The flow's Continue, and the same shell re-asking a question as a row's Save (§7.4).
+    "../flow/questions/Question.tsx": "open !== null",
+    // `LangRow`'s own Save, which is only rendered while the language row is open.
+    "../list/List.tsx": "open !== null",
+    // §7.8's *Open the file*, in the menu's own panel a couple of centimetres away (#200, #228).
+    "../open/ReplaceConfirm.tsx": "importConfirm !== undefined",
+    // §7.7's *Download index.html*, on a sheet that covers the bar, the list and the drawer alike.
+    "../download/DownloadSheet.tsx": "downloading",
+  };
+
+  const census = (): string[] =>
+    others("./Button.tsx")
+      .filter(([, text]) => HANDS_OUT_THE_FILL.test(text))
+      .map(([path]) => path)
+      .sort();
+
+  /**
+   * The `download` node's weight expression, read out of `List.tsx`.
+   *
+   * Sliced rather than regexed for the whole thing, because what is wanted is *this* button's
+   * weight and the file writes three others. The two assertions that it found a real expression
+   * come first: an empty slice would make every `toContain` below pass on nothing, which is the
+   * silent green this file spends its opening block ruling out.
+   */
+  const downloadWeight = (): string => {
+    const source = code(sources["../list/List.tsx"] ?? "");
+    const from = source.indexOf("const download = (");
+    if (from === -1) return "";
+    const to = source.indexOf("\n  );", from);
+    return to === -1 ? "" : source.slice(from, to);
+  };
+
+  it("found the buttons before saying none are missing", () => {
+    // Non-vacuity, said out loud rather than left to the equality below to imply: these are the
+    // files whose recipes the rest of this block reasons about.
+    const found = census();
+    for (const path of Object.keys(SITES)) {
+      expect(found, `the census must reach ${path}`).toContain(path);
+    }
+  });
+
+  it("is exactly these four sources, so a fifth has to come here and be decided", () => {
+    expect(
+      census(),
+      "a new filled button re-opens the review list's weight — see the `download` node in List.tsx",
+    ).toEqual(Object.keys(SITES).sort());
+  });
+
+  it("answers every one of them in the review list's own weight, with none left over", () => {
+    const weight = downloadWeight();
+    // The slice really is the button and really is a weight expression — checked before it is
+    // used as evidence of anything.
+    expect(weight, "the `download` node was not found in List.tsx").toContain('"primary"');
+    expect(weight).toContain('"secondary"');
+
+    for (const [path, term] of Object.entries(SITES)) {
+      expect(weight, `${path} is a filled button with no term answering it`).toContain(term);
+    }
+
+    // And the ordering, which is the one thing about this expression that is not obvious (#250):
+    // `covered` guards the two that an opaque drawer hides, and `downloading` sits outside it
+    // because a `bg-ink/40` scrim hides nothing. Read as the shape rather than as a string match
+    // on the whole line, so reformatting does not fail it and reordering does.
+    const outermost = ["downloading", "covered"].sort(
+      (one, other) => weight.indexOf(one) - weight.indexOf(other),
+    );
+    expect(
+      outermost,
+      "`downloading` outranks `covered`: a scrim leaves both fills on the glass (#250)",
+    ).toEqual(["downloading", "covered"]);
+  });
+});
+
+/**
  * Every escape is the same button. `SPEC.md` §7.2, §7.4; design change 2 (#189).
  *
  * An escape is a **branch**, not a footnote: "we don't have set hours" is an answer, and the

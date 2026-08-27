@@ -406,6 +406,40 @@ describe("download, end to end (§7.7)", () => {
     expect(title()).toBe("Ada's Bakery");
   });
 
+  /**
+   * One filled button per screen, across the seam §7.7 opens (§4, §6; #250).
+   *
+   * `list.test.tsx` holds the expression and the two sizes. This is the other half: the sheet
+   * raised the way the owner raises it, from the one boolean `App` also mounts the sheet from —
+   * so the thing being checked is that the two cannot get out of step, which is a claim about
+   * the wiring and not about either component.
+   *
+   * **The phone's `covered` case, end to end, without asking for it.** jsdom has no `matchMedia`,
+   * so the list lands page-first and Download is already in the drawer's header (#186). Pressing
+   * it there is precisely the ordering #250 settled: the sheet is `fixed inset-0` at `z-30` over
+   * the drawer's `z-20`, and its `bg-ink/40` scrim leaves the drawer's own filled Download plainly
+   * legible above it — photographed while this was built. So `downloading` outranks `covered`,
+   * which is the one term of the four that does.
+   */
+  it("steps the list's Download down while §7.7's sheet is over it, and hands the fill back (#250)", () => {
+    mount(<App storage={storage} />);
+    firstRun();
+
+    expect(filledLabels()).toEqual(["Download"]);
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+
+    // Not two solid ink rectangles in one viewport with the upper one inert — one, on the sheet
+    // that was raised. **Identified, never counted.**
+    expect(filledLabels()).toEqual(["Download index.html"]);
+    expect(screen.getByRole("button", { name: "Download" }).className).toContain(WEIGHT.secondary);
+
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    // The sheet is gone, so the drawer is the screen again and its one control is filled — which
+    // is B-48's fix (#186) still standing on the other side of this change.
+    expect(filledLabels()).toEqual(["Download"]);
+  });
+
   it("writes the owner's project file under §7.7's name for it", async () => {
     mount(<App storage={storage} />);
     firstRun("Ada's Bakery");

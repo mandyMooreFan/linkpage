@@ -115,7 +115,12 @@ export function App({ storage }: AppProps = {}): JSX.Element {
    * half-loaded state anywhere, and cancelling drops it.
    */
   const [pending, setPending] = useState<string | null>(null);
-  /** Whether §7.7's sheet is open. There is no other download state, here or anywhere. */
+  /**
+   * Whether §7.7's sheet is open. There is no other download state, here or anywhere.
+   *
+   * Two things read it and neither owns a copy: the sheet is mounted from it, and the list is
+   * told about it so its Download can step down while the sheet is over it (#250).
+   */
   const [downloading, setDownloading] = useState(false);
   /** The list's menu opens this; the quiet line has a picker of its own (§7.8). */
   const picker = useRef<HTMLInputElement>(null);
@@ -255,6 +260,10 @@ export function App({ storage }: AppProps = {}): JSX.Element {
         // §7.1's re-entry, and a run boundary: a ticked section is planned when it is ticked.
         onAdd={(topic) => startRun({ kind: "add", topics: [topic] })}
         onDownload={() => setDownloading(true)}
+        // The same boolean the sheet is mounted from, handed back to the screen underneath so it
+        // can give up its fill while the sheet is over it (#250). One state, read twice — there is
+        // no second notion of "the sheet is up" for the two to disagree about.
+        downloading={downloading}
         // §7.8: the menu, not the Download sheet. The sheet is where things leave; import is the
         // one action that can destroy what is there.
         onImport={() => picker.current?.click()}
