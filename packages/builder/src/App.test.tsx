@@ -504,7 +504,9 @@ describe("opening a project you already have (§7.8, §7.9)", () => {
 
   /** Hand the OS picker's answer to whichever screen is showing. */
   async function pick(text: string, filename = "project.json"): Promise<void> {
-    const input = screen.getByLabelText("Open a project file");
+    // The picker is `aria-hidden` and out of the tab order (#254), so it is reached by its
+    // §7.4 hook — being unreachable by role is the point of it.
+    const input = document.querySelector("[data-file-picker]") as HTMLInputElement;
     await act(async () => {
       fireEvent.change(input, {
         target: { files: [new File([text], filename, { type: "application/json" })] },

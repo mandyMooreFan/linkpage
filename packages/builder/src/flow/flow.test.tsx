@@ -579,7 +579,7 @@ describe("already have a project file? open it (§7.8, §7.9)", () => {
   it("puts the line beneath the preset question, and nothing between it and the picker", () => {
     harness({ onOpenFile: vi.fn() });
 
-    const picker = screen.getByLabelText("Open a project file");
+    const picker = document.querySelector("[data-file-picker]") as HTMLInputElement;
     const opened = vi.fn();
     picker.addEventListener("click", opened);
 

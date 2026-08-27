@@ -3,6 +3,7 @@ import { useRef, useState, type JSX } from "react";
 import { browserImageCodec, importLogo, LOGO_ACCEPT, type LogoIntake } from "../../logo/index.js";
 import { Question } from "./Question.js";
 import { Button } from "../../ui/Button.js";
+import { FilePicker } from "../../ui/FilePicker.js";
 import { Panel } from "../../ui/Panel.js";
 import { TYPE } from "../../ui/type.js";
 
@@ -65,18 +66,16 @@ export function LogoQuestion({
       <Button disabled={busy} onClick={() => picker.current?.click()}>
         {logo === null ? "Choose a file" : "Choose a different file"}
       </Button>
-      <input
+      {/*
+       * `FilePicker`, not a third copy of a clipped `<input type="file">` (#254). The copy that
+       * was here was a tab stop and a second button in the accessibility tree, named `Choose a
+       * logo file` beside the visible `Choose a file` — so the button above is now the only thing
+       * on this screen that offers to open the dialog, and its own words are the name.
+       */}
+      <FilePicker
         ref={picker}
-        type="file"
         accept={LOGO_ACCEPT}
-        className="sr-only"
-        aria-label="Choose a logo file"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          // Cleared straight away so picking the same file twice — after a refusal, which is
-          // the recovery §7.9 designs for — still fires a change.
-          event.target.value = "";
-          if (!file) return;
+        onPick={(file) => {
           setBusy(true);
           setMessage(null);
           void read(file).then((result) => {
