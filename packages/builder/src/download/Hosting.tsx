@@ -1,6 +1,45 @@
 import type { JSX } from "react";
 
 /**
+ * The two lists on this screen, which are the same list twice. `SPEC.md` §8, §6; finding B-46.
+ *
+ * **A role, not two hand-tuned lists.** The audit read the source and found the second `<ul>` at
+ * `gap-2` with the `[&_strong]` rule missing; [#201](https://github.com/mandyMooreFan/linkpage/issues/201)
+ * put a browser on it and measured the divergence — 12px against 8px of row gap, and lead-ins at
+ * `#1f1b16` against `#6b6257`, the same grey as the sentences they introduce. Both lists are a
+ * quiet block of prose whose items open with a bold run-in head; there is one thing here and it
+ * is now written once, so the next hand cannot tune one copy of it.
+ *
+ * **The lead-ins take the full ink, and that direction was the open question.** Both-to-ink and
+ * both-to-quiet are each internally consistent, so it was settled on what the tool already does
+ * rather than on preference:
+ *
+ * - **The sheet's own words are ink.** `SHEET_SURFACE` declares `text-ink` and every heading and
+ *   paragraph on this screen takes it. So "the tool's own words recede" — the reading #234 used
+ *   to give the tertiary *button* its grey — is a rule ranking controls under §4, where a
+ *   tertiary sits below an outlined secondary and colour is one of the two instruments paper has
+ *   left to say so. It is not a rule about prose, and this screen is the proof: if it were, the
+ *   whole sheet would be grey.
+ * - **Bold-at-full-ink is the tool's grammar for emphasis.** `<strong>` is written at eight sites
+ *   in the builder. Six render at full ink — the project name in §7.8's replace confirmation, the
+ *   sheet's *if you lose it* sentence, the three lead-ins of the list above, and the outcome check
+ *   between the two lists. The only two that did not were exactly the two below.
+ * - **§8 says these two things must be said _outright_.** A lead-in set exactly like the sentence
+ *   it leads is not said outright, and §2 asks for weight *and* colour before size — the second
+ *   list was spending one of the two.
+ *
+ * Nothing is lost by the other reading being wrong about readability: `--color-ink-quiet` on the
+ * ground is 5.60:1 and the words were always legible. What was missing was the hierarchy.
+ *
+ * **`gap-3` rather than `gap-2`**, for the same reason as the ink: the list that already had it
+ * does not move, and 8px between two multi-line items is close enough to the leading inside one
+ * that the items stop reading as items. It is not a rung of `LADDER` on purpose — that ladder is
+ * the *form's*, measured between a label, a control and a hint, and these are sentences.
+ */
+export const LEAD_IN_LIST =
+  "m-0 mt-4 flex list-none flex-col gap-3 p-0 text-ink-quiet [&_strong]:text-ink";
+
+/**
  * Section one of the Download sheet: getting the page online. `SPEC.md` §8, §6.4.
  *
  * **This describes the shape of the problem and names no host, and that is the design rather than
@@ -55,7 +94,7 @@ export function Hosting(): JSX.Element {
         running anywhere.
       </p>
 
-      <ul className="m-0 mt-4 flex list-none flex-col gap-3 p-0 text-ink-quiet [&_strong]:text-ink">
+      <ul className={LEAD_IN_LIST}>
         <li>
           <strong>Ask whoever looks after your website.</strong> If someone built your website or
           set up your email, this file is all they need. It is an ordinary web page and it will take
@@ -78,7 +117,7 @@ export function Hosting(): JSX.Element {
         Someone else&rsquo;s, because your own phone may be showing you the copy already on it.
       </p>
 
-      <ul className="m-0 mt-4 flex list-none flex-col gap-2 p-0 text-ink-quiet">
+      <ul className={LEAD_IN_LIST}>
         <li>
           <strong>Free does not always mean allowed.</strong> Some well-known free hosts will run
           this page perfectly and forbid it in their terms — one is for personal use only, another

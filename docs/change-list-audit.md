@@ -45,6 +45,22 @@
 > `shrink-0` it names is a _main-axis_ class and was drawing nothing at any of the five `primary`
 > sites; what stretched `Continue` was the flow column's own `align-items: stretch`, with the width
 > unwritten anywhere in the weights at all.
+>
+> **B-46 is built** ([#248](https://github.com/mandyMooreFan/linkpage/issues/248)), and it is the
+> one entry below that has moved from _off the list_ to _on `main`_. This audit names it as one of
+> the three findings the change list deliberately left off, **for never having been verified** —
+> and that is exactly what it was, so the sentence below stands as written. What changed is the
+> reason: [#201](https://github.com/mandyMooreFan/linkpage/issues/201) drove the product in a
+> browser and confirmed both halves — 12px of row gap against 8px, and lead-ins at `#1f1b16`
+> against `#6b6257`, which is `--color-ink-quiet`, the same grey as the sentences they introduce.
+> The owner brought it in on that basis and on the fact that the two lead-ins carry §8's two
+> outright warnings. **The door is that narrow**: a finding left off for _merit_ is still off.
+>
+> The two `<ul>`s in `download/Hosting.tsx` are now one exported recipe, `LEAD_IN_LIST`, and the
+> lead-ins take the full ink — settled on the evidence rather than on taste, since the sheet's own
+> prose is `text-ink` (`SHEET_SURFACE`) and six of the builder's eight `<strong>`s already rendered
+> at it. `controls.test.ts` and `download/download.test.tsx` hold that two lists which are the same
+> list twice cannot be tuned one at a time again.
 
 ## Why this exists
 
