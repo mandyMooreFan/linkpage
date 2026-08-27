@@ -596,6 +596,98 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
   });
 
   /**
+   * What the drawer covers is not on the screen, so it is not in reach either (#255).
+   *
+   * #186 moved **one** control out from under the opaque drawer, because §4 binds the primary
+   * action to the screen and the change list called that broken (B-48). Everything else it
+   * covers stayed exactly where it was — Menu, every row, the arrival line — focusable, tabbable
+   * and in the accessibility tree behind a `bg-surface` nobody can see through. So the screen
+   * disagreed with itself: a sighted owner had one screen, a keyboard or screen-reader owner had
+   * two stacked on top of each other, and the bottom one is the one #186 had just finished
+   * declaring off the glass.
+   *
+   * **The drawer is not a modal and this is not a focus trap.** The sheet is the tool's modal —
+   * `role="dialog"`, `aria-modal`, focus moved in, Tab held, focus restored on the way out
+   * (`DownloadSheet.tsx`) — and it is a *detour*: something raised it, and it hands the screen
+   * back. The drawer raises nothing and hands nothing back; on the list at this size it **is**
+   * the screen, arrived at by default (§7.6, #147). So nothing here gains a role, an
+   * `aria-modal`, a keyboard cage or a second way out: the way out is the control in the drawer's
+   * own header, which is the first thing in reach, plus the Escape the drawer already answers at
+   * both sizes.
+   *
+   * **One rule, stated once, true at both sizes: what is on the glass is in reach, and what is
+   * not, is not.** That is `covered` — the fact `onCover` already reports — applied to the column
+   * instead of to a single button. Below the breakpoint the column is behind the page and out of
+   * reach; at the breakpoint the two sit side by side and nothing is out of reach at all. No
+   * width is consulted about what the owner may do, which is `Preview`'s standing rule.
+   *
+   * **What these three can and cannot say.** jsdom has no `matchMedia`, so the covered size is
+   * the default here and the laptop is stubbed — and jsdom **does not implement `inert` at all**:
+   * it neither blocks focus nor prunes the accessibility tree, which is why every other test in
+   * this file goes on driving a column that a real phone can no longer touch. So what is held
+   * below is *where the statement is and what it covers*, and the behaviour was checked in Chrome
+   * instead: at 390px the whole tab ring is *Edit your page* → *Download* → the page frame, the
+   * rows are not clickable, and `Accessibility.getFullAXTree` over CDP exposes no part of the
+   * column; at 1440px every row is back in both. The one focusable thing left outside the drawer
+   * at 390px is `ProjectPicker`'s invisible file input, which is a sibling of this screen rather
+   * than part of it, and is **#254's**.
+   */
+  describe("what the covered list is, and is not, in reach of (#255)", () => {
+    /** Every region the document currently declares out of reach. */
+    const outOfReach = (): Element[] => [...document.querySelectorAll("[inert]")];
+
+    it("puts the covered column out of reach, and nothing that is on the glass", () => {
+      mount(
+        <List
+          draft={POPULATED}
+          arrived
+          onChange={() => {}}
+          onAdd={() => {}}
+          onDownload={() => {}}
+        />,
+      );
+
+      // Identified by what it holds rather than by a class or a count: the region out of reach
+      // is the one the bar's Menu is in, and it is the whole of what the page came down over.
+      const region = document.querySelector("[data-menu]")?.closest("[inert]");
+      expect(region).toBeTruthy();
+      expect(region!.contains(document.querySelector("[data-arrival]"))).toBe(true);
+      expect(region!.contains(document.querySelector("[data-row]"))).toBe(true);
+
+      // And not the surface the owner is actually looking at, nor the Download it now carries —
+      // which is the whole reason #186 moved that button rather than hiding a second copy.
+      expect(region!.contains(drawerRoot())).toBe(false);
+      expect(region!.contains(screen.getByRole("button", { name: "Download" }))).toBe(false);
+      expect(region!.contains(screen.getByRole("button", { name: "Edit your page" }))).toBe(false);
+
+      // Nothing else in the document makes the same claim.
+      expect(outOfReach().filter((el) => el !== region)).toEqual([]);
+    });
+
+    it("hands the column back the moment the page comes off the screen", () => {
+      editing(POPULATED, { onDownload: () => {} });
+      // It really was out of reach a moment ago — otherwise the next line proves nothing.
+      expect(document.querySelector("[data-menu]")?.closest("[inert]")).toBeTruthy();
+
+      fireEvent.click(screen.getByRole("button", { name: "Edit your page" }));
+
+      expect(outOfReach()).toEqual([]);
+      expect(screen.getByRole("button", { name: "Menu" })).toBeTruthy();
+    });
+
+    it("takes nothing out of reach where the page sits beside the list", () => {
+      const roomy = laptop();
+      editing(POPULATED, { onDownload: () => {} });
+
+      // The drawer is open here too — it is simply not over anything, so both halves stay in
+      // reach and the rule needs no second form for this size.
+      expect(screen.getByRole("button", { name: "Edit your page" })).toBeTruthy();
+      expect(outOfReach()).toEqual([]);
+      roomy.restore();
+    });
+  });
+
+  /**
    * One filled button per screen (§4, §6; design change 3, findings B-18/B-51).
    *
    * The list used to show two at once: the pinned Download and, the moment a row was opened, the
