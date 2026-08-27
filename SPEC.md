@@ -1969,7 +1969,21 @@ reads as a layout shift, not motion._
   motion nobody can select is motion the rule below cannot reach (#246).
 - **The drawer fades**, and §7.6's run-end arrival — the finished page rising to meet the owner — is a
   fade-in, the language's one set-piece.
-- **The list moves exactly as the flow does** (§7.1: both or neither).
+- **The list moves exactly as the flow does** (§7.1: both or neither) — **one set of verbs across
+  both screens, and the list has fewer events to spend them on.** Both roots carry the same 320ms
+  arrival fade, and that is what "both or neither" holds: neither screen may grow motion the other
+  does not have. It is a rule about the _language_, not a promise that every gesture on one screen
+  has a counterpart on the other. **So opening a review row runs nothing, deliberately** (#247).
+  The fade is the verb for a **screen change**, and it works because the frame holds still while
+  the content inside it swaps; a row opening is the frame itself changing — the rows below move
+  313px. Both ways of animating it were built and photographed rather than argued: scoped to the
+  row body, the rows below jump at full speed and a 313px hole stands open for 320ms while the
+  editor fades into it, so the fade lags the layout instead of carrying it; scoped to the whole
+  surface, every row ghosts over its own new position, which is the whole-surface alternative
+  §7.11's own diagnosis rejected, in the words at the top of this section. **The list is still
+  here because the language has no verb for this, not because it was forgotten** — and #190's
+  reading that the open row's Save _is_ the flow's Continue is untouched by that: what the two
+  screens share is the question and its shell, not the transport between questions.
 - **§7.9's messages are ordinary content** — they appear with standard form validation and carry no
   arrival choreography of their own (#142).
 - **`prefers-reduced-motion` shortens every duration toward instant rather than substituting a

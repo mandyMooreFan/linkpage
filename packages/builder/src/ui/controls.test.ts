@@ -233,6 +233,8 @@ describe("the sources every rule below reads", () => {
     "./row.ts",
     "./type.ts",
     "../flow/ProgressBar.tsx",
+    // The one screen with a screen change, and so the one caller of `startViewTransition` (#247).
+    "../flow/Flow.tsx",
     "../flow/questions/Question.tsx",
     "../list/List.tsx",
     "../list/LinkButtons.tsx",
@@ -1852,6 +1854,36 @@ describe("the motion language collapses under reduced motion (§7.11)", () => {
    * Two files of perfect source rules once coexisted with five controls that rendered nothing,
    * so a named tween in the stylesheet is worth nothing until the fill is the thing wearing it.
    */
+  /**
+   * **One screen has a screen change, and it is the only one that starts a transition** (#247).
+   *
+   * §7.11 says *the list moves exactly as the flow does (§7.1: both or neither)*, which reads as
+   * a promise that a review row opening fades the way a flow question does. It does not, and
+   * that is the language rather than a gap in it: the fade is the verb for a **swap inside a
+   * still frame**, and a row opening is the frame changing — the rows below move 313px. Both
+   * ways of animating it were built and photographed on that ticket and neither is the flow's
+   * fade; §7.11 now says so outright.
+   *
+   * So the rule is that the transition belongs to the one screen with a screen change to make.
+   * The day a second screen wants one, this is what says so — and it is the same door as
+   * `groupNames()` above, which turns the reduced-motion block red for the name that transition
+   * would have to declare. **Identified, never counted**: a threshold on how many files call it
+   * passes on the wrong file.
+   */
+  it("starts a view transition from the one screen that has a screen change (#247)", () => {
+    const callers = everySource()
+      .filter(([, text]) => /\bstartViewTransition\s*[(?]/.test(text))
+      .map(([path]) => path)
+      .sort();
+    // Non-vacuity: an empty corpus, a renamed API or a glob that stopped matching all read as
+    // "the list starts nothing", which is what this test would otherwise be reporting.
+    expect(callers, "nothing in the builder starts a view transition at all").not.toEqual([]);
+    expect(
+      callers,
+      "the language's one screen change belongs to the flow — a second caller is a new claim",
+    ).toEqual(["../flow/Flow.tsx"]);
+  });
+
   it("is worn by the bar's fill, which is the one thing in the builder that tweens", () => {
     expect(BAR_FILL.split(/\s+/), "the fill carries the named tween").toContain("bar-tween");
     const bar = sources["../flow/ProgressBar.tsx"] ?? "";

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render as mount, screen, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App.js";
 import { installDownloads, type FakeDownloads } from "./download/downloads.testing.js";
 import { PROJECT_STORAGE_KEY, type StorageLike } from "./project/index.js";
@@ -354,6 +354,100 @@ describe("which screen the owner gets", () => {
     expect(JSON.parse(storage.getItem(PROJECT_STORAGE_KEY) ?? "{}")).toMatchObject({
       header: { name: "Ada's" },
     });
+  });
+});
+
+/**
+ * **One set of verbs across both screens, and the list has fewer events to spend them on.**
+ * `SPEC.md` §7.11, §7.1. [#247](https://github.com/mandyMooreFan/linkpage/issues/247).
+ *
+ * §7.11 says *the list moves exactly as the flow does (§7.1: both or neither)*, and measured in
+ * Chromium at 390×844 against the built app, opening or closing a review row ran **zero**
+ * animations while the flow's identical question — the same `Question.tsx` shell — ran the
+ * two-phase fade. That reads as a broken promise and is not one: what both screens share is the
+ * 320ms arrival fade, and the flow's *second* verb answers an event the list does not have.
+ *
+ * **The fade is the verb for a screen change, and a screen change is a still frame whose
+ * contents swap.** A row opening is the frame itself changing: the rows below move 313px. Both
+ * ways of animating it were built and photographed on this ticket rather than argued — scoped to
+ * the row body, the surrounding rows jump at full speed and a 313px hole stands open for 320ms
+ * while the editor fades into it; scoped to the whole surface, every row ghosts over its own new
+ * position, which is the whole-surface alternative §7.11's diagnosis rejected in the first place.
+ *
+ * **This file is the only one that can hold it**, because the claim is about two screens being
+ * the same product at two moments and nothing that mounts one of them can compare. Both halves
+ * are read off the rendered app rather than off the sources (#213), and the second is written so
+ * that it **cannot report "nothing ran" without first proving the instrument fires**: one stub,
+ * one mount, the flow's Continue and the list's row-open measured against each other.
+ */
+describe("the list moves exactly as the flow does — both or neither (§7.11, #247)", () => {
+  /** jsdom has no view transitions, so the fallback is the default and the stub is the case. */
+  const host = document as { startViewTransition?: (update: () => void) => unknown };
+
+  afterEach(() => {
+    delete host.startViewTransition;
+  });
+
+  /** The classes a screen's own root wears, as whole words — never a substring (#201). */
+  const rootClasses = (which: "flow" | "list"): string[] => {
+    const root = document.querySelector(`[data-screen="${which}"]`);
+    expect(root, `no ${which} screen is mounted at all`).not.toBeNull();
+    const worn = ((root as Element).className || "").split(/\s+/).filter((one) => one !== "");
+    expect(worn, `the ${which} root wears no classes at all`).not.toEqual([]);
+    return worn;
+  };
+
+  it("gives both screens the same arrival, which is the half of the sentence that binds", () => {
+    mount(<App storage={storage} />);
+    const flow = rootClasses("flow");
+    expect(flow, "the flow's root does not fade in when a run begins").toContain("enter-fade");
+
+    firstRun();
+
+    const list = rootClasses("list");
+    expect(list, "the list arrives without the fade the flow arrives with").toContain("enter-fade");
+    // Neither screen may grow motion the other has not got: the shared class is the whole of it.
+    expect(
+      flow.filter((one) => one.includes("fade") || one.includes("animate")),
+      "the two roots no longer arrive alike",
+    ).toEqual(list.filter((one) => one.includes("fade") || one.includes("animate")));
+  });
+
+  it("starts a transition for a screen change and none for a row opening", () => {
+    const started = vi.fn((update: () => void) => {
+      update();
+      return {};
+    });
+    host.startViewTransition = started;
+
+    mount(<App storage={storage} />);
+    fireEvent.click(screen.getByRole("button", { name: /Food & drink/ }));
+
+    // **Non-vacuity, and it is the whole design of this test.** A guard that only asserts the
+    // list runs nothing goes green on a stub that was never installed, on a screen that never
+    // mounted, and on an app with no motion left in it. So the instrument is proved on the flow
+    // first, in the same mount, with the same stub: one screen change, one call.
+    expect(started, "the flow's own screen change did not reach the stub").toHaveBeenCalledTimes(1);
+
+    const afterFlow = started.mock.calls.length;
+    firstRun();
+    expect(started.mock.calls.length, "walking the flow ran no screen changes").toBeGreaterThan(
+      afterFlow,
+    );
+    const onArrival = started.mock.calls.length;
+
+    // Now the same question, through the same shell, on the other screen.
+    const row = screen.getByRole("button", { name: /^Business name/ });
+    fireEvent.click(row);
+    expect(row.getAttribute("aria-expanded"), "the row did not open").toBe("true");
+    expect(
+      started,
+      "the list started a view transition for a disclosure — §7.11 says it has no verb for one",
+    ).toHaveBeenCalledTimes(onArrival);
+
+    fireEvent.click(row);
+    expect(row.getAttribute("aria-expanded"), "the row did not close").toBe("false");
+    expect(started, "closing the row started one").toHaveBeenCalledTimes(onArrival);
   });
 });
 
