@@ -258,6 +258,83 @@ test.describe("what a green run does and does not mean", () => {
 });
 
 // ---------------------------------------------------------------------------
+// What the tree actually says
+// ---------------------------------------------------------------------------
+
+/**
+ * Every node of the browser's own accessibility tree, as `role` and `name`.
+ *
+ * **Read over CDP rather than through a locator**, because the claim being settled is about
+ * what *the browser exposes*, which is §7.12's exact bound — and because a `<dl>` has no ARIA
+ * role in HTML-AAM, so a role-based locator would be answering a different question from the
+ * one that failed. This is #266's instrument, re-run here rather than trusted.
+ */
+async function axNames(page: Page, html: string): Promise<{ role: string; name: string }[]> {
+  await page.setContent(html, { waitUntil: "load" });
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send("Accessibility.enable");
+    const { nodes } = await cdp.send("Accessibility.getFullAXTree");
+    return nodes.map((node) => ({
+      role: String(node.role?.value ?? ""),
+      name: String(node.name?.value ?? ""),
+    }));
+  } finally {
+    await cdp.detach();
+  }
+}
+
+/**
+ * **CL-5** (issue #280, decided in #266): the hours panel is named.
+ *
+ * Before this the tree read `DescriptionList ""` — rows saying `Mon` and a time, and nothing
+ * saying what they were times for, because §6.9's clock is `aria-hidden` like every glyph and
+ * is not in the tree at all. **No axe rule reaches this**: nothing requires a description list
+ * to be named, so the 16-of-16 run above was green over the gap. It is the hand-driven tier of
+ * §7.12's promise that catches it, which is the whole reason there are two tiers.
+ */
+test.describe("the hours panel is named to assistive technology (CL-5)", () => {
+  test("the browser reads back a heading and a named list", async ({ page }) => {
+    const nodes = await axNames(page, render(project("centred", "light")));
+
+    expect(nodes).toContainEqual({ role: "heading", name: "Opening hours" });
+    expect(nodes).toContainEqual({ role: "DescriptionList", name: "Opening hours" });
+  });
+
+  /**
+   * The control, and it is the same rule the rest of this file obeys: **a guard must prove it
+   * found something before it can report nothing wrong.** Take the pointer away and the name
+   * must go with it — otherwise the assertion above could be passing on something else in the
+   * page entirely, which is exactly how #265's no-op mutants first read as a clean result.
+   */
+  test("and the name is the heading's, not something else in the page", async ({ page }) => {
+    const clean = render(project("centred", "light"));
+    const broken = mutate(clean, ` aria-labelledby="lp-h"`, "");
+
+    expect(broken.changed, `nothing in the page matched aria-labelledby="lp-h"`).toBe(true);
+
+    const nodes = await axNames(page, broken.html);
+    expect(nodes).toContainEqual({ role: "DescriptionList", name: "" });
+    expect(nodes).not.toContainEqual({ role: "DescriptionList", name: "Opening hours" });
+    // The heading is still there and still says the word; only the list has lost its name.
+    expect(nodes).toContainEqual({ role: "heading", name: "Opening hours" });
+  });
+
+  /**
+   * The word follows the page's language, like every other word the renderer writes (§2.5, #48)
+   * — asserted on the tree rather than on the markup, because a hidden name that a screen
+   * reader would pronounce with the wrong phonetics is #48's bug with nothing on screen to
+   * reveal it.
+   */
+  test("in the language the page declares", async ({ page }) => {
+    const welsh = { ...project("centred", "light"), lang: "cy" };
+    const nodes = await axNames(page, render(welsh));
+
+    expect(nodes).toContainEqual({ role: "DescriptionList", name: "Oriau agor" });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // The known-bad controls
 // ---------------------------------------------------------------------------
 

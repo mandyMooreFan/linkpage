@@ -303,20 +303,45 @@ function linkButton(value: unknown): string {
  * This is the only section that carries a word of ours, so it is the only one that needs the
  * page's vocabulary; `hoursView` returns the row labels and the closed text already resolved.
  */
+/**
+ * The id the hours heading and the `<dl>` meet on — the only id the exported page carries.
+ *
+ * Four characters because it is spent twice, in the `id` and again in the `aria-labelledby`,
+ * and §6.5's live headroom is measured in tens of bytes rather than hundreds. There is no
+ * collision to guard against: the page is one self-contained file (invariant 2) and the owner's
+ * content never reaches an `id`.
+ */
+const HOURS_NAME_ID = "lp-h";
+
 function hoursSection(value: unknown, words: Vocabulary): string {
   const hours = hoursView(value, words);
   if (!hours) return "";
 
   const parts: string[] = [];
   if (hours.rows.length > 0) {
-    // §6.9's clock names the panel. **For a sighted reader only**: `glyphSvg` marks every glyph
-    // `aria-hidden`, so this changes nothing for assistive technology and the panel stays
-    // unnamed to it. Naming it properly needs a ninth string — a visually hidden word is still
-    // a word the renderer writes and would still need translating across every vocabulary —
-    // and §2.5 wins. The gap is real and is left open rather than described as closed.
+    // Two things name this panel, one for each kind of reader, and neither can do the other's
+    // job. §6.9's clock names it to a sighted reader; `glyphSvg` marks every glyph
+    // `aria-hidden`, so to assistive technology the clock is not there at all and the `<dl>`
+    // read back as `DescriptionList ""` — rows saying `Mon` and a time, with nothing saying
+    // what they were times *for*.
+    //
+    // That gap was left open on a byte cost, and **the cost was priced by analogy to a glyph**
+    // — by the very `<svg>` wrapper §6.9 had just overrun its own estimate on. A word carries
+    // no wrapper: no viewBox, no paint attributes, no `aria-hidden`, no `focusable`, nothing
+    // ahead of the characters. Measured rather than estimated, in the tightest of the 42
+    // languages, the whole mechanism is 84 B. **A glyph is never as cheap as its drawing. A
+    // word is.** §2.5 now writes ten words; §6.9 records the reversal (#266, CL-5).
+    //
+    // Real text rather than an `aria-label`, on the same argument `socialLink` makes below: a
+    // visually hidden span is text a translator and a "find in page" can both see. And a
+    // heading rather than a span, because it costs the same and buys somewhere to jump to on a
+    // page that otherwise has only its `<h1>`.
+    parts.push(`<h2 class="lp-sr" id="${HOURS_NAME_ID}">${escapeHtml(words.hours)}</h2>`);
     parts.push(`<span class="lp-hours-mark">${glyphSvg(ICONS.clock)}</span>`);
     const rows = hours.rows.map((row) => hoursRow(row, hours.closed));
-    parts.push(`<dl class="lp-hours">\n${rows.join("\n")}\n</dl>`);
+    parts.push(
+      `<dl class="lp-hours" aria-labelledby="${HOURS_NAME_ID}">\n${rows.join("\n")}\n</dl>`,
+    );
   }
   if (hours.note !== undefined) {
     parts.push(`<p class="lp-note">${escapeHtml(hours.note)}</p>`);
