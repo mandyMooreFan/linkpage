@@ -19,7 +19,7 @@
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.86.0"
   },
-  "//devDependencies": "jsdom and the Testing Library pair are here rather than at the root because the renderer has no DOM to test and must stay dependency-free (§5.1). They are what lets the preview drawer be tested as a document — its one control, its srcdoc, its sandbox — without a browser in CI. Playwright is here for the same reason and no other: §5.3's single end-to-end needs a real browser, a real download and a real file on disk, which is exactly the boundary jsdom cannot cross. It is builder-side only — the renderer's dependencies block stays empty (invariant 3) — and @types/node is what lets the end-to-end read that file back.",
+  "//devDependencies": "jsdom and the Testing Library pair are here rather than at the root because the renderer has no DOM to test and must stay dependency-free (§5.1). They are what lets the preview drawer be tested as a document — its one control, its srcdoc, its sandbox — without a browser in CI. Playwright is here for the same reason and no other: §5.3's single end-to-end needs a real browser, a real download and a real file on disk, which is exactly the boundary jsdom cannot cross. It is builder-side only — the renderer's dependencies block stays empty (invariant 3) — and @types/node is what lets the end-to-end read that file back. axe-core is here for the same reason and by the same constraint: the page it audits is the renderer's output, but invariant 3 reads the renderer's devDependencies as an allowlist, so the checker cannot live beside the thing it checks. See e2e/exported-page-a11y.e2e.ts (§7.12).",
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.3",
@@ -29,6 +29,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
+    "axe-core": "^4.13.0",
     "jsdom": "^30.0.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
