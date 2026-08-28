@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { escapeHtml, mendEmail, mendUrl, render, safeUrl } from "./render.js";
 import { MINIMAL as base, POPULATED as full, POPULATED_DARK as dark } from "./fixtures.js";
 import { SHAPES } from "./chrome.js";
+import { VOCABULARIES, vocabulary } from "./locale.js";
 import type { Project } from "./project.js";
 
 /**
@@ -503,6 +504,55 @@ describe("address", () => {
     expect(page({ ...base, address: { lines: ["", "  "] } })).not.toContain("lp-address");
     expect(page({ ...base, address: { lines: [] } })).not.toContain("lp-address");
   });
+
+  /**
+   * **CL-6** (#281, from #266): the link says what it does.
+   *
+   * Before this the browser read back `link "The Old Weaving Shed 12 Bridge Street …"` — a name
+   * made entirely of the destination, with nothing saying it was a link to a map. `link-name`
+   * *passes* on that, which is why no automated rule ever reported it: the link does have a
+   * name, it is just the wrong one. §6.9 rejected the word in a single clause on §2.5 grounds;
+   * #266 reversed that, and the gap §6.9 treated as an aside was the worse of the two.
+   *
+   * The word goes **first**, so the name reads *Directions* and then the address rather than
+   * ending on it — a screen-reader user hearing the purpose before five lines of street is the
+   * whole difference. The location glyph in between is `aria-hidden` like every other and
+   * contributes nothing to the name.
+   *
+   * Asserted as markup here and re-read out of the real browser's accessibility tree in
+   * `packages/builder/e2e/exported-page-a11y.e2e.ts`, which is where the claim is settled.
+   */
+  it("says the link opens directions, in a visually hidden word before the address", () => {
+    const html = page({ ...base, address: full.address });
+    expect(html).toContain('<a class="lp-address" itemprop="hasMap"');
+    expect(html).toContain('<span class="lp-sr">Directions</span>');
+    // First child of the anchor: before the glyph, and before the address it names. Asserted on
+    // the join rather than on two `indexOf`s, because "first" is the whole point — a word after
+    // the address names the link the wrong way round and both orders would pass a position test
+    // that only compared it with the `<span itemprop="address">`.
+    expect(html).toContain(
+      'href="https://maps.example/?q=12+Baker+Street"><span class="lp-sr">Directions</span><svg',
+    );
+  });
+
+  it("writes the word in the language the page declares, like every other word of ours", () => {
+    const address = full.address;
+    expect(page({ ...base, lang: "cy", address })).toContain(
+      '<span class="lp-sr">Cyfarwyddiadau</span>',
+    );
+    expect(page({ ...base, lang: "th", address })).toContain('<span class="lp-sr">เส้นทาง</span>');
+  });
+
+  /**
+   * **No link, no word.** Without a `directionsUrl` the block is a `<p>`, which opens nothing —
+   * a hidden *Directions* there would be a sentence the page cannot keep, and §2.5's rule is
+   * that a wrong word is worse than a missing one.
+   */
+  it("says nothing about directions when the address is not a link", () => {
+    const html = page({ ...base, address: { lines: full.address?.lines ?? [] } });
+    expect(html).toContain('<p class="lp-address">');
+    expect(html).not.toContain('<span class="lp-sr">Directions</span>');
+  });
 });
 
 describe("social", () => {
@@ -836,6 +886,28 @@ describe("LocalBusiness microdata", () => {
     const html = page(full);
     expect(html).toContain('<span class="lp-line">12 Baker Street</span>');
     expect(addressText(html)).toBe("12 Baker Street London NW1 6XE");
+  });
+
+  /**
+   * **CL-6's assertion, and §6.9 demanded it be made rather than trusted.** This is the one
+   * place in the renderer where a hidden string sits inside an element that carries structured
+   * data, and getting it a level too deep would publish `Directions The Old Weaving Shed …` as
+   * the business's postal address to every microdata consumer that reads the page.
+   *
+   * So the word goes **outside** `itemprop="address"` — a sibling inside the `<a>`, not a
+   * child of the property — and this test reads the property's own text back rather than
+   * checking where the markup happens to sit today. Asserted across every language, because
+   * "outside the property" has to hold for the word the page actually writes, not only for the
+   * English one.
+   */
+  it("keeps CL-6's hidden word out of the published address, in every language", () => {
+    for (const lang of Object.keys(VOCABULARIES)) {
+      const html = page({ ...full, lang });
+      const words = vocabulary(lang);
+      expect(html, lang).toContain(`<span class="lp-sr">${words.directions}</span>`);
+      expect(addressText(html), lang).toBe("12 Baker Street London NW1 6XE");
+      expect(addressText(html), lang).not.toContain(words.directions);
+    }
   });
 
   it("marks social profiles sameAs and link buttons nothing", () => {

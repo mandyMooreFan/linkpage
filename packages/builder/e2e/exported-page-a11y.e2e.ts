@@ -334,6 +334,80 @@ test.describe("the hours panel is named to assistive technology (CL-5)", () => {
   });
 });
 
+/**
+ * **CL-6** (issue #281, decided in #266): the address link says what it opens.
+ *
+ * Before this the tree read `link "12 Baker Street London NW1 6XE"` — a name made entirely of
+ * the destination, with nothing saying it was a link to a map. **`link-name` passes on that**,
+ * which is why the 16-of-16 run above was green over this gap too: the link does have a name,
+ * it is just the wrong one. It is the sharpest small case in #272 of a green checker not being
+ * a promise, and the only tier that reaches it is this one.
+ */
+test.describe("the address link says it opens directions (CL-6)", () => {
+  test("the browser reads back the purpose before the address", async ({ page }) => {
+    const nodes = await axNames(page, render(project("centred", "light")));
+
+    expect(nodes).toContainEqual({
+      role: "link",
+      name: "Directions 12 Baker Street London NW1 6XE",
+    });
+  });
+
+  /**
+   * The control. Take the word away and the name must fall back to the address alone —
+   * otherwise the assertion above could be reading a name that came from somewhere else, which
+   * is exactly how #265's no-op mutants first read as a clean result.
+   */
+  test("and the name is the hidden word's, not something else in the link", async ({ page }) => {
+    const clean = render(project("centred", "light"));
+    const broken = mutate(clean, `<span class="lp-sr">Directions</span>`, "");
+
+    expect(broken.changed, `nothing in the page matched the hidden directions word`).toBe(true);
+
+    const nodes = await axNames(page, broken.html);
+    expect(nodes).toContainEqual({ role: "link", name: "12 Baker Street London NW1 6XE" });
+    expect(nodes).not.toContainEqual({
+      role: "link",
+      name: "Directions 12 Baker Street London NW1 6XE",
+    });
+  });
+
+  /**
+   * The word follows the page's language (§2.5, #48) — the same reason CL-5 asserts it: a
+   * hidden name a Welsh voice pronounces with English phonetics is #48's bug with nothing on
+   * screen to reveal it.
+   */
+  test("in the language the page declares", async ({ page }) => {
+    const welsh = { ...project("centred", "light"), lang: "cy" };
+    const nodes = await axNames(page, render(welsh));
+
+    expect(nodes).toContainEqual({
+      role: "link",
+      name: "Cyfarwyddiadau 12 Baker Street London NW1 6XE",
+    });
+  });
+
+  /**
+   * **§6.4's microdata is untouched, asserted in a real DOM rather than against the markup.**
+   * This is the one place in the renderer where a hidden string sits inside an element that
+   * carries structured data, and §6.9 asked for the assertion rather than the assumption: a
+   * word one level too deep would publish `Directions 12 Baker Street …` as the business's
+   * postal address. `render.test.ts` reads the property's text out of the markup in all 42
+   * languages; this reads it out of the browser that a consumer's parser agrees with.
+   */
+  test("and it stays outside the published address", async ({ page }) => {
+    await page.setContent(render(project("centred", "light")), { waitUntil: "load" });
+
+    const published = await page.evaluate(() =>
+      (document.querySelector('[itemprop="address"]')?.textContent ?? "")
+        .replace(/\s+/g, " ")
+        .trim(),
+    );
+
+    expect(published).toBe("12 Baker Street London NW1 6XE");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // The known-bad controls
 // ---------------------------------------------------------------------------

@@ -63,12 +63,18 @@ const CHROME_BUDGET = 30 * 1024;
  * A tripwire under the line, so that *approaching* the budget fails rather than only breaching
  * it.
  *
- * The worst realistic page measures **25.67 KB** today — `MAXIMAL` in Thai, which is the case
+ * The worst realistic page measures **26,409 B** today — `MAXIMAL` in Thai, which is the case
  * the `TRANSLATED` suite below actually asserts and not the English one usually quoted —
  * roughly 15 KB of which is vendored SVG, so the icon set rather than the stylesheet is what
- * fills this budget. **That leaves 0.33 KB, not the ~6 KB this note used to claim**, and the
+ * fills this budget. **That leaves 215 B, not the ~6 KB this note once claimed**, and the
  * failure worth catching is not an owner with a long page but a change that quietly spends the
  * rest. §6.5 carries the table of where it went; keep the two in step.
+ *
+ * The figure moved twice for the accessibility promise (#272) and both are measured rather than
+ * estimated: CL-5's hidden hours heading spent **84 B** of the 347 B that stood here, and CL-6's
+ * hidden *directions* word in the address link spent **48 B** more. Written in bytes rather than
+ * rounded kilobytes from here on, because two changes of that size round to the same number and
+ * a headroom figure that cannot see them is not doing its job.
  *
  * 26 KB is deliberately a number someone has to come and move rather than one that drifts. If
  * a glyph earns its place under §2.4's growth rule and pushes past it, raising this is the

@@ -35,19 +35,22 @@
  *   source, and it is the same data `Intl` would have read — the objection above was never to
  *   CLDR, it was to reading CLDR at *render* time from whichever host happened to be running.
  *   Licence and attribution: `NOTICES`.
- * - **`closed` and `hours` are not CLDR fields.** There is no locale database of the word a
- *   shop puts on its door, nor of the phrase it heads its opening times with, so each one here
- *   is hand-authored. **That asymmetry is this table's weak point and it is stated rather than
- *   hidden:** the abbreviations can be checked against a version number, and these two can only
- *   be checked by someone who speaks the language. **They are drafted, not vouched for** — and
- *   `hours` is the newer and thinner of the two, written in one pass by one author who does not
+ * - **`closed`, `hours` and `directions` are not CLDR fields.** There is no locale database of
+ *   the word a shop puts on its door, nor of the phrase it heads its opening times with, nor of
+ *   what it writes above the link to its own map, so each one here is hand-authored. **That
+ *   asymmetry is this table's weak point and it is stated rather than hidden:** the
+ *   abbreviations can be checked against a version number, and these three can only be checked
+ *   by someone who speaks the language. **They are drafted, not vouched for** — and `hours` and
+ *   `directions` are the newer and thinner two, written in one pass by one author who does not
  *   speak most of these languages, so a correction is expected rather than merely welcomed.
- *   §2.5 records the price this bought: the un-citable half of the table is now the larger one.
+ *   §2.5 records the price this bought: the un-citable half of the table is now the larger one,
+ *   at 126 hand-written strings against 294 citable ones.
  *
- * **Growth rule.** A language earns a place when both halves are answerable: CLDR ships
- * abbreviated weekday names for it, *and* someone can name the word a business in that
- * language writes on its own opening hours. The set below is the languages this repository
- * could answer both for; it is not a claim about which languages matter.
+ * **Growth rule.** A language earns a place when every part of an entry is answerable: CLDR
+ * ships abbreviated weekday names for it, *and* someone can name the words a business in that
+ * language writes on its own door, above its own opening hours, and above its own map link.
+ * The set below is the languages this repository could answer all of those for; it is not a
+ * claim about which languages matter.
  *
  * - Adding a language is **additive and never a version bump** (§4.8) — `project.json` does
  *   not change shape, and an older reader of the same file simply renders English.
@@ -89,6 +92,18 @@ export interface Vocabulary {
    * way `closed` is — see the note above.
    */
   readonly hours: string;
+  /**
+   * What says the address link opens a map (§6.9): the text of the visually hidden `<span>`
+   * that goes first inside the `<a>`, so the link is named *directions* and then the address.
+   * Not a CLDR field either, and provisional in exactly the way `hours` is — see the note
+   * above.
+   *
+   * **A verb phrase, not a noun, wherever the language prefers one.** English *Directions*
+   * reads as a label; several of these languages say the equivalent of *how to get here*
+   * instead, because that is what a business writes above its own map link. The drafts follow
+   * the language rather than the English shape.
+   */
+  readonly directions: string;
 }
 
 /**
@@ -126,6 +141,7 @@ export const VOCABULARIES: Readonly<Record<string, Vocabulary>> = {
     days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     closed: "Closed",
     hours: "Opening hours",
+    directions: "Directions",
   },
 
   // Celtic. `cy` is #48's own example: the Cardiff bakery this table exists for.
@@ -133,16 +149,19 @@ export const VOCABULARIES: Readonly<Record<string, Vocabulary>> = {
     days: ["Llun", "Maw", "Mer", "Iau", "Gwe", "Sad", "Sul"],
     closed: "Ar gau",
     hours: "Oriau agor",
+    directions: "Cyfarwyddiadau",
   },
   ga: {
     days: ["Luan", "Máirt", "Céad", "Déar", "Aoine", "Sath", "Domh"],
     closed: "Dúnta",
     hours: "Uaireanta oscailte",
+    directions: "Treoracha",
   },
   gd: {
     days: ["DiL", "DiM", "DiC", "Dia", "Dih", "DiS", "DiD"],
     closed: "Dùinte",
     hours: "Uairean fosglaidh",
+    directions: "Stiùireadh",
   },
 
   // Germanic.
@@ -150,31 +169,37 @@ export const VOCABULARIES: Readonly<Record<string, Vocabulary>> = {
     days: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
     closed: "Geschlossen",
     hours: "Öffnungszeiten",
+    directions: "Wegbeschreibung",
   },
   nl: {
     days: ["ma", "di", "wo", "do", "vr", "za", "zo"],
     closed: "Gesloten",
     hours: "Openingstijden",
+    directions: "Routebeschrijving",
   },
   da: {
     days: ["man.", "tirs.", "ons.", "tors.", "fre.", "lør.", "søn."],
     closed: "Lukket",
     hours: "Åbningstider",
+    directions: "Rutevejledning",
   },
   sv: {
     days: ["mån", "tis", "ons", "tors", "fre", "lör", "sön"],
     closed: "Stängt",
     hours: "Öppettider",
+    directions: "Vägbeskrivning",
   },
   nb: {
     days: ["man.", "tir.", "ons.", "tor.", "fre.", "lør.", "søn."],
     closed: "Stengt",
     hours: "Åpningstider",
+    directions: "Veibeskrivelse",
   },
   is: {
     days: ["mán.", "þri.", "mið.", "fim.", "fös.", "lau.", "sun."],
     closed: "Lokað",
     hours: "Opnunartími",
+    directions: "Leiðarlýsing",
   },
 
   // Romance.
@@ -182,31 +207,37 @@ export const VOCABULARIES: Readonly<Record<string, Vocabulary>> = {
     days: ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."],
     closed: "Fermé",
     hours: "Horaires d’ouverture",
+    directions: "Itinéraire",
   },
   es: {
     days: ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"],
     closed: "Cerrado",
     hours: "Horario de apertura",
+    directions: "Cómo llegar",
   },
   ca: {
     days: ["dl.", "dt.", "dc.", "dj.", "dv.", "ds.", "dg."],
     closed: "Tancat",
     hours: "Horari d’obertura",
+    directions: "Com arribar-hi",
   },
   pt: {
     days: ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."],
     closed: "Fechado",
     hours: "Horário de funcionamento",
+    directions: "Como chegar",
   },
   it: {
     days: ["lun", "mar", "mer", "gio", "ven", "sab", "dom"],
     closed: "Chiuso",
     hours: "Orari di apertura",
+    directions: "Indicazioni stradali",
   },
   ro: {
     days: ["lun.", "mar.", "mie.", "joi", "vin.", "sâm.", "dum."],
     closed: "Închis",
     hours: "Program de funcționare",
+    directions: "Indicații rutiere",
   },
 
   // Slavic.
@@ -214,66 +245,93 @@ export const VOCABULARIES: Readonly<Record<string, Vocabulary>> = {
     days: ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."],
     closed: "Zamknięte",
     hours: "Godziny otwarcia",
+    directions: "Dojazd",
   },
   cs: {
     days: ["po", "út", "st", "čt", "pá", "so", "ne"],
     closed: "Zavřeno",
     hours: "Otevírací doba",
+    directions: "Trasa",
   },
   sk: {
     days: ["po", "ut", "st", "št", "pi", "so", "ne"],
     closed: "Zatvorené",
     hours: "Otváracie hodiny",
+    directions: "Trasa",
   },
   sl: {
     days: ["pon.", "tor.", "sre.", "čet.", "pet.", "sob.", "ned."],
     closed: "Zaprto",
     hours: "Odpiralni čas",
+    directions: "Kako do nas",
   },
   hr: {
     days: ["pon", "uto", "sri", "čet", "pet", "sub", "ned"],
     closed: "Zatvoreno",
     hours: "Radno vrijeme",
+    directions: "Upute za dolazak",
   },
   bg: {
     days: ["пн", "вт", "ср", "чт", "пт", "сб", "нд"],
     closed: "Затворено",
     hours: "Работно време",
+    directions: "Как да стигнете",
   },
   uk: {
     days: ["пн", "вт", "ср", "чт", "пт", "сб", "нд"],
     closed: "Зачинено",
     hours: "Години роботи",
+    directions: "Як дістатися",
   },
-  ru: { days: ["пн", "вт", "ср", "чт", "пт", "сб", "вс"], closed: "Закрыто", hours: "Часы работы" },
+  ru: {
+    days: ["пн", "вт", "ср", "чт", "пт", "сб", "вс"],
+    closed: "Закрыто",
+    hours: "Часы работы",
+    directions: "Как добраться",
+  },
 
   // Baltic, Finnic, and the rest of Europe.
   fi: {
     days: ["ma", "ti", "ke", "to", "pe", "la", "su"],
     closed: "Suljettu",
     hours: "Aukioloajat",
+    directions: "Ajo-ohjeet",
   },
-  et: { days: ["E", "T", "K", "N", "R", "L", "P"], closed: "Suletud", hours: "Lahtiolekuajad" },
+  et: {
+    days: ["E", "T", "K", "N", "R", "L", "P"],
+    closed: "Suletud",
+    hours: "Lahtiolekuajad",
+    directions: "Teejuhised",
+  },
   lv: {
     days: ["Pirmd.", "Otrd.", "Trešd.", "Ceturtd.", "Piektd.", "Sestd.", "Svētd."],
     closed: "Slēgts",
     hours: "Darba laiks",
+    directions: "Norādes",
   },
   lt: {
     days: ["pr", "an", "tr", "kt", "pn", "št", "sk"],
     closed: "Uždaryta",
     hours: "Darbo laikas",
+    directions: "Maršrutas",
   },
-  hu: { days: ["H", "K", "Sze", "Cs", "P", "Szo", "V"], closed: "Zárva", hours: "Nyitvatartás" },
+  hu: {
+    days: ["H", "K", "Sze", "Cs", "P", "Szo", "V"],
+    closed: "Zárva",
+    hours: "Nyitvatartás",
+    directions: "Útvonal",
+  },
   el: {
     days: ["Δευ", "Τρί", "Τετ", "Πέμ", "Παρ", "Σάβ", "Κυρ"],
     closed: "Κλειστά",
     hours: "Ώρες λειτουργίας",
+    directions: "Οδηγίες",
   },
   tr: {
     days: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
     closed: "Kapalı",
     hours: "Çalışma saatleri",
+    directions: "Yol tarifi",
   },
 
   // Right to left. These are the languages that make `direction` below load-bearing rather
@@ -283,11 +341,13 @@ export const VOCABULARIES: Readonly<Record<string, Vocabulary>> = {
     days: ["יום ב׳", "יום ג׳", "יום ד׳", "יום ה׳", "יום ו׳", "שבת", "יום א׳"],
     closed: "סגור",
     hours: "שעות פתיחה",
+    directions: "הוראות הגעה",
   },
   ar: {
     days: ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"],
     closed: "مغلق",
     hours: "ساعات العمل",
+    directions: "الاتجاهات",
   },
 
   // South and South-East Asia.
@@ -295,40 +355,57 @@ export const VOCABULARIES: Readonly<Record<string, Vocabulary>> = {
     days: ["सोम", "मंगल", "बुध", "गुरु", "शुक्र", "शनि", "रवि"],
     closed: "बंद",
     hours: "खुलने का समय",
+    directions: "दिशा-निर्देश",
   },
   th: {
     days: ["จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์", "อาทิตย์"],
     closed: "ปิด",
     hours: "เวลาทำการ",
+    directions: "เส้นทาง",
   },
   vi: {
     days: ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"],
     closed: "Đóng cửa",
     hours: "Giờ mở cửa",
+    directions: "Chỉ đường",
   },
   id: {
     days: ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"],
     closed: "Tutup",
     hours: "Jam buka",
+    directions: "Petunjuk arah",
   },
   ms: {
     days: ["Isn", "Sel", "Rab", "Kha", "Jum", "Sab", "Ahd"],
     closed: "Tutup",
     hours: "Waktu buka",
+    directions: "Arah perjalanan",
   },
 
   // East Asia. `ja` is the owner §2.3 illustrates the free-text address with.
-  ja: { days: ["月", "火", "水", "木", "金", "土", "日"], closed: "定休日", hours: "営業時間" },
-  ko: { days: ["월", "화", "수", "목", "금", "토", "일"], closed: "휴무", hours: "영업시간" },
+  ja: {
+    days: ["月", "火", "水", "木", "金", "土", "日"],
+    closed: "定休日",
+    hours: "営業時間",
+    directions: "道順",
+  },
+  ko: {
+    days: ["월", "화", "수", "목", "금", "토", "일"],
+    closed: "휴무",
+    hours: "영업시간",
+    directions: "길찾기",
+  },
   zh: {
     days: ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
     closed: "休息",
     hours: "营业时间",
+    directions: "路线",
   },
   "zh-hant": {
     days: ["週一", "週二", "週三", "週四", "週五", "週六", "週日"],
     closed: "休息",
     hours: "營業時間",
+    directions: "路線",
   },
 };
 
