@@ -1,0 +1,327 @@
+import { expect, test, type Page } from "@playwright/test";
+import { MODES, SHAPES, render, type Mode, type Project, type Shape } from "@linkpage/renderer";
+import type { AxeResults } from "axe-core";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+
+/**
+ * `axe-core` over **the exported page**, in CI. `SPEC.md` §7.12, §6.8. Change list item
+ * **CL-8** (issue #272), from the tooling study in issue #265.
+ *
+ * **Why it lives here and not in the renderer.** The renderer's `dependencies` block must stay
+ * empty and `invariants.test.ts` asserts it — and invariant 3's `devDependencies` half is an
+ * *allowlist*, not a count, so `axe-core` cannot go there either. The page under test is
+ * therefore rendered *through the renderer's source* and audited from the builder, which is
+ * where Playwright already lives. Nothing about the renderer's manifest moves.
+ *
+ * **Why it is an `*.e2e.ts` and not a `*.test.ts`.** jsdom computes no styles, so it cannot
+ * answer `color-contrast`, and axe's whole subject is what a *browser* exposes. This rides the
+ * existing End-to-end job rather than adding a second browser to CI.
+ *
+ * **What it is allowed to claim.** That the exported page is *checked* against WCAG 2.2 A and AA
+ * — never that it is *proven* to meet them. #265 counted **23 of the 55 A+AA criteria** with any
+ * axe rule at all; the other 32 have none, and every accessibility defect this project has
+ * actually found except contrast sat in those 32. §7.12's second tier is a human walk for
+ * exactly this reason. Do not let a green run here grow into a conformance claim.
+ *
+ * **Why `best-practice` is in the tag set.** The WCAG tags alone silently drop 30 of axe's 105
+ * rules, `tabindex` and `heading-order` among them — measured in #265 and re-measured by the
+ * controls below, which assert those two rules are *silent* under WCAG-only tags and *loud*
+ * under ours. The tag choice is a decision, and §7.12 records it.
+ *
+ * ---
+ *
+ * **The rule this file exists to obey: a guard must prove it found something before it can
+ * report nothing wrong.** #265 measured an *empty document* reporting **0 violations and 4
+ * passes** — a run that never loaded the page reading exactly like a clean pass, with
+ * `passes > 0` no help at all. Every green assertion here is therefore paid for by the known-bad
+ * controls at the bottom of the file, which run through the same harness and must go red.
+ *
+ * And #265's own trap, one level up: **two of its mutants were no-ops** — `MAXIMAL` renders no
+ * `<img>`, and an `<a>` wrapping an `<svg>` never matched the regex — so they first read as
+ * "axe missed this". A control that does not break anything proves nothing. Each control below
+ * asserts three things, and it is the three together that make it a proof:
+ *
+ * 1. the mutation **changed the document** (the string is not the one it went in as);
+ * 2. the **unmutated** page reports that rule clean, so the edit is the only difference;
+ * 3. the **mutated** page reports that rule as a violation.
+ */
+
+const require = createRequire(import.meta.url);
+
+/**
+ * axe's own bundle, injected into the page under test.
+ *
+ * Read off disk and injected as script *text* rather than fetched from a CDN: the whole point of
+ * the exported page is that it fetches nothing, and a check that needs the network to run could
+ * not audit it from `file://` or offline.
+ */
+const AXE_SOURCE = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
+
+/**
+ * **WCAG 2.2 A + AA, plus `best-practice`.** The decision recorded in §7.12.
+ *
+ * WCAG 2.2 is cumulative, so all five WCAG tags are needed to reach it: axe tags a rule with the
+ * version that introduced its criterion, not with every version that carries it forward.
+ * `wcag2aaa` is deliberately absent — AAA is not what §6.8 claims.
+ */
+const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] as const;
+
+/** What the check actually runs. See the note above on why `best-practice` is here. */
+const TAGS = [...WCAG_TAGS, "best-practice"] as const;
+
+/** Both widths §7.4's appearance ritual uses, so the two rituals see the same two pages. */
+const VIEWPORTS = [
+  { name: "desktop", width: 1440, height: 900 },
+  { name: "mobile", width: 390, height: 844 },
+] as const;
+
+/**
+ * A real 1×1 PNG. It has to be a *decodable* image rather than a truncated signature, because
+ * `image-alt` is one of the controls below and a browser that never made an image element into
+ * an image would make that control prove less than it says.
+ */
+const LOGO_PNG =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+/**
+ * A page with all six sections filled in (§2.1) — a logo, links with and without a glyph, hours
+ * with a two-interval day and a closed day, contact, address, and a social platform with no
+ * vendored mark.
+ *
+ * Deliberately the busiest honest page rather than the smallest one: a check that only ever sees
+ * `MINIMAL` has never seen an image, a definition list or a link that is an icon plus a word.
+ */
+function project(shape: Shape, mode: Mode): Project {
+  return {
+    version: 1,
+    lang: "en-GB",
+    style: {
+      brand: "#c2185b",
+      accent: "#2e7d32",
+      shape,
+      type: "classic",
+      corners: 0.6,
+      mode,
+      advanced: { enabled: false, colors: {} },
+    },
+    header: {
+      name: "Ada's Bakery",
+      tagline: "Sourdough & pastries since 1994",
+      logo: { src: LOGO_PNG, width: 1, height: 1 },
+    },
+    links: [
+      { label: "See the menu", url: "https://adasbakery.example/menu", icon: "menu" },
+      { label: "Order for pickup", url: "https://adasbakery.example/order", icon: "bag" },
+      { label: "Book a table", url: "https://adasbakery.example/book" },
+    ],
+    hours: {
+      clock: "12h",
+      weekStart: "mon",
+      days: {
+        mon: [["09:00", "17:00"]],
+        fri: [["09:00", "17:00"]],
+        sat: [
+          ["10:00", "14:00"],
+          ["17:00", "21:00"],
+        ],
+        sun: [],
+      },
+      note: "Closed bank holidays.",
+    },
+    contact: { phone: "020 7123 4567", email: "hello@adasbakery.example" },
+    address: {
+      lines: ["12 Baker Street", "London", "NW1 6XE"],
+      directionsUrl: "https://maps.example/?q=12+Baker+Street",
+    },
+    social: [
+      { platform: "instagram", url: "https://instagram.com/adasbakery" },
+      { platform: "linkedin", url: "https://www.linkedin.com/company/adasbakery" },
+    ],
+  };
+}
+
+/**
+ * Run axe over `html` in a real browser.
+ *
+ * `setContent` rather than a temp file and `file://`: the exported page references nothing
+ * outside itself (invariant 2), so the two are the same document, and the one end-to-end that
+ * *does* care about `file://` — `download.e2e.ts` — already owns that question.
+ */
+async function audit(page: Page, html: string, tags: readonly string[]): Promise<AxeResults> {
+  await page.setContent(html, { waitUntil: "load" });
+  await page.addScriptTag({ content: AXE_SOURCE });
+  return page.evaluate(
+    (values) =>
+      (
+        window as unknown as {
+          axe: { run: (context: Document, options: unknown) => Promise<AxeResults> };
+        }
+      ).axe.run(document, { runOnly: { type: "tag", values } }),
+    [...tags],
+  );
+}
+
+/** The rule ids that failed, which is what an assertion should read as when it goes red. */
+const failed = (results: AxeResults): string[] => results.violations.map((v) => v.id).sort();
+
+/**
+ * One edit to the rendered page, and the assertion that it landed.
+ *
+ * The return is deliberately not just the mutated string: a control that silently matched
+ * nothing is #265's trap, and the caller asserts on `changed` before it trusts anything else.
+ */
+function mutate(html: string, find: string, replace: string): { html: string; changed: boolean } {
+  const at = html.indexOf(find);
+  if (at === -1) return { html, changed: false };
+  return { html: html.slice(0, at) + replace + html.slice(at + find.length), changed: true };
+}
+
+// ---------------------------------------------------------------------------
+// The check
+// ---------------------------------------------------------------------------
+
+test.describe("the exported page is checked against WCAG 2.2 A and AA", () => {
+  for (const shape of SHAPES) {
+    for (const mode of MODES) {
+      for (const viewport of VIEWPORTS) {
+        test(`${shape}, ${mode}, ${viewport.name}`, async ({ page }) => {
+          await page.setViewportSize({ width: viewport.width, height: viewport.height });
+
+          const results = await audit(page, render(project(shape, mode)), TAGS);
+
+          expect(failed(results)).toEqual([]);
+        });
+      }
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// What the check can and cannot see
+// ---------------------------------------------------------------------------
+
+test.describe("what a green run does and does not mean", () => {
+  /**
+   * #265's empty-document measurement, re-run here rather than taken on trust — and it came back
+   * **different**, which is worth knowing. #265 recorded `violations=0 passes=4` for an empty
+   * document; under *this* tag set an empty document is not silent at all, because
+   * `page-has-heading-one` and `landmark-one-main` are `best-practice` page-level rules and
+   * `html-has-lang` and `document-title` fire on a document that has neither.
+   *
+   * So the `best-practice` tag buys a second thing beyond the 30 rules: **a run over nothing
+   * goes red here instead of green.** That is a happy consequence of the tag choice, not a
+   * design, which is exactly why it is pinned by an assertion — narrow the tags and it is gone.
+   *
+   * **It is still not the liveness check.** `passes > 0` holds on the empty document too, so the
+   * `passes` count proves nothing, and neither would a violation count on some *other* empty
+   * thing. The known-bad controls below are what make a green run mean something.
+   */
+  test("an empty document is not silent under this tag set, but its `passes` count still is", async ({
+    page,
+  }) => {
+    const results = await audit(page, "<!doctype html><html><head></head><body></body></html>", [
+      ...TAGS,
+    ]);
+
+    expect(failed(results)).toContain("html-has-lang");
+    expect(failed(results)).toContain("page-has-heading-one");
+    // And yet: a document with nothing in it still reports passes.
+    expect(results.passes.length).toBeGreaterThan(0);
+  });
+
+  /**
+   * Why the tag set is a decision rather than a default. Counted from axe's own rule metadata in
+   * the browser that will run it, so the numbers cannot drift away from the version in use.
+   */
+  test("the WCAG tags alone would drop rules this check keeps", async ({ page }) => {
+    await page.setContent("<!doctype html><html><head></head><body></body></html>");
+    await page.addScriptTag({ content: AXE_SOURCE });
+
+    const dropped = await page.evaluate(
+      ([wcag, all]) => {
+        const rules = (
+          window as unknown as { axe: { getRules: () => { ruleId: string; tags: string[] }[] } }
+        ).axe.getRules();
+        const under = (tags: string[]) =>
+          new Set(rules.filter((r) => r.tags.some((t) => tags.includes(t))).map((r) => r.ruleId));
+        const wcagOnly = under(wcag);
+        return [...under(all)].filter((id) => !wcagOnly.has(id)).sort();
+      },
+      [[...WCAG_TAGS], [...TAGS]] as [string[], string[]],
+    );
+
+    expect(dropped).toContain("tabindex");
+    expect(dropped).toContain("heading-order");
+    expect(dropped.length).toBeGreaterThan(20);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The known-bad controls
+// ---------------------------------------------------------------------------
+
+/**
+ * Each control breaks the *real rendered page* in one place and asserts the check notices.
+ *
+ * `wcagOnlySilent` marks the two rules `best-practice` is in the tag set for: the control also
+ * runs under WCAG-only tags and must come back clean there, which is the measurement behind
+ * §7.12's line rather than a claim copied out of #265.
+ */
+const CONTROLS = [
+  {
+    what: "the document loses its language",
+    rule: "html-has-lang",
+    find: ` lang="en-GB"`,
+    replace: "",
+    wcagOnlySilent: false,
+  },
+  {
+    what: "the logo loses its alt attribute",
+    rule: "image-alt",
+    find: ` alt=""`,
+    replace: "",
+    wcagOnlySilent: false,
+  },
+  {
+    what: "a link is given a positive tabindex",
+    rule: "tabindex",
+    find: `<a class="lp-link"`,
+    replace: `<a tabindex="3" class="lp-link"`,
+    wcagOnlySilent: true,
+  },
+  {
+    what: "a heading level is skipped",
+    rule: "heading-order",
+    find: `</h1>`,
+    replace: `</h1><h3>Today's specials</h3>`,
+    wcagOnlySilent: true,
+  },
+] as const;
+
+test.describe("the check proves it can find something before it reports nothing", () => {
+  for (const control of CONTROLS) {
+    test(`${control.what} → ${control.rule}`, async ({ page }) => {
+      const clean = render(project("centred", "light"));
+      const broken = mutate(clean, control.find, control.replace);
+
+      // 1. The control actually broke something. #265's two no-op mutants first read as
+      //    "axe missed this"; a control that matched nothing must fail here, not there.
+      expect(broken.changed, `nothing in the page matched ${control.find}`).toBe(true);
+      expect(broken.html).not.toBe(clean);
+
+      // 2. The unmutated page is clean on this rule, so the edit is the only difference
+      //    between the two documents — which is what makes step 3 attributable to it.
+      expect(failed(await audit(page, clean, TAGS))).not.toContain(control.rule);
+
+      // 3. And the check sees it.
+      expect(failed(await audit(page, broken.html, TAGS))).toContain(control.rule);
+
+      if (control.wcagOnlySilent) {
+        // The whole case for `best-practice`, measured on a real broken page: this defect is
+        // invisible to a WCAG-tagged run.
+        expect(failed(await audit(page, broken.html, WCAG_TAGS))).not.toContain(control.rule);
+      }
+    });
+  }
+});

@@ -2152,6 +2152,11 @@ pass has been done, and none is claimed.
 meaningless. The preview's contents, which are the exported page and answer to §6.8. The colours an
 owner chooses, which §3.4 reports on and does not refuse.
 
+**The exported page has a check of its own.** `axe-core` runs over it in CI — every shape, both
+modes, both widths — tagged **WCAG 2.2 A and AA plus axe's `best-practice` rules**, because the
+WCAG tags alone silently drop 30 of axe's 105 rules, `tabindex` and `heading-order` among them.
+That makes §6.8's claim _checked_, never _proven_: the 23-of-55 ceiling below applies to it too.
+
 **What it must not be read as saying.** That the builder meets WCAG 2.2 AA. It may well; nobody has
 checked. Of 55 A and AA criteria, an automated checker reaches 23, and every defect this project has
 found sat in the other 32.
