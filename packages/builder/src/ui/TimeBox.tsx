@@ -28,6 +28,16 @@ import { TYPE } from "./type.js";
  * disappears the moment the value becomes usable. Late to speak, quick to stop — and once
  * cleared or fixed, nothing outlives the screen, exactly as before.
  *
+ * **And it says it in the one manner §7.9 owns** (#294, fallout from CL-1): the box carries
+ * `aria-invalid` for exactly as long as the sentence stands, and the sentence **is** the
+ * `role="alert"` §7.9 already owns for a refused file — one mechanism, not a visible sentence
+ * and a hidden announcer beside it. This box does not go through `Field`, so CL-1 reached
+ * every other message in the builder and not this one, and the tool briefly said *this will not
+ * work* politely and unmarked here and assertively and marked everywhere else. **Decision 2 is
+ * what licenses `alert` here**, not an exception to it: the sentence answers a `Continue` the
+ * owner has just pressed — the paragraph above is that guarantee — and it is a press, not a
+ * blur, that a polite region would leave waiting behind whatever else is speaking.
+ *
  * The renderer's `cleanHours` is what makes the stored side safe: an open day whose intervals
  * all fail to parse drops back to *unspecified* rather than surviving as present-and-empty, so
  * an unreadable time can never publish "we're shut" on a day the business is open.
@@ -91,7 +101,12 @@ export function TimeBox({
       <TextInput
         type="text"
         aria-label={label}
-        {...(message === undefined ? {} : { "aria-describedby": messageId })}
+        {...(message === undefined
+          ? {}
+          : // Both together, and only while a sentence stands: the description says *there is a
+            // sentence here*, `aria-invalid` says *this is the box it is about*. It is a claim
+            // about this value, so it leaves with the message rather than being left on (CL-1).
+            { "aria-describedby": messageId, "aria-invalid": true })}
         value={text}
         inputMode="numeric"
         spellCheck={false}
@@ -104,7 +119,11 @@ export function TimeBox({
           className={`mt-1 block ${TYPE.notice.className}`}
           id={messageId}
           data-message
-          role="status"
+          // `alert` rather than `status`, the manner `Field` sets (CL-1): the sentence answers a
+          // `Continue` the owner has just pressed, and a polite region can wait behind whatever
+          // else is speaking. The visible sentence *is* the live region — a hidden announcer
+          // beside it is the second mechanism §7.9 decision 3 forbids.
+          role="alert"
         >
           {message}
         </span>

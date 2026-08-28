@@ -164,3 +164,61 @@ describe("an unreadable time is judged on Continue (§7.9 decision 2, #142)", ()
     expect(screen.getByText("(nothing stored)")).toBeTruthy();
   });
 });
+
+/**
+ * **One manner for §7.9's message, everywhere it appears** (#294, fallout from CL-1).
+ *
+ * CL-1 gave `Field` the manner: the control carries `aria-invalid` for exactly as long as the
+ * sentence stands, and the sentence **is** the `role="alert"` §7.9 already owns for a refused
+ * file — one mechanism, not a visible sentence and a hidden announcer beside it. This box does
+ * not go through `Field`, so it had kept the old `role="status"` and no `aria-invalid` at all,
+ * and the builder said *this will not work* in two manners.
+ *
+ * **`alert` is right here for the same reason it is right in `Field`**: §7.9 decision 2 governs
+ * *when*, and this box already obeys it — the sentence answers a `Continue` the owner has just
+ * pressed, never a blur. The describe above is the proof of that, and it is what licenses the
+ * manner below. A polite region can wait behind whatever else is speaking, which is the wrong
+ * answer to a press.
+ */
+describe("and says it in the one manner §7.9 owns (#294, CL-1 fallout)", () => {
+  it("marks the box it is about", () => {
+    // A description says *there is a sentence here*; `aria-invalid` says *this is the field it
+    // is about*. `Field` has said both since CL-1; this box said neither.
+    harness();
+    type("lunchtime");
+    expect(box().getAttribute("aria-invalid")).toBeNull();
+    pressContinue();
+    expect(box().getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("unmarks the box the moment the sentence goes", () => {
+    // `aria-invalid` is a claim about *this value*, so it arrives and leaves with the message
+    // rather than being written once and left on.
+    harness();
+    type("lunchtime");
+    pressContinue();
+    fireEvent.change(box(), { target: { value: "9am" } });
+    expect(message()).toBeNull();
+    expect(box().getAttribute("aria-invalid")).toBeNull();
+  });
+
+  it('speaks through §7.9\'s own `role="alert"`, not a second region', () => {
+    harness();
+    type("lunchtime");
+    pressContinue();
+    expect(screen.getByRole("alert").textContent).toBe(
+      "This time won't reach your page — try 5:30pm",
+    );
+    // The visible sentence *is* the live region. A hidden announcer beside it would read twice.
+    expect(document.querySelectorAll("[data-message]")).toHaveLength(1);
+    expect(screen.getByRole("alert").getAttribute("data-message")).not.toBeNull();
+  });
+
+  it("has nothing to announce while there is nothing wrong", () => {
+    harness();
+    type("9am");
+    pressContinue();
+    expect(screen.queryAllByRole("alert")).toEqual([]);
+    expect(box().getAttribute("aria-invalid")).toBeNull();
+  });
+});
