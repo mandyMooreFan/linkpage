@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { VOCABULARIES, dayName, direction, languageTag, vocabulary } from "./locale.js";
+import {
+  VOCABULARIES,
+  dayName,
+  direction,
+  languageTag,
+  vocabulary,
+  type Vocabulary,
+} from "./locale.js";
 import type { Weekday } from "./project.js";
 
 /**
@@ -15,6 +22,9 @@ import type { Weekday } from "./project.js";
 
 const WEEK: readonly Weekday[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
+/** Every string in one entry, so a new word cannot be added without the shape rules seeing it. */
+const hand = (words: Vocabulary): readonly string[] => [...words.days, words.closed, words.hours];
+
 describe("the vendored table", () => {
   const entries = Object.entries(VOCABULARIES);
 
@@ -22,23 +32,30 @@ describe("the vendored table", () => {
     for (const [key] of entries) expect(key).toBe(key.toLowerCase());
   });
 
-  it("gives every language seven abbreviations and a closed word, none of them blank", () => {
+  it("gives every language seven abbreviations, a closed word and an hours word, none blank", () => {
     for (const [key, words] of entries) {
       expect(words.days, key).toHaveLength(7);
       for (const day of words.days) expect(day.trim(), key).not.toBe("");
       expect(words.closed.trim(), key).not.toBe("");
+      expect(words.hours.trim(), key).not.toBe("");
     }
   });
 
   it("holds no leading or trailing whitespace, which would reach the page as-is", () => {
     for (const [key, words] of entries) {
-      for (const value of [...words.days, words.closed]) expect(value, key).toBe(value.trim());
+      for (const value of hand(words)) expect(value, key).toBe(value.trim());
     }
   });
 
+  /**
+   * The escaping rule is stricter than it looks, and the *opening hours* word is where it bites:
+   * the natural French and Catalan phrases carry an apostrophe, and `escapeHtml` would spend
+   * five bytes on `&#39;` for each one. The typographic `’` is both the correct character and
+   * the cheap one, and this assertion is what keeps the straight quote out.
+   */
   it("carries nothing that would have to be escaped into markup", () => {
     for (const [key, words] of entries) {
-      for (const value of [...words.days, words.closed]) {
+      for (const value of hand(words)) {
         expect(value, key).not.toMatch(/[<>&"']/);
       }
     }
@@ -67,6 +84,7 @@ describe("the vendored table", () => {
 describe("vocabulary", () => {
   it("finds an exact tag", () => {
     expect(vocabulary("cy").closed).toBe("Ar gau");
+    expect(vocabulary("cy").hours).toBe("Oriau agor");
     expect(vocabulary("fr").days[0]).toBe("lun.");
   });
 

@@ -35,10 +35,14 @@
  *   source, and it is the same data `Intl` would have read — the objection above was never to
  *   CLDR, it was to reading CLDR at *render* time from whichever host happened to be running.
  *   Licence and attribution: `NOTICES`.
- * - **`closed` is not a CLDR field.** There is no locale database of the word a shop puts on
- *   its door, so each one here is hand-authored. **That asymmetry is this table's weak point
- *   and it is stated rather than hidden:** the abbreviations can be checked against a version
- *   number, and the closed word can only be checked by someone who speaks the language.
+ * - **`closed` and `hours` are not CLDR fields.** There is no locale database of the word a
+ *   shop puts on its door, nor of the phrase it heads its opening times with, so each one here
+ *   is hand-authored. **That asymmetry is this table's weak point and it is stated rather than
+ *   hidden:** the abbreviations can be checked against a version number, and these two can only
+ *   be checked by someone who speaks the language. **They are drafted, not vouched for** — and
+ *   `hours` is the newer and thinner of the two, written in one pass by one author who does not
+ *   speak most of these languages, so a correction is expected rather than merely welcomed.
+ *   §2.5 records the price this bought: the un-citable half of the table is now the larger one.
  *
  * **Growth rule.** A language earns a place when both halves are answerable: CLDR ships
  * abbreviated weekday names for it, *and* someone can name the word a business in that
@@ -79,6 +83,12 @@ export interface Vocabulary {
   readonly days: DayNames;
   /** What a day with zero intervals says. Not a CLDR field — see the note above. */
   readonly closed: string;
+  /**
+   * What names the hours panel to assistive technology (§6.9): the text of the visually hidden
+   * `<h2>` the `<dl>` points at. Not a CLDR field either, and provisional in exactly the same
+   * way `closed` is — see the note above.
+   */
+  readonly hours: string;
 }
 
 /**
@@ -112,50 +122,159 @@ export function dayName(words: Vocabulary, day: Weekday): string {
  * `en` is first and is the fallback every unknown tag lands on.
  */
 export const VOCABULARIES: Readonly<Record<string, Vocabulary>> = {
-  en: { days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], closed: "Closed" },
+  en: {
+    days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    closed: "Closed",
+    hours: "Opening hours",
+  },
 
   // Celtic. `cy` is #48's own example: the Cardiff bakery this table exists for.
-  cy: { days: ["Llun", "Maw", "Mer", "Iau", "Gwe", "Sad", "Sul"], closed: "Ar gau" },
-  ga: { days: ["Luan", "Máirt", "Céad", "Déar", "Aoine", "Sath", "Domh"], closed: "Dúnta" },
-  gd: { days: ["DiL", "DiM", "DiC", "Dia", "Dih", "DiS", "DiD"], closed: "Dùinte" },
+  cy: {
+    days: ["Llun", "Maw", "Mer", "Iau", "Gwe", "Sad", "Sul"],
+    closed: "Ar gau",
+    hours: "Oriau agor",
+  },
+  ga: {
+    days: ["Luan", "Máirt", "Céad", "Déar", "Aoine", "Sath", "Domh"],
+    closed: "Dúnta",
+    hours: "Uaireanta oscailte",
+  },
+  gd: {
+    days: ["DiL", "DiM", "DiC", "Dia", "Dih", "DiS", "DiD"],
+    closed: "Dùinte",
+    hours: "Uairean fosglaidh",
+  },
 
   // Germanic.
-  de: { days: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"], closed: "Geschlossen" },
-  nl: { days: ["ma", "di", "wo", "do", "vr", "za", "zo"], closed: "Gesloten" },
-  da: { days: ["man.", "tirs.", "ons.", "tors.", "fre.", "lør.", "søn."], closed: "Lukket" },
-  sv: { days: ["mån", "tis", "ons", "tors", "fre", "lör", "sön"], closed: "Stängt" },
-  nb: { days: ["man.", "tir.", "ons.", "tor.", "fre.", "lør.", "søn."], closed: "Stengt" },
-  is: { days: ["mán.", "þri.", "mið.", "fim.", "fös.", "lau.", "sun."], closed: "Lokað" },
+  de: {
+    days: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
+    closed: "Geschlossen",
+    hours: "Öffnungszeiten",
+  },
+  nl: {
+    days: ["ma", "di", "wo", "do", "vr", "za", "zo"],
+    closed: "Gesloten",
+    hours: "Openingstijden",
+  },
+  da: {
+    days: ["man.", "tirs.", "ons.", "tors.", "fre.", "lør.", "søn."],
+    closed: "Lukket",
+    hours: "Åbningstider",
+  },
+  sv: {
+    days: ["mån", "tis", "ons", "tors", "fre", "lör", "sön"],
+    closed: "Stängt",
+    hours: "Öppettider",
+  },
+  nb: {
+    days: ["man.", "tir.", "ons.", "tor.", "fre.", "lør.", "søn."],
+    closed: "Stengt",
+    hours: "Åpningstider",
+  },
+  is: {
+    days: ["mán.", "þri.", "mið.", "fim.", "fös.", "lau.", "sun."],
+    closed: "Lokað",
+    hours: "Opnunartími",
+  },
 
   // Romance.
-  fr: { days: ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."], closed: "Fermé" },
-  es: { days: ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"], closed: "Cerrado" },
-  ca: { days: ["dl.", "dt.", "dc.", "dj.", "dv.", "ds.", "dg."], closed: "Tancat" },
-  pt: { days: ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."], closed: "Fechado" },
-  it: { days: ["lun", "mar", "mer", "gio", "ven", "sab", "dom"], closed: "Chiuso" },
-  ro: { days: ["lun.", "mar.", "mie.", "joi", "vin.", "sâm.", "dum."], closed: "Închis" },
+  fr: {
+    days: ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."],
+    closed: "Fermé",
+    hours: "Horaires d’ouverture",
+  },
+  es: {
+    days: ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"],
+    closed: "Cerrado",
+    hours: "Horario de apertura",
+  },
+  ca: {
+    days: ["dl.", "dt.", "dc.", "dj.", "dv.", "ds.", "dg."],
+    closed: "Tancat",
+    hours: "Horari d’obertura",
+  },
+  pt: {
+    days: ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."],
+    closed: "Fechado",
+    hours: "Horário de funcionamento",
+  },
+  it: {
+    days: ["lun", "mar", "mer", "gio", "ven", "sab", "dom"],
+    closed: "Chiuso",
+    hours: "Orari di apertura",
+  },
+  ro: {
+    days: ["lun.", "mar.", "mie.", "joi", "vin.", "sâm.", "dum."],
+    closed: "Închis",
+    hours: "Program de funcționare",
+  },
 
   // Slavic.
-  pl: { days: ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."], closed: "Zamknięte" },
-  cs: { days: ["po", "út", "st", "čt", "pá", "so", "ne"], closed: "Zavřeno" },
-  sk: { days: ["po", "ut", "st", "št", "pi", "so", "ne"], closed: "Zatvorené" },
-  sl: { days: ["pon.", "tor.", "sre.", "čet.", "pet.", "sob.", "ned."], closed: "Zaprto" },
-  hr: { days: ["pon", "uto", "sri", "čet", "pet", "sub", "ned"], closed: "Zatvoreno" },
-  bg: { days: ["пн", "вт", "ср", "чт", "пт", "сб", "нд"], closed: "Затворено" },
-  uk: { days: ["пн", "вт", "ср", "чт", "пт", "сб", "нд"], closed: "Зачинено" },
-  ru: { days: ["пн", "вт", "ср", "чт", "пт", "сб", "вс"], closed: "Закрыто" },
+  pl: {
+    days: ["pon.", "wt.", "śr.", "czw.", "pt.", "sob.", "niedz."],
+    closed: "Zamknięte",
+    hours: "Godziny otwarcia",
+  },
+  cs: {
+    days: ["po", "út", "st", "čt", "pá", "so", "ne"],
+    closed: "Zavřeno",
+    hours: "Otevírací doba",
+  },
+  sk: {
+    days: ["po", "ut", "st", "št", "pi", "so", "ne"],
+    closed: "Zatvorené",
+    hours: "Otváracie hodiny",
+  },
+  sl: {
+    days: ["pon.", "tor.", "sre.", "čet.", "pet.", "sob.", "ned."],
+    closed: "Zaprto",
+    hours: "Odpiralni čas",
+  },
+  hr: {
+    days: ["pon", "uto", "sri", "čet", "pet", "sub", "ned"],
+    closed: "Zatvoreno",
+    hours: "Radno vrijeme",
+  },
+  bg: {
+    days: ["пн", "вт", "ср", "чт", "пт", "сб", "нд"],
+    closed: "Затворено",
+    hours: "Работно време",
+  },
+  uk: {
+    days: ["пн", "вт", "ср", "чт", "пт", "сб", "нд"],
+    closed: "Зачинено",
+    hours: "Години роботи",
+  },
+  ru: { days: ["пн", "вт", "ср", "чт", "пт", "сб", "вс"], closed: "Закрыто", hours: "Часы работы" },
 
   // Baltic, Finnic, and the rest of Europe.
-  fi: { days: ["ma", "ti", "ke", "to", "pe", "la", "su"], closed: "Suljettu" },
-  et: { days: ["E", "T", "K", "N", "R", "L", "P"], closed: "Suletud" },
+  fi: {
+    days: ["ma", "ti", "ke", "to", "pe", "la", "su"],
+    closed: "Suljettu",
+    hours: "Aukioloajat",
+  },
+  et: { days: ["E", "T", "K", "N", "R", "L", "P"], closed: "Suletud", hours: "Lahtiolekuajad" },
   lv: {
     days: ["Pirmd.", "Otrd.", "Trešd.", "Ceturtd.", "Piektd.", "Sestd.", "Svētd."],
     closed: "Slēgts",
+    hours: "Darba laiks",
   },
-  lt: { days: ["pr", "an", "tr", "kt", "pn", "št", "sk"], closed: "Uždaryta" },
-  hu: { days: ["H", "K", "Sze", "Cs", "P", "Szo", "V"], closed: "Zárva" },
-  el: { days: ["Δευ", "Τρί", "Τετ", "Πέμ", "Παρ", "Σάβ", "Κυρ"], closed: "Κλειστά" },
-  tr: { days: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"], closed: "Kapalı" },
+  lt: {
+    days: ["pr", "an", "tr", "kt", "pn", "št", "sk"],
+    closed: "Uždaryta",
+    hours: "Darbo laikas",
+  },
+  hu: { days: ["H", "K", "Sze", "Cs", "P", "Szo", "V"], closed: "Zárva", hours: "Nyitvatartás" },
+  el: {
+    days: ["Δευ", "Τρί", "Τετ", "Πέμ", "Παρ", "Σάβ", "Κυρ"],
+    closed: "Κλειστά",
+    hours: "Ώρες λειτουργίας",
+  },
+  tr: {
+    days: ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
+    closed: "Kapalı",
+    hours: "Çalışma saatleri",
+  },
 
   // Right to left. These are the languages that make `direction` below load-bearing rather
   // than theoretical: without it the abbreviations below render left to right, which is
@@ -163,24 +282,54 @@ export const VOCABULARIES: Readonly<Record<string, Vocabulary>> = {
   he: {
     days: ["יום ב׳", "יום ג׳", "יום ד׳", "יום ה׳", "יום ו׳", "שבת", "יום א׳"],
     closed: "סגור",
+    hours: "שעות פתיחה",
   },
   ar: {
     days: ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"],
     closed: "مغلق",
+    hours: "ساعات العمل",
   },
 
   // South and South-East Asia.
-  hi: { days: ["सोम", "मंगल", "बुध", "गुरु", "शुक्र", "शनि", "रवि"], closed: "बंद" },
-  th: { days: ["จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์", "อาทิตย์"], closed: "ปิด" },
-  vi: { days: ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"], closed: "Đóng cửa" },
-  id: { days: ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"], closed: "Tutup" },
-  ms: { days: ["Isn", "Sel", "Rab", "Kha", "Jum", "Sab", "Ahd"], closed: "Tutup" },
+  hi: {
+    days: ["सोम", "मंगल", "बुध", "गुरु", "शुक्र", "शनि", "रवि"],
+    closed: "बंद",
+    hours: "खुलने का समय",
+  },
+  th: {
+    days: ["จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์", "อาทิตย์"],
+    closed: "ปิด",
+    hours: "เวลาทำการ",
+  },
+  vi: {
+    days: ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"],
+    closed: "Đóng cửa",
+    hours: "Giờ mở cửa",
+  },
+  id: {
+    days: ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"],
+    closed: "Tutup",
+    hours: "Jam buka",
+  },
+  ms: {
+    days: ["Isn", "Sel", "Rab", "Kha", "Jum", "Sab", "Ahd"],
+    closed: "Tutup",
+    hours: "Waktu buka",
+  },
 
   // East Asia. `ja` is the owner §2.3 illustrates the free-text address with.
-  ja: { days: ["月", "火", "水", "木", "金", "土", "日"], closed: "定休日" },
-  ko: { days: ["월", "화", "수", "목", "금", "토", "일"], closed: "휴무" },
-  zh: { days: ["周一", "周二", "周三", "周四", "周五", "周六", "周日"], closed: "休息" },
-  "zh-hant": { days: ["週一", "週二", "週三", "週四", "週五", "週六", "週日"], closed: "休息" },
+  ja: { days: ["月", "火", "水", "木", "金", "土", "日"], closed: "定休日", hours: "営業時間" },
+  ko: { days: ["월", "화", "수", "목", "금", "토", "일"], closed: "휴무", hours: "영업시간" },
+  zh: {
+    days: ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
+    closed: "休息",
+    hours: "营业时间",
+  },
+  "zh-hant": {
+    days: ["週一", "週二", "週三", "週四", "週五", "週六", "週日"],
+    closed: "休息",
+    hours: "營業時間",
+  },
 };
 
 /**

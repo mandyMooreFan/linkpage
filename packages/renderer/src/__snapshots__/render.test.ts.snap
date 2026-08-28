@@ -51,8 +51,9 @@ exports[`hours > renders a row per specified day, closed days included, plus the
 <h1 class="lp-name" itemprop="name">Ada&#39;s Bakery</h1>
 </header>
 <section class="lp-panel">
+<h2 class="lp-sr" id="lp-h">Opening hours</h2>
 <span class="lp-hours-mark"><svg class="lp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
-<dl class="lp-hours">
+<dl class="lp-hours" aria-labelledby="lp-h">
 <dt class="lp-day">Mon</dt><dd class="lp-times"><span>9:00 AM – 5:00 PM</span></dd>
 <dt class="lp-day">Fri</dt><dd class="lp-times"><span>9:00 AM – 5:00 PM</span></dd>
 <dt class="lp-day">Sat</dt><dd class="lp-times"><span>10:00 AM – 2:00 PM</span><span>5:00 PM – 9:00 PM</span></dd>
@@ -69,8 +70,9 @@ exports[`hours > renders a translated, right-to-left week 1`] = `
 <h1 class="lp-name" itemprop="name">Ada&#39;s Bakery</h1>
 </header>
 <section class="lp-panel">
+<h2 class="lp-sr" id="lp-h">ساعات العمل</h2>
 <span class="lp-hours-mark"><svg class="lp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
-<dl class="lp-hours">
+<dl class="lp-hours" aria-labelledby="lp-h">
 <dt class="lp-day">الاثنين</dt><dd class="lp-times"><span>9:00 AM – 5:00 PM</span></dd>
 <dt class="lp-day">الجمعة</dt><dd class="lp-times"><span>9:00 AM – 5:00 PM</span></dd>
 <dt class="lp-day">السبت</dt><dd class="lp-times"><span>10:00 AM – 2:00 PM</span><span>5:00 PM – 9:00 PM</span></dd>
@@ -87,8 +89,9 @@ exports[`hours > renders the 24-hour clock and a Sunday-first week 1`] = `
 <h1 class="lp-name" itemprop="name">Ada&#39;s Bakery</h1>
 </header>
 <section class="lp-panel">
+<h2 class="lp-sr" id="lp-h">Opening hours</h2>
 <span class="lp-hours-mark"><svg class="lp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
-<dl class="lp-hours">
+<dl class="lp-hours" aria-labelledby="lp-h">
 <dt class="lp-day">Sun</dt><dd class="lp-times"><span>Closed</span></dd>
 <dt class="lp-day">Mon</dt><dd class="lp-times"><span>09:00 – 17:00</span></dd>
 <dt class="lp-day">Fri</dt><dd class="lp-times"><span>09:00 – 17:00</span></dd>
@@ -182,8 +185,9 @@ a.lp-address .lp-line:first-child{text-decoration:underline;text-underline-offse
 <li><a class="lp-link" href="https://adasbakery.example/book"><span>Book a table</span></a></li>
 </ul>
 <section class="lp-panel">
+<h2 class="lp-sr" id="lp-h">Opening hours</h2>
 <span class="lp-hours-mark"><svg class="lp-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
-<dl class="lp-hours">
+<dl class="lp-hours" aria-labelledby="lp-h">
 <dt class="lp-day">Mon</dt><dd class="lp-times"><span>9:00 AM – 5:00 PM</span></dd>
 <dt class="lp-day">Fri</dt><dd class="lp-times"><span>9:00 AM – 5:00 PM</span></dd>
 <dt class="lp-day">Sat</dt><dd class="lp-times"><span>10:00 AM – 2:00 PM</span><span>5:00 PM – 9:00 PM</span></dd>

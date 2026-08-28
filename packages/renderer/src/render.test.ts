@@ -225,6 +225,41 @@ describe("hours", () => {
   });
 
   /**
+   * **CL-5** (#280, from #266): the panel is named to assistive technology.
+   *
+   * The clock glyph is `aria-hidden` like every other, so before this the `<dl>` was
+   * `DescriptionList ""` in the browser's tree with nothing but `Mon` and a time inside it.
+   * The name is real text rather than an `aria-label` — a visually hidden word is text a
+   * translator and a "find in page" can both see — and it is a heading, so there is now
+   * somewhere to jump to on a page that had only an `<h1>`.
+   *
+   * Asserted as markup here and re-read out of the real browser's accessibility tree in
+   * `packages/builder/e2e/exported-page-a11y.e2e.ts`, which is where the claim is actually
+   * settled: this test can only see what we wrote, not what a browser exposes.
+   */
+  it("names the list with a visually hidden heading the list points at", () => {
+    const html = page({ ...base, hours: full.hours });
+    expect(html).toContain('<h2 class="lp-sr" id="lp-h">Opening hours</h2>');
+    expect(html).toContain('<dl class="lp-hours" aria-labelledby="lp-h">');
+    // The heading comes before the list it names, in reading order as well as in the tree.
+    expect(html.indexOf('id="lp-h"')).toBeLessThan(html.indexOf('class="lp-hours"'));
+  });
+
+  it("writes the name in the language the page declares, like every other word of ours", () => {
+    expect(page({ ...base, lang: "cy", hours: full.hours })).toContain(">Oriau agor</h2>");
+    expect(page({ ...base, lang: "th", hours: full.hours })).toContain(">เวลาทำการ</h2>");
+  });
+
+  it("names nothing when there is no list to name", () => {
+    // The note-only panel has no `<dl>`, so a heading pointing at nothing would be worse than
+    // no heading: `aria-labelledby` to a missing id is a name that silently disappears.
+    const hours = { clock: "24h", weekStart: "mon", days: {}, note: "By appointment." } as const;
+    const html = page({ ...base, hours });
+    expect(html).not.toContain("<h2");
+    expect(html).not.toContain("aria-labelledby");
+  });
+
+  /**
    * #48, end to end: the Cardiff bakery. The eight words the renderer writes are the only
    * words on the page that are not the owner's, and they now follow the tag the page declares
    * rather than staying English underneath it.
