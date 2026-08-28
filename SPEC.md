@@ -2078,8 +2078,11 @@ defects live. A dead tab stop survived 847 green tests here.
    measured by a standing test.
 5. **Every pressable control carries the tap floor**, except the one deliberate inline weight.
    _Guarded at the class string._
-6. **One control, one accessible name.** _Guarded at the call sites_ — `getByRole` matches strictly, so
-   a second name for one action fails. The shared `FilePicker` has no test of its own.
+6. **One control, one accessible name.** _Guarded at the rendered tree_ — the three screens that open
+   a file dialog are mounted, and so is the shared `FilePicker` they all follow, whose own test counts
+   the named controls it renders rather than asserting an absence. `getByRole` matches strictly, so a
+   second name for one action fails. jsdom gives `<input type="file">` no role, so that count is over
+   the attributes a name is computed from; the roles themselves were read once, in Chromium.
 
 **What these are checked against.** What the browser exposes to assistive technology — names, roles,
 focus order, what is and is not reachable. **Not what a screen reader announces.** No screen-reader
