@@ -357,8 +357,9 @@ by serving a preset suggestion in §7.3 — asserted in both directions, so an u
 unused glyph each fail the build. **Two do a different job and are listed as exceptions rather than
 counted:** the generic `link` glyph is §4.4's fallback for a platform we have no mark for, and the
 `clock` glyph **names the hours panel on the exported page** (§6.9) — work no suggestion could justify,
-because it is the job a heading would do, and §2.5 will not spend a ninth string on one. A third
-exception is a change to this section.
+because it is the job a heading would do, and the heading §2.5 now spends a word on is visually
+hidden (§6.9), so the glyph is still the only thing naming that panel on screen. A third exception is
+a change to this section.
 
 **Growth rule.** A new platform earns a mark by being one a small business plausibly publishes, and
 costs nothing else: adding one is additive, never a version bump (§4.8), and removing one degrades to
@@ -368,16 +369,26 @@ preset suggestion, so the set grows when §7.3 does and not otherwise.
 ### 2.5 The words the page writes
 
 The page declares `<html lang>` from the owner's `lang` (§4.1) because WCAG 2.2 SC 3.1.1 asks for it
-and because the content is the owner's own words. **The renderer then writes eight words of its own:
-the seven weekday abbreviations and the word for a closed day.** They must be in the language the
-page declares, or the declaration is not true — a Cardiff bakery shipping `lang="cy"` alongside `Mon`,
-`Tue` and `Closed` has told a Welsh screen reader to pronounce English abbreviations with Welsh
-phonetics, and the declaration is what we asked assistive technology to trust.
+and because the content is the owner's own words. **The renderer then writes ten words of its own:
+the seven weekday abbreviations, the word for a closed day, and the words for _opening hours_ and
+_directions_ that name the hours panel and the address link to assistive technology (§6.9).** They
+must be in the language the page declares, or the declaration is not true — a Cardiff bakery shipping
+`lang="cy"` alongside `Mon`, `Tue` and `Closed` has told a Welsh screen reader to pronounce English
+abbreviations with Welsh phonetics, and the declaration is what we asked assistive technology to
+trust.
 
-**Eight strings is the whole translatable surface, by design rather than by luck.** §2.3 made the
-address free text, the contact rows are identified by a glyph rather than by the word "Phone", and
-the address _is_ the directions link. Nothing else on the exported page is our prose, and a change
-that adds a ninth string is a change to this section.
+**Ten strings is the whole translatable surface, by design rather than by luck.** §2.3 made the
+address free text, and the contact rows are identified by a glyph rather than by the word "Phone" —
+a phone number and an email address say what they are. Nothing else on the exported page is our
+prose, and a change that adds an eleventh string is a change to this section.
+
+**Two of the ten are new, and they were bought rather than found.** For most of this project the
+count was eight, and §6.9 refused a ninth on the ground that a hidden word is still a word the
+renderer writes. That refusal was priced by analogy to a glyph and the analogy was wrong — a word
+carries no `<svg>` wrapper — so the two words are in, and §6.9 records the reversal. **They are
+hand-authored, like the closed word and unlike the CLDR abbreviations**, which is the cost the
+decision actually paid: the un-citable half of this table more than doubles, from **42 hand-written
+words to 126**. Every one of them can only ever be checked by someone who speaks the language.
 
 **One correction, because this section claimed more than was true.** On a 12-hour page the renderer also
 writes `AM` and `PM`. They are built as literals in the time formatter and are carried by no vocabulary,
@@ -390,8 +401,8 @@ against a formatter whose shape is fixed. Forcing 24-hour on languages that do n
 rejected as worse than an English word — it silently overrides an owner who deliberately chose _9:00am_
 on _How it looks_.
 
-So the accurate claim is this: **eight strings are the translatable surface, and the meridiem is a
-deliberate English constant outside it.** The eight are what the growth rule below governs.
+So the accurate claim is this: **ten strings are the translatable surface, and the meridiem is a
+deliberate English constant outside it.** The ten are what the growth rule below governs.
 
 **The growth rule has now been tested in both directions, and both are worth recording.** The meridiem is
 the rule _failing_ — a string reached the page without this section noticing. A day-range pattern for
@@ -427,17 +438,23 @@ costs §6.5's chrome budget nothing however long it grows.
   and it is the same data `Intl` would have read: the objection above was never to CLDR, it was to
   reading CLDR at _render_ time from whichever host happens to be running. Licence and attribution
   live in `NOTICES`, and nothing an owner exports carries an attribution requirement (§2.4).
-- **The word for a closed day is not a CLDR field.** No locale database holds the word a shop puts on
-  its door, so each one is hand-authored. **That asymmetry is the table's weak point and it is stated
-  rather than hidden:** an abbreviation can be checked against a version number, and the closed word
-  can only be checked by someone who speaks the language.
+- **The other three are not CLDR fields.** No locale database holds the word a shop puts on its
+  door, nor the words it would head its own opening hours with or put on a link to directions, so
+  each one is hand-authored. **That asymmetry is the table's weak point and it is stated rather than
+  hidden:** an abbreviation can be checked against a version number, and a hand-written word can only
+  be checked by someone who speaks the language. **The two words §6.9 bought make that half of the
+  table three times the size it was** — 126 hand-written words against 42 — and the growth rule below
+  is where that cost is paid, one language at a time.
 
 #### Growth rule
 
-A language earns a place when both halves are answerable: CLDR ships abbreviated weekday names for
-it, **and** someone can name the word a business in that language writes on its own opening hours.
-The set is the languages the repository could answer both for; it is not a claim about which
-languages matter.
+A language earns a place when all four halves are answerable: CLDR ships abbreviated weekday names
+for it, **and** someone can name the three words a business in that language writes for itself — the
+one it puts on its own opening hours for a day it is shut, the one it would **head those hours
+with**, and the one it would put on a link to **directions**. The last two are the halves §6.9's
+reversal added, and they are answered the same way as the first: by a speaker, not by a version
+number. The set is the languages the repository could answer all four for; it is not a claim about
+which languages matter.
 
 - Adding a language is **additive and never a version bump** (§4.8). `project.json` does not change
   shape, and an older reader of the same file renders English.
@@ -446,7 +463,11 @@ languages matter.
   the one part of the renderer that is explicitly provisional.
 - **An unknown language degrades to English, never to a failure and never to a guess.** English
   abbreviations on a Welsh page are a visible limitation; the wrong word in the owner's own language
-  is worse than the honest foreign one.
+  is worse than the honest foreign one. **The rule stands unchanged for the two hidden words, with
+  one addition it now needs:** they are not on screen, so the limitation is no longer visible, and an
+  unmarked English word inside a `lang="cy"` page is read by a Welsh voice with Welsh phonetics —
+  #48's bug with nothing to reveal it. A fallen-back word therefore carries `lang="en"`, which is
+  what keeps the declaration true rather than what replaces this rule.
 
 #### Direction
 
@@ -688,7 +709,7 @@ address is written the way the owner would write it, and the language declares w
 
 The tag is shape-checked on the way out, and anything that is not tag-shaped renders as `"en"` (§4.7).
 **`lang` decides three things and is resolved once**, so they cannot disagree: the `lang` attribute,
-the `dir` attribute, and the eight words the renderer writes (§2.5). A file whose `lang` we could not
+the `dir` attribute, and the ten words the renderer writes (§2.5). A file whose `lang` we could not
 use therefore declares English, renders English and reads left to right.
 
 **`hours.clock` and `hours.weekStart` are seeded the same way** — derived from the browser once, at
@@ -710,7 +731,7 @@ Widening the type was rejected as a §4.8 schema change to a v1-stable type for 
 than today, often better.
 
 **`lang` itself is unchanged**, and now stands on a reason rather than on inertia. Asking the owner
-outright was rejected — it spends a screen (§7.2) on a question whose whole consequence is eight strings
+outright was rejected — it spends a screen (§7.2) on a question whose whole consequence is ten strings
 and a screen-reader voice, and most owners cannot predict what their answer changes. Storing the bare
 language (`en-US` → `en`) was rejected too: it discards the voice hint for every owner whose region was
 right in order to fix the ones where it was wrong.
@@ -1262,7 +1283,7 @@ No timestamps.**
 
 > **This is what rules `Intl` out of §2.5.** `Intl` reads no clock, so the "renders the same bytes on
 > two different days" test would not catch it; its output tracks the host's ICU data instead, which
-> is a dependency on the runtime rather than on the argument. The eight strings the renderer writes
+> is a dependency on the runtime rather than on the argument. The ten strings the renderer writes
 > are vendored for that reason, and CI asserts that no `Intl` formatter is ever constructed.
 
 > The guarantee attaches to the **renderer**, not the pipeline. Image encoding happens once, in the
@@ -1285,7 +1306,7 @@ The exported page claims **WCAG 2.2 AA by default**. "By default" is precise: th
 can be used to produce a page that does not, and it reports contrast rather than preventing it.
 
 SC 3.1.1 is the criterion with a second half: `<html lang>` has to be **true**, which is why the
-renderer's own eight words follow it rather than staying English underneath it (§2.5), and why the
+renderer's own ten words follow it rather than staying English underneath it (§2.5), and why the
 page declares `<html dir>` from the same tag.
 
 ### 6.9 Presentation
@@ -1305,8 +1326,10 @@ balance.
 moves to the first line, at `text-underline-offset:0.18em` and `text-decoration-thickness:1px`. Today all
 three lines are underlined, which reads as three separate links, and the underline beneath a postcode
 collides with its descenders. This is the only option that acts on the finding as written — _separate the
-directions affordance from the address text_ — while staying inside §2.5, which forbids the ninth string
-a "Directions" label would need, and it kills both halves of the complaint at once. **Removing the
+directions affordance from the address text_ — while staying inside §2.5 as it then stood, which forbade
+the ninth string a "Directions" label would need, and it kills both halves of the complaint at once.
+**§2.5 has since spent that word**: the underline is what a sighted reader gets, and a visually hidden
+_directions_ word inside the anchor is what a screen reader gets — see below. **Removing the
 underline entirely was rejected**: the pin glyph would leave colour as the sole indicator, and §6.8 is
 not negotiable.
 
@@ -1323,10 +1346,33 @@ noise, so the density lever went to legibility instead. §2.3 refused to save ~1
 **The hours panel gets a clock glyph, and the gap it leaves is stated rather than papered over.** Icons
 are not words, so a glyph can name the panel where a heading could not (§2.5). **It names the panel to a
 sighted reader and changes nothing for a screen reader**: every glyph is `aria-hidden` by standing rule,
-and naming the panel to assistive technology needs a ninth string — a visually hidden word is still a word
-the renderer writes, and would still need translating across every vocabulary. §2.5 wins and **the
-accessibility gap stays open rather than being described as fixed.** The contact panel needs nothing; its
-rows already carry glyphs.
+and naming the panel to assistive technology needed a ninth string — a visually hidden word is still a word
+the renderer writes, and would still need translating across every vocabulary. That was weighed against
+cost and word count, and the gap was left open rather than described as fixed.
+
+**That refusal has been reversed, and why the price changed matters more than the reversal.** The ninth
+string was refused on a byte cost, and **that cost was priced by analogy to a glyph** — by the very
+`<svg>` wrapper this section had just overrun its own estimate on. **A word carries no wrapper**: no
+viewBox, no paint attributes, no `aria-hidden`, no `focusable`, nothing before the characters themselves.
+Measured rather than estimated, in the tightest of the 42 languages with real Thai words: the dearest of
+the four mechanisms weighed is **41 B**, and the two changes together spend **132 B** of the **347 B**
+§6.5 had left — **215 B** still standing, and `.lp-sr` already exists and is already paid for by the
+social links, so the CSS costs nothing. **The byte argument was the whole objection and it was not
+real.** What remains is the
+translation cost — one more hand-authored word per language, twice over — which was weighed on its own
+and paid: §2.5 now writes ten words, and its un-citable half more than doubles.
+
+So the gap is closed by decision rather than described as fixed. **The hours panel is named** by a
+visually hidden `<h2>` the `<dl>` points at with `aria-labelledby` — real text rather than an
+`aria-label`, on the renderer's own argument that a visually hidden span is text a translator and a
+"find in page" can both see. **And the address link says it opens directions**, by a visually hidden span
+first inside the anchor: this section rejected that in a single clause while giving the hours panel three
+sentences, and **it was the worse of the two gaps** — an unnamed list whose rows still read `Mon` and a
+time against a link that announced an address and nothing about what pressing it does. The contact panel
+still needs nothing, though not for the reason given here: it is the text that does the work — a phone
+number and an email address say what they are — not the glyphs, which are `aria-hidden` like every other.
+
+**A glyph is never as cheap as its drawing. A word is.**
 
 **A derived vignette on the ground was measured and rejected as invisible.** In light mode it interpolates
 `#ffffff → #fdf7f8`; §3.2's ground tint is deliberately almost invisible, and a gradient drawn between
@@ -2187,7 +2233,7 @@ Ruled out on purpose. The first contributor to ask "why not?" has a written answ
 | **Tailwind, or any CSS toolchain, in the renderer**    | §5.1 — the export's CSS is derived per project, and §6.7 must not depend on a third party's output ordering.                                 |
 | **Dark mode in the builder**                           | §7.4 — a dark surround changes how the owner's colour reads.                                                                                 |
 | **A standing visual-regression suite for the builder** | §7.4 — precisely the flaky instrument `retries: 0` already refuses.                                                                          |
-| **A heading on the exported hours panel**              | §6.9 — it would be a ninth string (§2.5); the glyph names it for sighted readers and the gap is left open.                                   |
+| **A _visible_ heading on the exported hours panel**    | §6.9 — §2.5 now spends a word on a visually hidden one; on screen the glyph is what names the panel.                                         |
 
 ---
 
