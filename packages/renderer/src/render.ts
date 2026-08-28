@@ -1,6 +1,12 @@
 import { glyphSvg, ICONS, iconSvg, socialIconSvg, socialLabel } from "./icons.js";
 import { hoursView, type HoursRow } from "./hours.js";
-import { direction, languageTag, vocabulary, type Vocabulary } from "./locale.js";
+import {
+  direction,
+  isEnglishFallback,
+  languageTag,
+  vocabulary,
+  type Vocabulary,
+} from "./locale.js";
 import { derivePalette } from "./palette.js";
 import { resolveChrome } from "./chrome.js";
 import { stylesheet } from "./stylesheet.js";
@@ -68,13 +74,14 @@ export function render(project: Project): string {
   // might not.
   const tag = languageTag(root?.lang);
   const words = vocabulary(tag);
+  const wordLang = fallbackLanguage(tag);
 
   const sections = [
     headerSection(root?.header),
     linksSection(root?.links),
-    hoursSection(root?.hours, words),
+    hoursSection(root?.hours, words, wordLang),
     contactSection(root?.contact),
-    addressSection(root?.address, words),
+    addressSection(root?.address, words, wordLang),
     socialSection(root?.social),
   ].filter((section) => section !== "");
 
@@ -96,6 +103,35 @@ export function render(project: Project): string {
     "</body>",
     "</html>",
   ].join("\n");
+}
+
+/**
+ * The `lang` attribute a word of ours carries when it is **not** in the language the page
+ * declares — `SPEC.md` §2.5, change list item **CL-7** (#272), decided in #266. Empty when
+ * there is nothing to confess.
+ *
+ * §2.5 has always let an unknown language degrade to English rather than to a guess, and the
+ * justification was that the fallback is **visible**: English weekday abbreviations on a Welsh
+ * page are a limitation the reader can see, and a wrong Welsh word would not be. The two words
+ * §6.9 bought are not on the glass — they exist only in the accessibility tree — so a Welsh
+ * voice reads hidden English with Welsh phonetics and there is nothing on the page to reveal
+ * it. That is #48's own bug with the tell removed. Ten bytes an element say which language the
+ * word is actually in, and `<html lang>` goes back to being true of everything under it.
+ *
+ * **The rule is kept, not replaced.** The page still falls back, and English is still the
+ * honest answer; the marking is what makes it honest once the word is invisible.
+ *
+ * **Only the hidden pair carry it.** The day abbreviations and the closed word fall back on the
+ * same page and stay unmarked, because §2.5's original argument still covers them exactly: they
+ * are on screen, where the limitation shows itself.
+ *
+ * **Empty on every page whose language the table holds, which is all 42 of them** — CL-5 and
+ * CL-6 drafted both words in every entry, so the only surviving fallback path is a tag the
+ * table has no entry for at all. Nobody in the table pays for this, and §6.5's headroom does
+ * not move.
+ */
+function fallbackLanguage(tag: string): string {
+  return isEnglishFallback(tag) ? ` lang="en"` : "";
 }
 
 // ---------------------------------------------------------------------------
@@ -313,7 +349,7 @@ function linkButton(value: unknown): string {
  */
 const HOURS_NAME_ID = "lp-h";
 
-function hoursSection(value: unknown, words: Vocabulary): string {
+function hoursSection(value: unknown, words: Vocabulary, wordLang: string): string {
   const hours = hoursView(value, words);
   if (!hours) return "";
 
@@ -336,7 +372,12 @@ function hoursSection(value: unknown, words: Vocabulary): string {
     // visually hidden span is text a translator and a "find in page" can both see. And a
     // heading rather than a span, because it costs the same and buys somewhere to jump to on a
     // page that otherwise has only its `<h1>`.
-    parts.push(`<h2 class="lp-sr" id="${HOURS_NAME_ID}">${escapeHtml(words.hours)}</h2>`);
+    //
+    // `wordLang` is empty unless this word fell back to English under a page declaring some
+    // other language, which is the state CL-7 marks — see `fallbackLanguage`.
+    parts.push(
+      `<h2 class="lp-sr"${wordLang} id="${HOURS_NAME_ID}">${escapeHtml(words.hours)}</h2>`,
+    );
     parts.push(`<span class="lp-hours-mark">${glyphSvg(ICONS.clock)}</span>`);
     const rows = hours.rows.map((row) => hoursRow(row, hours.closed));
     parts.push(
@@ -563,7 +604,7 @@ export function mendEmail(value: string): string {
  * Whitespace after a forced break is dropped when the page is laid out, so nothing about how it
  * looks changes.
  */
-function addressSection(value: unknown, words: Vocabulary): string {
+function addressSection(value: unknown, words: Vocabulary, wordLang: string): string {
   const address = asRecord(value);
   if (!address) return "";
 
@@ -603,7 +644,10 @@ function addressSection(value: unknown, words: Vocabulary): string {
   //
   // **Only the `<a>` gets it.** With no `directionsUrl` the block is a `<p>` that opens
   // nothing, and a hidden *Directions* there would be a promise the page cannot keep.
-  const purpose = `<span class="lp-sr">${escapeHtml(words.directions)}</span>`;
+  //
+  // `wordLang` is empty unless this word fell back to English under a page declaring some other
+  // language, which is the state CL-7 marks — see `fallbackLanguage`.
+  const purpose = `<span class="lp-sr"${wordLang}>${escapeHtml(words.directions)}</span>`;
 
   const block =
     href === undefined
