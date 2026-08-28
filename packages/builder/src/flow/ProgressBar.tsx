@@ -1,4 +1,4 @@
-import { useId, useState, type JSX } from "react";
+import { useEffect, useId, useState, type JSX } from "react";
 import type { Step } from "./plan.js";
 import { TYPE } from "../ui/type.js";
 
@@ -115,6 +115,29 @@ export function ProgressBar({
 }: ProgressBarProps): JSX.Element | null {
   const [open, setOpen] = useState(false);
   const listId = useId();
+
+  /**
+   * Escape puts the list away from wherever the keyboard is (B-3).
+   *
+   * **The toggle is where focus sits after opening it by keyboard** — Enter opens the list and
+   * leaves the caret on the bar — so a handler bound to the panel alone answers the key in the
+   * one place nobody is standing, and Enter-then-Escape did nothing. Listening on `document`
+   * while it is open covers both positions with one rule, which is what the menu (`List.tsx`),
+   * `Preview`'s drawer and §7.7's sheet already do: **the menu is the reference implementation
+   * and the bar was the outlier**, so this is that shape and not a third one.
+   *
+   * **This claims no modality.** The list is still a disclosure that pushes content down rather
+   * than covering anything — nothing is trapped, nothing goes `inert`, no role is announced.
+   * Escape is simply the key everyone tries, and now it is answered.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [open]);
 
   const step = steps[Math.min(at, steps.length - 1)];
   if (step === undefined || step.id === "preset") return null;

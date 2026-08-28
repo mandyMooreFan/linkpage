@@ -234,6 +234,79 @@ describe("the bar is the run's navigation (§7.2, #146)", () => {
 });
 
 /**
+ * Escape puts the topic list away from wherever the keyboard is (CL-2, finding B-3).
+ *
+ * **The toggle is where focus sits after opening the list by keyboard** — Enter on the bar opens
+ * it and leaves the caret on the bar — so a bar that answers Escape only from inside the panel
+ * answers it in the one place nobody is standing. The natural sequence, Enter then Escape, did
+ * nothing.
+ *
+ * **The menu is the reference implementation** (`List.tsx`): while it is open it listens on
+ * `document`, so the key works from anywhere in or around it, and `Preview`'s drawer and §7.7's
+ * sheet are the same shape. The bar was the outlier and now is not; nothing here invents a third
+ * shape, and nothing here claims modality — the list is still a disclosure that pushes content
+ * down, and Escape is simply the key everyone tries.
+ *
+ * **B-3 measured the panel half as already working; the source says otherwise** — before this
+ * change the bar had no Escape handling at all, on the toggle or in the panel, which the second
+ * test below proves by failing alongside the first. One `document` listener answers both
+ * positions, so the shape the walk described and the shape the source needed are the same fix.
+ *
+ * Both tests drive a real focus position rather than dispatching at `document` directly, because
+ * the finding is *about* where focus is: the key is pressed on the element that actually holds
+ * the caret, and bubbling does the rest.
+ */
+describe("Escape closes the topic list from either focus position (CL-2, B-3)", () => {
+  const toggle = (): HTMLElement =>
+    document.querySelector("[data-progress-bar] > button") as HTMLElement;
+
+  /** Open it the way the keyboard does: the caret stays on the bar it opened from. */
+  function openFromToggle(): void {
+    harness();
+    choosePreset("food");
+    toggle().focus();
+    fireEvent.click(toggle());
+    expect(topicList()?.hidden).toBe(false);
+    expect(document.activeElement).toBe(toggle());
+  }
+
+  it("closes it with the caret still on the toggle, where Enter leaves it", () => {
+    openFromToggle();
+
+    // A key that is not Escape leaves it alone: the handler is for one key, not for any key.
+    fireEvent.keyDown(document.activeElement as Element, { key: "a" });
+    expect(topicList()?.hidden).toBe(false);
+
+    fireEvent.keyDown(document.activeElement as Element, { key: "Escape" });
+    expect(topicList()?.hidden).toBe(true);
+    expect(toggle().getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("closes it from inside the panel too", () => {
+    openFromToggle();
+
+    const first = within(topicList() as HTMLElement).getByRole("button", { name: /Name/ });
+    (first as HTMLElement).focus();
+    expect(document.activeElement).toBe(first);
+
+    fireEvent.keyDown(document.activeElement as Element, { key: "Escape" });
+    expect(topicList()?.hidden).toBe(true);
+    expect(toggle().getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("does not answer the key once the list is shut, and can be reopened after", () => {
+    openFromToggle();
+    fireEvent.keyDown(document.activeElement as Element, { key: "Escape" });
+    expect(topicList()?.hidden).toBe(true);
+
+    // Nothing is left listening: the bar is on a screen whose other layers own Escape too.
+    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.click(toggle());
+    expect(topicList()?.hidden).toBe(false);
+  });
+});
+
+/**
  * The bar names the topic you are on at one size (design change 11, finding B-31).
  *
  * The header and the drawer used to be 14px and 16px, so tapping the bar open showed the same
