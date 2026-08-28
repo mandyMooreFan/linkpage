@@ -1878,6 +1878,16 @@ wrongly _accept_ costs one broken button, which decisions 5 and 6 then catch.
 > the box kills `Continue` even though a perfectly good answer is selected. Under this rule `Continue`
 > depends only on whether an answer exists; junk in the box is ignored, the swatch stands, and the message
 > explains why the typing had no effect.
+>
+> **And typing into the box is an answer having been attempted** (CL-1, finding A-1). That first pass
+> fixed the swatch case and left the harder one: with **nothing** picked and junk in the box, there was
+> still no answer, so `Continue` went away — **and a disabled button leaves the tab order.** A keyboard
+> owner tabbed the whole step, wrapped, and met no button, no sentence, and no cue that anything was
+> wrong; the shape of what they typed was taking `Continue` away after all, one step further back. So
+> **anything in the box keeps the button**, and pressing it is answered with the sentence. This is the
+> only screen where it can arise — the two that block on presence are the two with no escape (§4.6), and
+> this is the one of those whose answer can be typed. Judging on a keystroke instead is the option
+> decision 2 refuses.
 
 **2. It speaks on `Continue`, and not before** (#142). Nothing judges the owner while they are still
 answering — not on a keystroke, and not on leaving a field, which on a phone is half of typing. Tapping
@@ -1888,8 +1898,12 @@ and the implementation is standard with it — **react-hook-form, with each base
 the hours screen marking answers wrong before they were finished was the single clearest "I am being
 told off" in the run.
 
-**3. It sits below the control, and the hint stays.** `Field` becomes label → hint → message, with the
-message **joining** the hint in `aria-describedby` rather than replacing it. Below the control, because
+**3. It sits below the control, the hint stays, and the field says it is the one in error.** `Field`
+becomes label → hint → message, with the
+message **joining** the hint in `aria-describedby` rather than replacing it, the control carrying
+`aria-invalid` for exactly as long as the sentence stands, and the sentence itself being the
+`role="alert"` this section already owns for a refused file — **one mechanism, not a visible sentence
+and a hidden announcer beside it** (CL-1). Below the control, because
 that is where the eye already is; the hint stays, because a hint is frequently _the fix_, and deleting it
 at the moment of complaint is the worst possible timing. One optional line per field, with no layout
 reserved when it is absent. That is the component §7.4's component layer is built around.

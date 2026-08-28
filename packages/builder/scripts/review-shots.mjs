@@ -174,7 +174,13 @@ const ANSWERS = {
     value: "Sourdough, pastries, and the best cheese scone in town",
   },
   "Do you have a logo?": { kind: "skip" },
-  "What's your colour?": { kind: "swatch" },
+  /**
+   * **`refused` is what the owner types that we cannot use** (CL-1), photographed before the
+   * step is answered properly. The exact-colour box is the only field in the wizard that judges
+   * on screen (§7.9 decision 2), so this is the one frame in the whole set showing the sentence
+   * — and until CL-1 there was nothing to show, which was the finding.
+   */
+  "What's your colour?": { kind: "swatch", refused: "zzzzzz" },
   "Which of these do you have?": { kind: "check", labels: ["See the menu", "Order for pickup"] },
   "Where does “See the menu” go?": { kind: "type", value: "https://example.com/menu" },
   "Where does “Order for pickup” go?": { kind: "type", value: "https://example.com/order" },
@@ -516,6 +522,36 @@ async function walkFlow(context, size, capture) {
         `no answer known for “${title}” — add it to ANSWERS in this script`,
       );
       break;
+    }
+
+    /*
+     * §7.9's sentence, before the step is answered properly (CL-1).
+     *
+     * The walk answers every question correctly, so the one surface in the flow where the tool
+     * says *this will not work* had no picture in any set — this script's standing failure for
+     * the sixth time, and the one that made CL-1's before-and-after pair come back identical.
+     * Type what cannot be used, press `Continue`, photograph, then clear and carry on.
+     *
+     * **The press is the whole point and it must not advance the flow.** Judgement holds the
+     * screen (§7.9 decision 2), so if the heading moves, the walk has photographed the wrong
+     * thing and says so rather than carrying a mislabelled frame into a review.
+     */
+    if (spec.refused !== undefined) {
+      const box = page.locator(TEXTISH).first();
+      await box.fill(spec.refused);
+      const judge = page.getByRole("button", { name: /^(Continue|Save)$/ });
+      if ((await judge.count()) && (await judge.first().isEnabled())) await judge.first().click();
+      await settle(page);
+      if ((await heading(page)) !== title) {
+        miss(
+          `“${title}” with something the tool cannot use`,
+          `pressing Continue on “${spec.refused}” advanced the flow instead of holding it`,
+        );
+        break;
+      }
+      if (capture) await shoot(page, size, `${name}-refused`);
+      await box.fill("");
+      await settle(page);
     }
 
     const needsContinue = await answer(page, spec);

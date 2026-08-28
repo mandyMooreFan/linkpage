@@ -324,7 +324,11 @@ export function useJudged(
 const LABELABLE = new Set(["button", "input", "meter", "output", "progress", "select", "textarea"]);
 const LABELABLE_CONTROLS = new Set<unknown>([TextInput, TextArea, UrlInput]);
 
-type Associable = ReactElement<{ id?: string; "aria-describedby"?: string }>;
+type Associable = ReactElement<{
+  id?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
+}>;
 
 function labelableControl(children: ReactNode): Associable | undefined {
   if (!isValidElement(children)) return undefined;
@@ -372,6 +376,14 @@ function labelableControl(children: ReactNode): Associable | undefined {
  *   than replacing it. The attribute takes a list, which is the whole reason this works.
  * - **No layout is reserved when it is absent**, so a screen with nothing wrong is byte-for-byte
  *   the calm screen it was designed as.
+ * - **The control is marked `aria-invalid` while the message stands, and the message is the
+ *   `role="alert"` §7.9 already owns** (CL-1). The walk found the colour field announcing nothing
+ *   at all: no `aria-invalid`, and the sentence — when it appeared — arriving politely enough
+ *   that a person who had just pressed `Continue` was not told. `role="alert"` is the same
+ *   mechanism `RefusalNotice` uses for §7.9's other half, so the two failures the section covers
+ *   now speak the same way rather than through two live regions with different manners. **It is
+ *   the existing slot's role, not a second region**: an off-screen announcer beside a visible
+ *   sentence is the duplicate CL-1 forbids, and it would read twice to anyone listening.
  *
  * Nothing passes `message` yet: the per-field rules that produce one are #109 and #112 to #114.
  * It lands here because §7.4 settles the component layer in one pass, and writing it later would
@@ -430,10 +442,12 @@ export function Field({
         {hint}
       </span>
     );
-  // Live, so it is announced when it appears rather than only when the control is next reached.
+  // Live, so it is announced when it appears rather than only when the control is next reached —
+  // and `alert` rather than `status`, because it answers a press the owner has just made and a
+  // polite region can wait behind whatever else is speaking (CL-1).
   const messageText =
     message === undefined ? null : (
-      <span className={`block ${TYPE.notice.className}`} id={messageId} data-message role="status">
+      <span className={`block ${TYPE.notice.className}`} id={messageId} data-message role="alert">
         {message}
       </span>
     );
@@ -463,6 +477,9 @@ export function Field({
             // description still has to be attached, or a hint on a composite reaches nobody.
             ...(htmlFor === undefined ? { id: target } : {}),
             ...(describedBy === undefined ? {} : { "aria-describedby": describedBy }),
+            // Only while a sentence stands. `aria-invalid` is a claim about *this value*, so it
+            // arrives and leaves with the message rather than being written once and left on.
+            ...(message === undefined ? {} : { "aria-invalid": true }),
           })}
       {hintText}
       {messageText}

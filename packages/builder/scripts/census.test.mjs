@@ -28,7 +28,7 @@ const ANSWERS = {
   "What kind of business is this?": { kind: "preset" },
   "What's it called?": { kind: "type" },
   "Do you have a logo?": { kind: "skip" },
-  "What's your colour?": { kind: "swatch" },
+  "What's your colour?": { kind: "swatch", refused: "zzzzzz" },
   "Where else are you online?": { kind: "skip" },
 };
 
@@ -61,8 +61,23 @@ describe("what a run declares it is going for", () => {
       "02-whats-it-called-filled",
       "03-do-you-have-a-logo-arrive",
       "04-whats-your-colour-arrive",
+      // Three frames, because this step names something the tool cannot use (CL-1): the sentence
+      // is photographed between arriving and answering, and nowhere else in the set.
+      "04-whats-your-colour-refused",
       "04-whats-your-colour-filled",
       "05-where-else-are-you-online-arrive",
+    ]);
+  });
+
+  it("declares no refusal frame for a step that names nothing it cannot use", () => {
+    // The other half, so the ternary above is measured rather than assumed: a step without
+    // `refused` still gets two frames, and a run that photographed a third would be a surprise
+    // rather than a screen the census was expecting.
+    const { refused, ...plain } = ANSWERS["What's your colour?"];
+    expect(refused).toBe("zzzzzz");
+    expect(flowFrames({ "What's your colour?": plain })).toEqual([
+      "01-whats-your-colour-arrive",
+      "01-whats-your-colour-filled",
     ]);
   });
 

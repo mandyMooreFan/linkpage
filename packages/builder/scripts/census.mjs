@@ -70,11 +70,20 @@ export function slug(s) {
  * Every step is photographed on arrival; a step that is *answered* is photographed again once it
  * is. A declined one is not — `skip` presses the escape and there is nothing filled in to show —
  * which is why this reads the spec's `kind` instead of assuming two frames a step.
+ *
+ * **And a step that names something the tool cannot use gets a third frame** (CL-1). §7.9's
+ * sentence is a screen the builder can put on the glass, and until this it was in no set: the
+ * walk answers every step correctly, so the one surface in the flow where the tool says *this
+ * will not work* had never been photographed. That is this script's own standing failure — a
+ * screen that exists only once something has been answered *wrongly* — and it is the sixth
+ * instance of it.
  */
 export function flowFrames(answers) {
   return Object.entries(answers).flatMap(([heading, spec], index) => {
     const name = `${String(index + 1).padStart(2, "0")}-${slug(heading)}`;
-    return spec.kind === "skip" ? [`${name}-arrive`] : [`${name}-arrive`, `${name}-filled`];
+    if (spec.kind === "skip") return [`${name}-arrive`];
+    const refused = spec.refused === undefined ? [] : [`${name}-refused`];
+    return [`${name}-arrive`, ...refused, `${name}-filled`];
   });
 }
 
