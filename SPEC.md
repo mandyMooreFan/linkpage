@@ -2034,13 +2034,18 @@ not an announcement.
 **Not `noon`, not `midnight`** — the page will never print either word back (§2.5), so they would be a
 kindness only English speakers can reach, for a convention the page does not have.
 
-**An unreadable time is said and then dropped, and nothing outlives the screen.** §7.9's line on leaving the
-field and again on `Continue`, blocking nothing; then the value is simply not stored. **This is the one
-field where §7.9's mark does not extend past the screen, and that is deliberate.** The other four store the
-owner's text, so the page carries it and only the machine target is missing — the mark can be re-derived
-from the file forever. A refused time never enters the file at all, so carrying a mark would mean storing a
-value that is not page content and never will be: a §4.8 schema change that no other field asks for, and one
-that inverts §4.4's whole posture.
+**An unreadable time is said and then dropped, and nothing outlives the screen.** §7.9's line on
+`Continue`, blocking nothing; then the value is simply not stored. This used to read _on leaving the field
+and again on `Continue`_ — §7.9's speak-on-blur position, which **decision 2 replaced (#142)** and this
+sentence was never brought along with. The code has judged on `Continue` only ever since: `TimeBox` commits
+`onBlur`, but takes its message from `useJudged`, the same submit-time judge `TextField` uses. The stale
+half sat here long enough to nearly turn a build into an escalation (#294), which is the argument for
+correcting it in place rather than quietly. **This is the one field where §7.9's mark does not extend past
+the screen, and that is deliberate.** The other four store the owner's text, so the page carries it and
+only the machine target is missing — the mark can be re-derived from the file forever. A refused time
+never enters the file at all, so carrying a mark would mean storing a value that is not page content and
+never will be: a §4.8 schema change that no other field asks for, and one that inverts §4.4's whole
+posture.
 
 > **The renderer's existing rule is what makes this safe**, and it is load-bearing rather than incidental:
 > an open day whose intervals all fail to parse **drops back to unspecified** rather than surviving as
