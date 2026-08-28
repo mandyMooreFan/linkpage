@@ -23,7 +23,12 @@ import type { Weekday } from "./project.js";
 const WEEK: readonly Weekday[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
 /** Every string in one entry, so a new word cannot be added without the shape rules seeing it. */
-const hand = (words: Vocabulary): readonly string[] => [...words.days, words.closed, words.hours];
+const hand = (words: Vocabulary): readonly string[] => [
+  ...words.days,
+  words.closed,
+  words.hours,
+  words.directions,
+];
 
 describe("the vendored table", () => {
   const entries = Object.entries(VOCABULARIES);
@@ -32,12 +37,13 @@ describe("the vendored table", () => {
     for (const [key] of entries) expect(key).toBe(key.toLowerCase());
   });
 
-  it("gives every language seven abbreviations, a closed word and an hours word, none blank", () => {
+  it("gives every language seven abbreviations and all three hand-written words, none blank", () => {
     for (const [key, words] of entries) {
       expect(words.days, key).toHaveLength(7);
       for (const day of words.days) expect(day.trim(), key).not.toBe("");
       expect(words.closed.trim(), key).not.toBe("");
       expect(words.hours.trim(), key).not.toBe("");
+      expect(words.directions.trim(), key).not.toBe("");
     }
   });
 
@@ -52,6 +58,12 @@ describe("the vendored table", () => {
    * the natural French and Catalan phrases carry an apostrophe, and `escapeHtml` would spend
    * five bytes on `&#39;` for each one. The typographic `’` is both the correct character and
    * the cheap one, and this assertion is what keeps the straight quote out.
+   *
+   * The *directions* word met the same trap and dodged it rather than paying it: French
+   * *Itinéraire* and Catalan *Com arribar-hi* are the natural phrasings and neither carries an
+   * apostrophe at all, so no entry needed the substitution. **That is a measured outcome, not a
+   * rule that stopped applying** — this assertion is what will catch the next drafted word, in
+   * whichever language, that reaches for a straight quote.
    */
   it("carries nothing that would have to be escaped into markup", () => {
     for (const [key, words] of entries) {
@@ -85,6 +97,7 @@ describe("vocabulary", () => {
   it("finds an exact tag", () => {
     expect(vocabulary("cy").closed).toBe("Ar gau");
     expect(vocabulary("cy").hours).toBe("Oriau agor");
+    expect(vocabulary("cy").directions).toBe("Cyfarwyddiadau");
     expect(vocabulary("fr").days[0]).toBe("lun.");
   });
 

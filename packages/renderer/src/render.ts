@@ -74,7 +74,7 @@ export function render(project: Project): string {
     linksSection(root?.links),
     hoursSection(root?.hours, words),
     contactSection(root?.contact),
-    addressSection(root?.address),
+    addressSection(root?.address, words),
     socialSection(root?.social),
   ].filter((section) => section !== "");
 
@@ -533,8 +533,17 @@ export function mendEmail(value: string): string {
  *
  * **When there is a `directionsUrl`, the address itself becomes the link.** An embedded map is
  * a subresource and invariant 2 forbids it, so a link out is the only answer to "where are
- * you" — and making the address the link text means the link needs no invented label and its
- * accessible name is the address, which is exactly what it goes to.
+ * you", and the address is the right thing for that link to *show*: it is what the owner would
+ * have written anyway, and it is where the link goes.
+ *
+ * **It is not, on its own, the right thing for the link to be *called*.** That was the older
+ * claim here — that an address as link text needs no label because its accessible name is the
+ * address — and it confused the destination with the purpose. A sighted reader has the map pin
+ * beside it; a screen-reader user got `link "The Old Weaving Shed 12 Bridge Street …"`, five
+ * lines of street with nothing saying it was a link at all rather than the shop's printed
+ * address. **`link-name` passes on that** — the link has a name, it is just the wrong one — so
+ * no automated rule was ever going to say so. #266 reversed it and CL-6 spends the tenth word
+ * on the fix; the visually hidden span in the body below is where it lands.
  *
  * **The two §6.4 properties here split across the two elements the section already had.**
  * `hasMap` goes on the `<a>`, where microdata reads the `href` and a map URL is exactly what
@@ -554,7 +563,7 @@ export function mendEmail(value: string): string {
  * Whitespace after a forced break is dropped when the page is laid out, so nothing about how it
  * looks changes.
  */
-function addressSection(value: unknown): string {
+function addressSection(value: unknown, words: Vocabulary): string {
   const address = asRecord(value);
   if (!address) return "";
 
@@ -576,10 +585,30 @@ function addressSection(value: unknown): string {
   const body = `${icon}<span itemprop="address">${text}</span>`;
   const href = linkHref(address.directionsUrl);
 
+  // The word that says what the link *does* (#266, CL-6). Without it the browser reads the
+  // anchor back as `link "The Old Weaving Shed 12 Bridge Street …"` — a name made entirely of
+  // the destination, with nothing saying it opens a map. **`link-name` passes on that**, which
+  // is why nothing automated ever reported it and why §6.9 could reject the label in a single
+  // clause while giving the hours panel three sentences. It was the worse of the two gaps.
+  //
+  // It goes **first**, before the glyph and before the address, so the name reads *Directions*
+  // and then the street rather than ending on it.
+  //
+  // **And it sits outside `itemprop="address"`**, which is the load-bearing placement here:
+  // this is the only place in the renderer where a hidden string is written inside an element
+  // carrying structured data, and one level deeper would publish *Directions* as part of the
+  // business's postal address to every microdata consumer. §6.9 asked for that to be asserted
+  // rather than assumed; `render.test.ts` reads the property's own text back in all 42
+  // languages and the exported-page end-to-end reads it out of a real DOM.
+  //
+  // **Only the `<a>` gets it.** With no `directionsUrl` the block is a `<p>` that opens
+  // nothing, and a hidden *Directions* there would be a promise the page cannot keep.
+  const purpose = `<span class="lp-sr">${escapeHtml(words.directions)}</span>`;
+
   const block =
     href === undefined
       ? `<p class="lp-address">${body}</p>`
-      : `<a class="lp-address" itemprop="hasMap" href="${escapeHtml(href)}">${body}</a>`;
+      : `<a class="lp-address" itemprop="hasMap" href="${escapeHtml(href)}">${purpose}${body}</a>`;
 
   return `<section class="lp-panel">\n${block}\n</section>`;
 }
