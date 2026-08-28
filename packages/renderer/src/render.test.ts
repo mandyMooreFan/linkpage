@@ -622,6 +622,84 @@ describe("social", () => {
 });
 
 // ---------------------------------------------------------------------------
+// The words that fell back (SPEC.md §2.5)
+// ---------------------------------------------------------------------------
+
+/**
+ * **CL-7** (#282, from #266): a hidden word that fell back to English says that it is English.
+ *
+ * §2.5 has always let an unknown language degrade to English rather than to a guess, and it
+ * justified that on the fallback being **visible**: English abbreviations on a Welsh page are a
+ * limitation a reader can see. The two words §6.9 bought are not on the glass — they exist only
+ * in the accessibility tree — so a Welsh voice reads hidden English with Welsh phonetics and
+ * nothing on the page reveals it. That is #48's bug with the tell removed.
+ *
+ * **The rule is kept, not replaced.** The page still falls back; it now says so, which is what
+ * keeps `<html lang>` true rather than what stops it needing to be.
+ *
+ * Asserted as markup here and re-read out of a real browser in
+ * `packages/builder/e2e/exported-page-a11y.e2e.ts`, where the elements are resolved to a
+ * language by the browser's own inheritance rather than by reading the attribute we wrote.
+ */
+describe("a hidden word that fell back to English says so (CL-7)", () => {
+  /**
+   * Swahili: a real language, a well-formed tag, and one the table has no entry for. An
+   * invented tag would also be an *invalid* one, which drags `html-lang-valid` into a question
+   * that has nothing to do with this.
+   */
+  const missing = { ...full, lang: "sw" } as Project;
+
+  it("marks both hidden words on a page that declares another language", () => {
+    const html = render(missing);
+    expect(html).toContain('<html lang="sw" dir="ltr">');
+    expect(html).toContain('<h2 class="lp-sr" lang="en" id="lp-h">Opening hours</h2>');
+    expect(html).toContain('<span class="lp-sr" lang="en">Directions</span>');
+  });
+
+  it("marks those two and nothing else, because the rest of the fallback is visible", () => {
+    const html = page(missing);
+    expect([...html.matchAll(/ lang="en"/g)]).toHaveLength(2);
+    // The day abbreviations and the closed word fell back on this page too, and they stay
+    // unmarked: they are on the glass, where §2.5's original argument still holds — the reader
+    // can see the page is not written in its own language.
+    expect(html).toContain(">Mon</dt>");
+    expect(html).toContain(">Closed<");
+  });
+
+  it("marks nothing at all in any of the languages the table holds", () => {
+    // The measurement this item turns on: all 42 entries carry all ten words, so no page in
+    // the table can reach the fallback. Nothing inside `<main>` carries a `lang` but this.
+    for (const lang of Object.keys(VOCABULARIES)) {
+      expect(page({ ...full, lang } as Project), lang).not.toContain("lang=");
+    }
+  });
+
+  it("does not mark a region of English the lookup reaches by truncation", () => {
+    // `en-GB` matches the English entry, so its words *are* the language the page declares and
+    // a `lang="en"` inside a `lang="en-GB"` page would be ten bytes saying nothing.
+    expect(page(full)).not.toContain("lang=");
+  });
+
+  it("does not mark a page whose own lang was unusable, because that page declares English", () => {
+    // §4.7: `languageTag` refuses anything that is not tag-shaped and everything downstream
+    // reads the *validated* tag. The page declares `en`, writes English, and the two agree —
+    // there is no fallback to confess.
+    const damaged = { ...full, lang: 7 } as unknown as Project;
+    expect(render(damaged)).toContain('<html lang="en" dir="ltr">');
+    expect(page(damaged)).not.toContain("lang=");
+  });
+
+  it("says it in a page that reads right to left, where the words are English anyway", () => {
+    // Persian is the sharpest of the fallback cases: the table has entries for `ar` and `he`
+    // but not for `fa`, so the page lays itself out right to left around two English words.
+    const html = render({ ...full, lang: "fa" } as Project);
+    expect(html).toContain('<html lang="fa" dir="rtl">');
+    expect(html).toContain('<h2 class="lp-sr" lang="en" id="lp-h">Opening hours</h2>');
+    expect(html).toContain('<span class="lp-sr" lang="en">Directions</span>');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Totality (SPEC.md §4.7)
 // ---------------------------------------------------------------------------
 

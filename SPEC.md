@@ -466,8 +466,10 @@ which languages matter.
   is worse than the honest foreign one. **The rule stands unchanged for the two hidden words, with
   one addition it now needs:** they are not on screen, so the limitation is no longer visible, and an
   unmarked English word inside a `lang="cy"` page is read by a Welsh voice with Welsh phonetics —
-  #48's bug with nothing to reveal it. A fallen-back word therefore carries `lang="en"`, which is
-  what keeps the declaration true rather than what replaces this rule.
+  #48's bug with nothing to reveal it. A fallen-back **hidden** word therefore carries
+  `lang="en"`, which is what keeps the declaration true rather than what replaces this rule. The
+  visible ones do not, and that is the same rule rather than an exception to it: the limitation
+  shows itself on the glass, which is what this bullet has always rested on.
 
 #### Direction
 

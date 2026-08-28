@@ -370,6 +370,104 @@ test.describe("the address link says it opens directions (CL-6)", () => {
   });
 });
 
+/**
+ * **CL-7** (issue #282, decided in #266): a hidden word that fell back to English says so.
+ *
+ * §2.5 lets an unknown language degrade to English rather than to a guess, and justified that
+ * on the fallback being **visible** — English weekday abbreviations on a Welsh page are a
+ * limitation a reader can see. The two words CL-5 and CL-6 bought are not on the glass, so that
+ * justification stopped covering them: a Welsh voice reads hidden English with Welsh phonetics
+ * and nothing on the page reveals it. The rule is kept; the marking is what makes it honest.
+ *
+ * **Read as the browser resolves it, not as we wrote it.** `render.test.ts` can only assert the
+ * attribute is in the string. What matters is which language a consumer *lands on* for that
+ * node, which is inheritance from the nearest `[lang]` ancestor — so that is what is read here,
+ * and the control below takes the attribute away and watches the same nodes fall back to the
+ * page's own language.
+ */
+test.describe("a hidden word that fell back to English says so (CL-7)", () => {
+  /**
+   * Swahili: a real language, a well-formed tag, and one the renderer's table has no entry for.
+   * An invented tag would also be an *invalid* one, which would fail `html-lang-valid` for a
+   * reason that has nothing to do with this item.
+   */
+  const swahili = (): Project => ({ ...project("centred", "light"), lang: "sw" });
+
+  /** Every visually hidden string on the page, with the language a browser resolves it to. */
+  async function hiddenWords(page: Page, html: string): Promise<{ text: string; lang: string }[]> {
+    await page.setContent(html, { waitUntil: "load" });
+    return page.evaluate(() =>
+      [...document.querySelectorAll(".lp-sr")].map((el) => ({
+        text: (el.textContent ?? "").trim(),
+        lang: (el.closest("[lang]") as HTMLElement | null)?.lang ?? "",
+      })),
+    );
+  }
+
+  test("the browser resolves both of them to English inside a Swahili page", async ({ page }) => {
+    const words = await hiddenWords(page, render(swahili()));
+
+    expect(await page.evaluate(() => document.documentElement.lang)).toBe("sw");
+    expect(words).toContainEqual({ text: "Opening hours", lang: "en" });
+    expect(words).toContainEqual({ text: "Directions", lang: "en" });
+    // And the hidden strings that are *not* ours stay under the page's own declaration: a
+    // social platform's name is the owner's data, not a word the renderer wrote.
+    expect(words).toContainEqual({ text: "Instagram", lang: "sw" });
+  });
+
+  /**
+   * The control, and the same rule the rest of this file obeys: **a guard must prove it found
+   * something before it can report nothing wrong.** Take the marking away and the browser must
+   * put those same two nodes back under `sw` — otherwise the assertion above could be reading a
+   * language that came from somewhere else in the document.
+   */
+  test("and it is the marking doing that, not something else in the page", async ({ page }) => {
+    const clean = render(swahili());
+    const broken = clean.split(` lang="en"`).join("");
+
+    expect(broken, "nothing in the page matched the marking").not.toBe(clean);
+
+    const words = await hiddenWords(page, broken);
+    expect(words).toContainEqual({ text: "Opening hours", lang: "sw" });
+    expect(words).toContainEqual({ text: "Directions", lang: "sw" });
+    expect(words).not.toContainEqual({ text: "Directions", lang: "en" });
+  });
+
+  test("and a page whose language the table holds is marked nowhere", async ({ page }) => {
+    const words = await hiddenWords(page, render({ ...project("centred", "light"), lang: "cy" }));
+
+    expect(words).toContainEqual({ text: "Oriau agor", lang: "cy" });
+    expect(words).toContainEqual({ text: "Cyfarwyddiadau", lang: "cy" });
+    expect(words.every((word) => word.lang === "cy")).toBe(true);
+  });
+
+  /**
+   * **What the checker can and cannot say about this, measured rather than argued.** #272 graded
+   * CL-7's automated coverage *partial and misleading*, and this is where that grading is
+   * settled: `valid-lang` checks the attribute is well-formed and no rule anywhere checks that
+   * it is **true**, which is the entire point of §2.5 and of SC 3.1.1's second half.
+   *
+   * Three documents, one green result each: the marked page, the unmarked page that is the
+   * defect this item fixes, and a page whose marking is an outright lie. A checker that cannot
+   * separate those three is not the thing keeping the promise — §7.12's hand-driven tier is,
+   * which is the whole reason there are two tiers.
+   */
+  test("no axe rule separates the honest marking from the unmarked page or from a lie", async ({
+    page,
+  }) => {
+    const clean = render(swahili());
+    const unmarked = clean.split(` lang="en"`).join("");
+    const lie = clean.replace(`lang="en">Directions<`, `lang="en">Cyfarwyddiadau<`);
+
+    expect(unmarked).not.toBe(clean);
+    expect(lie).not.toBe(clean);
+
+    expect(failed(await audit(page, clean, TAGS))).toEqual([]);
+    expect(failed(await audit(page, unmarked, TAGS))).toEqual([]);
+    expect(failed(await audit(page, lie, TAGS))).toEqual([]);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // The known-bad controls
 // ---------------------------------------------------------------------------

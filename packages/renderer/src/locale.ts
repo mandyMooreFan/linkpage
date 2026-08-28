@@ -428,15 +428,18 @@ const ALIASES: Readonly<Record<string, string>> = {
 const ENGLISH: Vocabulary = VOCABULARIES.en!;
 
 /**
- * The eight words for a language tag, falling back to English.
+ * The entry a tag actually **matches**, or `undefined` when the table holds nothing for it.
  *
- * Total, like everything the renderer calls (§4.7): the argument is `unknown` because a
- * hand-edited `project.json` can put anything in `lang`, and every path returns a usable
- * vocabulary. The loop terminates because each pass removes a hyphen.
+ * The two exported questions below both need this walk, and they must never disagree about it:
+ * one asks which words to write, the other asks whether those words are the page's own
+ * language. Written once so that a change to the matching rules cannot answer the first and
+ * quietly stop answering the second.
+ *
+ * The loop terminates because each pass removes a hyphen.
  */
-export function vocabulary(value: unknown): Vocabulary {
+function lookup(value: unknown): Vocabulary | undefined {
   const tag = asText(value);
-  if (tag === undefined) return ENGLISH;
+  if (tag === undefined) return undefined;
 
   let key = tag.toLowerCase();
   for (;;) {
@@ -444,9 +447,47 @@ export function vocabulary(value: unknown): Vocabulary {
     if (found !== undefined) return found;
 
     const cut = key.lastIndexOf("-");
-    if (cut < 0) return ENGLISH;
+    if (cut < 0) return undefined;
     key = key.slice(0, cut);
   }
+}
+
+/**
+ * The eight words for a language tag, falling back to English.
+ *
+ * Total, like everything the renderer calls (§4.7): the argument is `unknown` because a
+ * hand-edited `project.json` can put anything in `lang`, and every path returns a usable
+ * vocabulary.
+ */
+export function vocabulary(value: unknown): Vocabulary {
+  return lookup(value) ?? ENGLISH;
+}
+
+/**
+ * Whether those words are English **standing in** for a language this table has no entry for —
+ * which is the one thing the page has to say out loud about them (§2.5, CL-7, #266).
+ *
+ * **This is not "is the vocabulary the English one".** A page declaring `en-GB` gets the
+ * English entry by matching it, and its words are in the language it declares. A page declaring
+ * `sw` gets the very same object because there is no Swahili entry, and its words are not.
+ * Comparing the returned entry against `ENGLISH` cannot tell those apart; asking the lookup
+ * whether it *matched* can, which is why `lookup` returns `undefined` rather than a fallback.
+ *
+ * **It answers about the tag the page will actually declare**, not about the raw value: a
+ * `lang` that is not tag-shaped is refused by `languageTag` and the page declares `en`, so
+ * there is no fallback to confess. Running the same validation here is what keeps this answer
+ * and `<html lang>` from ever contradicting each other, whichever of the two a caller reaches
+ * for first.
+ *
+ * §2.5's *degrade to English, never to a guess* rule is **kept, not replaced** — the fallback
+ * still happens, and it is still better than a word invented in the owner's own language. What
+ * changed is that two of the words are now invisible (§6.9), so the limitation no longer shows
+ * itself and the page has to state it. Which elements carry the marking is `render.ts`'s
+ * decision, and it is only the hidden pair: the weekday abbreviations and the closed word are
+ * on the glass, where §2.5's original argument still holds.
+ */
+export function isEnglishFallback(value: unknown): boolean {
+  return lookup(languageTag(value)) === undefined;
 }
 
 // ---------------------------------------------------------------------------

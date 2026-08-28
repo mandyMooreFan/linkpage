@@ -3,6 +3,7 @@ import {
   VOCABULARIES,
   dayName,
   direction,
+  isEnglishFallback,
   languageTag,
   vocabulary,
   type Vocabulary,
@@ -159,6 +160,65 @@ describe("vocabulary", () => {
     } finally {
       dateTime.mockRestore();
     }
+  });
+});
+
+/**
+ * **CL-7** (#282, from #266). The question `render.ts` asks before it decides whether one of
+ * its own words needs a `lang` of its own.
+ *
+ * The distinction this makes is the whole item: falling back to English and *being* English
+ * produce the identical vocabulary object, and only one of them is a page saying something
+ * untrue about the words in it.
+ */
+describe("isEnglishFallback", () => {
+  it("is false for every language the table holds, which is all of them", () => {
+    // The measurement CL-7 turns on. CL-5 and CL-6 drafted both new words in all 42 entries,
+    // so no entry is missing a word and no page in the table can reach the fallback.
+    for (const tag of Object.keys(VOCABULARIES)) {
+      expect(isEnglishFallback(tag), tag).toBe(false);
+    }
+  });
+
+  it("is false for a tag the lookup reaches by truncation, alias or case", () => {
+    // These pages get their own language's words; there is nothing to confess about them.
+    for (const tag of ["en-GB", "cy-GB", "pt-BR", "CY", "zh-TW", "no", "en-US-u-ca-gregory"]) {
+      expect(isEnglishFallback(tag), tag).toBe(false);
+    }
+  });
+
+  it("is true for a real language the table has no entry for", () => {
+    // Swahili and Persian are the honest cases: valid tags, spoken languages, no entry. The
+    // page declares one language and writes English words under it.
+    for (const tag of ["sw", "fa", "ur", "af-ZA", "qq"]) {
+      expect(isEnglishFallback(tag), tag).toBe(true);
+    }
+  });
+
+  /**
+   * §4.7, and the reason this validates its argument rather than trusting it: a `lang` the
+   * renderer could not use is not a fallback. `languageTag` refuses it, the page declares
+   * `en`, and the words are then in the language the page declares. Marking them would be a
+   * page saying `lang="en"` inside `lang="en"`.
+   */
+  it("is false for anything that is not a usable tag, because such a page declares English", () => {
+    for (const value of ["", "   ", "-".repeat(64), undefined, null, 7, {}, []]) {
+      expect(isEnglishFallback(value), String(value)).toBe(false);
+      expect(languageTag(value), String(value)).toBe("en");
+    }
+  });
+
+  it("agrees with vocabulary about which entry a page got", () => {
+    // The two answers come from one walk of the table and must not drift apart: a page that
+    // is *not* a fallback has words that are not the English ones, unless English is what it
+    // asked for.
+    for (const tag of Object.keys(VOCABULARIES)) {
+      if (tag === "en") continue;
+      expect(vocabulary(tag), tag).not.toBe(vocabulary("en"));
+    }
+    expect(vocabulary("sw")).toBe(vocabulary("en"));
+    expect(isEnglishFallback("sw")).toBe(true);
+    expect(isEnglishFallback("en")).toBe(false);
   });
 });
 
