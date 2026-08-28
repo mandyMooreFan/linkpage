@@ -2167,6 +2167,14 @@ modes, both widths — tagged **WCAG 2.2 A and AA plus axe's `best-practice` rul
 WCAG tags alone silently drop 30 of axe's 105 rules, `tabindex` and `heading-order` among them.
 That makes §6.8's claim _checked_, never _proven_: the 23-of-55 ceiling below applies to it too.
 
+**The builder's own screens are swept by the same checker under the same tags, and that tier is
+hand-run.** `pnpm a11y` drives the real flow in Chromium — every wizard step, §7.9's refusal, the
+review list, every row opened, the download sheet, the menu and the import fork, at both of §7.6's
+sizes — and it is **never wired to CI**, deliberately, the way §7.4's appearance ritual is not.
+Reaching the list takes sixty-odd driven steps, and the check would not have caught #254, #255,
+#244 or #246. **The two tiers are not interchangeable**: the exported page's is a gate and this one
+is a report for a person, and the six commitments above do not rest on it.
+
 **What it must not be read as saying.** That the builder meets WCAG 2.2 AA. It may well; nobody has
 checked. Of 55 A and AA criteria, an automated checker reaches 23, and every defect this project has
 found sat in the other 32.

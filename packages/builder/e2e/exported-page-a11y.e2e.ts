@@ -1,8 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { MODES, SHAPES, render, type Mode, type Project, type Shape } from "@linkpage/renderer";
 import type { AxeResults } from "axe-core";
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
+import { TAGS, WCAG_TAGS, audit as run, droppedBy, failed } from "../scripts/axe.mjs";
 
 /**
  * `axe-core` over **the exported page**, in CI. `SPEC.md` §7.12, §6.8. Change list item
@@ -47,28 +46,15 @@ import { createRequire } from "node:module";
  * 3. the **mutated** page reports that rule as a violation.
  */
 
-const require = createRequire(import.meta.url);
-
 /**
- * axe's own bundle, injected into the page under test.
+ * **The bundle and the tag set come from `scripts/axe.mjs`**, which the builder's hand-run sweep
+ * (`scripts/a11y-sweep.mjs`, CL-9) reads too.
  *
- * Read off disk and injected as script *text* rather than fetched from a CDN: the whole point of
- * the exported page is that it fetches nothing, and a check that needs the network to run could
- * not audit it from `file://` or offline.
+ * §7.12 records the tag choice — WCAG 2.2 A + AA **plus** `best-practice` — as a *decision*, and
+ * it now answers for two checks rather than one. Two arrays under one sentence would drift in
+ * silence, with both checks still green, so there is one array. Everything about *what* is
+ * audited stays here: this file renders the exported page, the sweep drives the live builder.
  */
-const AXE_SOURCE = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
-
-/**
- * **WCAG 2.2 A + AA, plus `best-practice`.** The decision recorded in §7.12.
- *
- * WCAG 2.2 is cumulative, so all five WCAG tags are needed to reach it: axe tags a rule with the
- * version that introduced its criterion, not with every version that carries it forward.
- * `wcag2aaa` is deliberately absent — AAA is not what §6.8 claims.
- */
-const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] as const;
-
-/** What the check actually runs. See the note above on why `best-practice` is here. */
-const TAGS = [...WCAG_TAGS, "best-practice"] as const;
 
 /** Both widths §7.4's appearance ritual uses, so the two rituals see the same two pages. */
 const VIEWPORTS = [
@@ -142,7 +128,7 @@ function project(shape: Shape, mode: Mode): Project {
 }
 
 /**
- * Run axe over `html` in a real browser.
+ * Put `html` on the glass and run axe over it.
  *
  * `setContent` rather than a temp file and `file://`: the exported page references nothing
  * outside itself (invariant 2), so the two are the same document, and the one end-to-end that
@@ -150,20 +136,8 @@ function project(shape: Shape, mode: Mode): Project {
  */
 async function audit(page: Page, html: string, tags: readonly string[]): Promise<AxeResults> {
   await page.setContent(html, { waitUntil: "load" });
-  await page.addScriptTag({ content: AXE_SOURCE });
-  return page.evaluate(
-    (values) =>
-      (
-        window as unknown as {
-          axe: { run: (context: Document, options: unknown) => Promise<AxeResults> };
-        }
-      ).axe.run(document, { runOnly: { type: "tag", values } }),
-    [...tags],
-  );
+  return run(page, { tags });
 }
-
-/** The rule ids that failed, which is what an assertion should read as when it goes red. */
-const failed = (results: AxeResults): string[] => results.violations.map((v) => v.id).sort();
 
 /**
  * One edit to the rendered page, and the assertion that it landed.
@@ -236,20 +210,8 @@ test.describe("what a green run does and does not mean", () => {
    */
   test("the WCAG tags alone would drop rules this check keeps", async ({ page }) => {
     await page.setContent("<!doctype html><html><head></head><body></body></html>");
-    await page.addScriptTag({ content: AXE_SOURCE });
 
-    const dropped = await page.evaluate(
-      ([wcag, all]) => {
-        const rules = (
-          window as unknown as { axe: { getRules: () => { ruleId: string; tags: string[] }[] } }
-        ).axe.getRules();
-        const under = (tags: string[]) =>
-          new Set(rules.filter((r) => r.tags.some((t) => tags.includes(t))).map((r) => r.ruleId));
-        const wcagOnly = under(wcag);
-        return [...under(all)].filter((id) => !wcagOnly.has(id)).sort();
-      },
-      [[...WCAG_TAGS], [...TAGS]] as [string[], string[]],
-    );
+    const dropped = await droppedBy(page, WCAG_TAGS, TAGS);
 
     expect(dropped).toContain("tabindex");
     expect(dropped).toContain("heading-order");
