@@ -2146,8 +2146,18 @@ defects live. A dead tab stop survived 847 green tests here.
 4. **Motion collapses under `prefers-reduced-motion`.** _Guarded at the stylesheet_ — the `@media`
    block must exist, be non-empty, and name every duration a screen change runs. Durations are not
    measured by a standing test.
-5. **Every pressable control carries the tap floor**, except the one deliberate inline weight.
-   _Guarded at the class string._
+5. **Every control the keyboard reaches clears the tap floor**, except the deliberate inline
+   weight and §7.2's progress bar header. _Measured_ — the same browser walk reads the rendered box
+   of every tab stop at both of §7.6's sizes and holds it to `tap`'s 44px: 133 stops at 390, 144 at 1440. **A control is not always its own target**, and a check that read only the control would
+   fail fourteen honest ones at each width — the 20×20 checkboxes are pressed through a 350×44
+   `<label>`, §7.10's 1×1 day modes through a 98×44 one, and the web-address box through the ruled
+   line it stands on. So what is measured is the label or the line, and only where the browser or a
+   declared hook says the press is forwarded. Height is the axis, because `tap` is a `min-height`
+   and most controls here must not take a width floor; `tap-square` is for glyph buttons and this
+   walk reaches none. **Two stops are under it.** The `inline` weight is the deliberate one this
+   line has always carried — a word inside a sentence, which 44px would push apart. The other is
+   §7.2's bar header at 350×36, **a real miss the class string could not see because it never read
+   that button** (#305). Both are named in the check, and a third fails it.
 6. **One control, one accessible name.** _Guarded at the rendered tree_ — the three screens that open
    a file dialog are mounted, and so is the shared `FilePicker` they all follow, whose own test counts
    the named controls it renders rather than asserting an absence. `getByRole` matches strictly, so a
