@@ -2058,6 +2058,41 @@ reads as a layout shift, not motion._
 Durations are felt-approved indicative values from the #140 prototype; the decision is the frame and
 the verb, and implementation tunes within them. Nothing here touches the exported page (invariant 4).
 
+### 7.12 Accessibility
+
+**The builder makes no conformance claim.** It commits to six things, each with a standing test behind
+it, and **each line says what its test actually reaches** — because _"the rule is in the stylesheet"_
+and _"the ring appears on screen"_ are different facts, and the gap between them is where accessibility
+defects live. A dead tab stop survived 847 green tests here.
+
+1. **The tool's own text clears 4.5:1 against both of its backdrops.** _Measured_ — the test computes
+   the ratio.
+2. **A focus ring is defined for every control, and the line owns it.** _Guarded at the stylesheet_ —
+   the test reads `theme.css` and asserts the `:focus-visible` rule is present. It does not observe a
+   ring being painted; jsdom cannot match `:focus-visible`.
+3. **What the tool covers, it puts out of reach.** _Guarded at the attribute_ — the test asserts
+   `[inert]` is in the DOM. jsdom does not implement `inert`, so the attribute is checked, not the
+   unreachability.
+4. **Motion collapses under `prefers-reduced-motion`.** _Guarded at the stylesheet_ — the `@media`
+   block must exist, be non-empty, and name every duration a screen change runs. Durations are not
+   measured by a standing test.
+5. **Every pressable control carries the tap floor**, except the one deliberate inline weight.
+   _Guarded at the class string._
+6. **One control, one accessible name.** _Guarded at the call sites_ — `getByRole` matches strictly, so
+   a second name for one action fails. The shared `FilePicker` has no test of its own.
+
+**What these are checked against.** What the browser exposes to assistive technology — names, roles,
+focus order, what is and is not reachable. **Not what a screen reader announces.** No screen-reader
+pass has been done, and none is claimed.
+
+**What this does not cover.** Colour swatches, where the colour is the content and a ratio is
+meaningless. The preview's contents, which are the exported page and answer to §6.8. The colours an
+owner chooses, which §3.4 reports on and does not refuse.
+
+**What it must not be read as saying.** That the builder meets WCAG 2.2 AA. It may well; nobody has
+checked. Of 55 A and AA criteria, an automated checker reaches 23, and every defect this project has
+found sat in the other 32.
+
 ---
 
 ## 8. Getting the page online
