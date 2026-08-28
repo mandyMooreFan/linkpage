@@ -104,7 +104,20 @@ export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProp
       // §7.9 decision 1: `Continue` keeps its single meaning — *you haven't answered yet* — and
       // nothing about the *shape* of an answer can take it away. Before this, a swatch plus junk
       // in the box killed the button even though a perfectly good answer was selected.
-      submitDisabled={answer === ""}
+      //
+      // **And typing into the box counts as having tried** (CL-1, finding A-1). The half of that
+      // rule that survived did so in the swatch case only: with nothing picked and `zzzzzz` in
+      // the box, `answer` was still `""`, so `Continue` went away — **and a disabled button
+      // leaves the tab order**, so a keyboard owner tabbed the whole step, wrapped, and never
+      // met the button, the sentence, or any cue that something was wrong. The shape of what
+      // they typed was taking `Continue` away after all; it was just doing it through `answer`.
+      //
+      // The sentence is the fix SC 3.3.1 asks for, and §7.9 decision 2 says it speaks **on
+      // `Continue` and not before** — so there has to be a `Continue` to press. Judging on a
+      // keystroke instead is the option decision 2 has already refused, with the #138 walk's
+      // reason. So: anything in the box keeps the button, and pressing it is answered with the
+      // sentence rather than with silence.
+      submitDisabled={answer === "" && typed.trim() === ""}
       onBack={onBack}
     >
       <ul className="m-0 flex list-none flex-row flex-wrap gap-3 p-0">

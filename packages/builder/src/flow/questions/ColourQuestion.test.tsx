@@ -117,11 +117,72 @@ describe("the question", () => {
     expect(onAnswer).toHaveBeenCalledWith(BRAND_SWATCHES[0]?.hex);
   });
 
-  it("still waits when junk is the only thing there", () => {
-    // Not a shape judgement: there is simply no answer yet, which is `Continue`'s one meaning.
+  it("waits until something is there at all", () => {
+    // `Continue`'s one meaning, on the screen that cannot be declined: nothing picked and
+    // nothing typed is the only state with nothing to say.
     mount(<ColourQuestion initial={undefined} onAnswer={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText(/exact colour/), { target: { value: "banana" } });
     expect(submit().disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText(/exact colour/), { target: { value: "   " } });
+    expect(submit().disabled).toBe(true);
+  });
+
+  it("tells the owner when junk is the only thing there (CL-1, finding A-1)", () => {
+    // The walk's finding, and the half of §7.9 decision 1 that had not landed. With nothing
+    // picked, `banana` in the box left `answer` empty, so `Continue` went away — **and a
+    // disabled button leaves the tab order**, so a keyboard owner tabbed the step, wrapped, and
+    // met no button, no sentence and no cue that anything was wrong. The shape of the typing was
+    // still taking `Continue` away; it was doing it one step further back.
+    //
+    // Decision 2 says the sentence speaks on `Continue` and not before, so `Continue` has to be
+    // there to press. It is, and pressing it is answered.
+    const onAnswer = vi.fn();
+    mount(<ColourQuestion initial={undefined} onAnswer={onAnswer} />);
+    fireEvent.change(screen.getByLabelText(/exact colour/), { target: { value: "banana" } });
+
+    expect(submit().disabled).toBe(false);
+    expect(document.querySelector("[data-message]")).toBeNull();
+
+    fireEvent.click(submit());
+
+    // SC 3.3.1: the error is described in text, and the text is on screen.
+    expect(document.querySelector("[data-message]")?.textContent).toContain(
+      "This won't change your colour",
+    );
+    expect(onAnswer).not.toHaveBeenCalled();
+
+    // Quick to stop, exactly as it is for the swatch case.
+    fireEvent.change(screen.getByLabelText(/exact colour/), { target: { value: "#c2185b" } });
+    expect(document.querySelector("[data-message]")).toBeNull();
+    fireEvent.click(submit());
+    expect(onAnswer).toHaveBeenCalledWith("#c2185b");
+  });
+
+  it("marks the field itself, and announces the sentence (CL-1, finding A-1)", () => {
+    // The three things the walk found missing, asserted where a person would meet them: the
+    // field says it is the one in error, the sentence joins the hint in its description rather
+    // than replacing it, and the sentence is the `role="alert"` §7.9 already owns for a refused
+    // file rather than a second live region built beside it.
+    mount(<ColourQuestion initial={undefined} onAnswer={vi.fn()} />);
+    const field = screen.getByLabelText(/exact colour/);
+
+    expect(field.getAttribute("aria-invalid")).toBeNull();
+
+    fireEvent.change(field, { target: { value: "zzzzzz" } });
+    fireEvent.click(submit());
+
+    expect(field.getAttribute("aria-invalid")).toBe("true");
+
+    const message = document.querySelector("[data-message]") as HTMLElement;
+    expect(message.getAttribute("role")).toBe("alert");
+    const described = (field.getAttribute("aria-describedby") ?? "").split(" ");
+    expect(described).toContain(message.id);
+    // The hint stays: it is frequently the fix (§7.9 decision 3).
+    expect(described).toContain(document.querySelector("[data-hint]")?.id);
+    expect(described.length).toBe(2);
+
+    // And the mark leaves with the sentence — it is a claim about this value, not a state.
+    fireEvent.change(field, { target: { value: "" } });
+    expect(field.getAttribute("aria-invalid")).toBeNull();
   });
 
   it("names the colour it has, under the grid (§3.1)", () => {

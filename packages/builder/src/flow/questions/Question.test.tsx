@@ -266,6 +266,24 @@ describe("a field with something the tool cannot use (§7.9)", () => {
     expect(screen.getByRole("textbox", { name: "Where does it go?" })).toBeDefined();
   });
 
+  it("marks the control it is about (CL-1)", () => {
+    // A description says *there is a sentence here*; `aria-invalid` says *this is the field it
+    // is about*, which is the half SC 3.3.1 asks for and the half the colour walk found missing.
+    openWithMessage();
+    expect(screen.getByRole("textbox").getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it('speaks through the `role="alert"` §7.9 already owns, not a second region (CL-1)', () => {
+    openWithMessage();
+    // The visible sentence *is* the live region — `RefusalNotice` announces §7.9's other half
+    // the same way. A hidden announcer beside it would read the sentence twice.
+    expect(screen.getByRole("alert").textContent).toBe(
+      "This button won't work — paste the address from your browser.",
+    );
+    expect(document.querySelectorAll("[data-message]")).toHaveLength(1);
+    expect(screen.getByRole("alert").getAttribute("data-message")).not.toBeNull();
+  });
+
   it("reserves no layout when there is nothing wrong", () => {
     // §7.7's constraint reaching the field: a screen with nothing wrong is the calm screen it was
     // designed as, with no empty slot held open against a message that never comes.
@@ -276,6 +294,8 @@ describe("a field with something the tool cannot use (§7.9)", () => {
     );
     expect(document.querySelector("[data-message]")).toBeNull();
     expect(describedText(screen.getByRole("textbox"))).toBe("Copy it from your browser.");
+    // And nothing is marked wrong. `aria-invalid` follows the sentence (CL-1).
+    expect(screen.getByRole("textbox").getAttribute("aria-invalid")).toBeNull();
   });
 });
 
