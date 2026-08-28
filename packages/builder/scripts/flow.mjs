@@ -17,8 +17,16 @@
  * `aria-label` is closer to a class than to a hook — it is part of a control's accessibility
  * contract, so it moves when the accessibility is *corrected*.
  *
- * **Nothing here asserts anything or writes anything.** It walks, and it tells its caller what it
- * met through the hooks. Both callers are hand-run and neither is wired to CI.
+ * **Nothing here judges the product or writes anything.** It walks, and it tells its caller what
+ * it met through the hooks. Both callers are hand-run and neither is wired to CI.
+ *
+ * **It does check that its own driving took, and that is not the same thing** (#302). A step that
+ * *asks* nothing of the screen it reached is not the same as a step that cannot tell whether it
+ * answered it: the hours step spent an unknown stretch pressing a control that landed on nothing
+ * under some scroll positions, and both callers went on reporting — 76 shots, 76 audited screens
+ * — with no way to say so. Where a step can read back that its own answer took, it does, and it
+ * throws rather than handing on a screen it only believes it answered. That is the map's rule
+ * about a guard proving it found something, applied to the instrument rather than the product.
  */
 
 import { slug } from "./census.mjs";
@@ -104,9 +112,44 @@ async function fill(page, spec) {
       for (const l of spec.labels) await page.getByLabel(l, { exact: false }).first().check();
       return true;
     case "hours": {
-      // The day modes are `sr-only` radios driven by their labels, so the label intercepts the
-      // pointer. `force` is right here rather than a workaround: the control is the radio.
-      await page.getByRole("radio", { name: "Open", exact: true }).first().check({ force: true });
+      /*
+       * **Found by the role, pressed by the label** — the same shape `e2e/walk.ts` uses, and for
+       * a measured reason (#302). The day modes are `sr-only` radios inside their labels (§7.10),
+       * so the control is a 1×1 clipped box and the label is the segment a person presses.
+       *
+       * **This used to be `check({ force: true })` on the radio, with a comment saying `force`
+       * was right here rather than a workaround. It was not.** `force` skips Playwright's
+       * actionability sequence, and scrolling the element into view is *part of* that sequence —
+       * so the click goes to the 1×1 box's current viewport coordinate whether or not that
+       * coordinate is on screen. On this screen it is a coin toss decided by scroll position:
+       * arrive at the hours step unscrolled and the point is over the label and it works;
+       * arrive with the page scrolled down — which is what happens to anything that has already
+       * walked the seven day rows — and Monday's radio sits ~123px *above* the viewport,
+       * `elementFromPoint` there returns `null`, and the click lands on nothing.
+       *
+       * All three candidates were measured on `main`, at both of §7.6's widths, on a scrolled
+       * screen and an unscrolled one:
+       *
+       * - `check({ force: true })` — works unscrolled, **fails scrolled** ("Clicking the checkbox
+       *   did not change its state"). Which is why CL-11 saw it fail and this ritual did not.
+       * - `check()` without `force` — **times out at both widths, always**: the radio is clipped
+       *   under its own label, so the hit-target check can never pass. That half of the old
+       *   comment was true; only the conclusion drawn from it was wrong.
+       * - **pressing the label** — lands in every case. `click()` scrolls it into view and hit-
+       *   tests honestly, so it does not depend on where the screen happens to be sitting.
+       *
+       * **And it says so when it does not take**, because this is the failure that made the
+       * ticket: a driver that silently answers nothing hands its caller a screen nobody meant to
+       * look at, and both callers here — 76 shots and 76 audited screens — would have reported
+       * on it without a word. Both turn a throw from the walk into their own loud "could not
+       * run", which is the right voice for it.
+       */
+      const open = page.getByRole("radio", { name: "Open", exact: true }).first();
+      await open.locator("xpath=ancestor::label[1]").click();
+      if (!(await open.isChecked()))
+        throw new Error(
+          "pressing “Open” on Monday did not open the day, so the hours screen was left unanswered",
+        );
       const times = page.locator(TEXTISH);
       await times.nth(0).fill("7am");
       await times.nth(1).fill("2pm");

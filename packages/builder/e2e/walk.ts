@@ -146,8 +146,16 @@ async function answer(page: Page, spec: (typeof ANSWERS)[string]): Promise<boole
       /*
        * The day modes are `sr-only` radios inside their labels (§7.10), so the segment a person
        * presses is the label and the radio is a 1×1 box hidden inside it. Found by the role and
-       * pressed by the label: `check({ force: true })` on the radio itself, which is what
-       * `review-shots.mjs` does, lands a click that changes nothing — measured on `main`.
+       * pressed by the label, which scrolls it into view and hit-tests honestly.
+       *
+       * **`check({ force: true })` on the radio itself is the wrong instrument here, and this
+       * walk is where that was first seen** — but the report it prompted was narrower than the
+       * claim. `force` skips the scroll-into-view, so the click goes to the box's current
+       * viewport coordinate: unscrolled it is over the label and works, and *this* walk arrives
+       * at the hours step having already tabbed the seven day rows, ~367px down at 390, with
+       * Monday's radio above the top of the viewport and nothing under the point at all. So it
+       * failed here and went on working in the hand-run ritual, which arrives unscrolled.
+       * Measured, both ways, on `main`; `scripts/flow.mjs` now presses the label too (#302).
        */
       const open = page.getByRole("radio", { name: "Open", exact: true }).first();
       await open.locator("xpath=ancestor::label[1]").click();
