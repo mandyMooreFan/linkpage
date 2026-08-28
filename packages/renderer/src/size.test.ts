@@ -116,6 +116,28 @@ describe("the chrome budget (§6.5)", () => {
   });
 
   /**
+   * **CL-7's marking is charged to the pages that need it and to nobody else.**
+   *
+   * All 42 entries hold all ten words, so the only page that falls back to English is one whose
+   * tag the table has no entry for — and there the two hidden words carry ` lang="en"` each.
+   * Every page above therefore measures exactly what it measured before the marking existed,
+   * which is why the tripwire note is untouched by it.
+   *
+   * Asserted as an exact figure rather than a bound, because the failure worth catching is the
+   * marking spreading: put it on the day cells and this becomes twenty bytes a row, on every
+   * page in the tightest language, against 215 B of headroom.
+   */
+  it("charges the English marking only to a page that fell back (CL-7)", () => {
+    // Two two-letter tags, so nothing but the marking differs: `en` gets the English entry by
+    // matching it, `sw` gets it because there is no Swahili one.
+    const declared = chromeBytes(render({ ...MAXIMAL, lang: "en" }));
+    const fellBack = chromeBytes(render({ ...MAXIMAL, lang: "sw" }));
+
+    expect(fellBack - declared).toBe(2 * ` lang="en"`.length);
+    expect(fellBack).toBeLessThanOrEqual(CHROME_TRIPWIRE);
+  });
+
+  /**
    * §6.5 is **a budget, not a gate**, "enforced by bounding the inputs, never by refusing to
    * export" — a hard cap is the worst possible failure for this user, because refusing would
    * strand an owner from their own page. So a project past the budget still renders a complete,
