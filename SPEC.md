@@ -2132,9 +2132,14 @@ defects live. A dead tab stop survived 847 green tests here.
 
 1. **The tool's own text clears 4.5:1 against both of its backdrops.** _Measured_ — the test computes
    the ratio.
-2. **A focus ring is defined for every control, and the line owns it.** _Guarded at the stylesheet_ —
-   the test reads `theme.css` and asserts the `:focus-visible` rule is present. It does not observe a
-   ring being painted; jsdom cannot match `:focus-visible`.
+2. **A focus ring is painted on every tab stop, and the line owns it.** _Measured_ — a browser walk
+   presses Tab around every screen of the builder at both of §7.6's sizes and reads what focus
+   painted on each stop: an outline of at least 2px that was not there at rest, or, on the fields
+   that are a line, the bottom border thickening instead. It reaches 17 screens and every stop on
+   them — 133 at 390, 144 at 1440. **jsdom could never say this**: `:focus-visible` is a judgement
+   about how focus arrived, so the browser is the only instrument that can be asked. What Chromium
+   computes, on every stop but the preview iframe — the one place a ring was not observed, and the
+   one place the browser rather than the builder decides.
 3. **What the tool covers, it puts out of reach.** _Guarded at the attribute_ — the test asserts
    `[inert]` is in the DOM. jsdom does not implement `inert`, so the attribute is checked, not the
    unreachability.
