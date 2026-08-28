@@ -1,7 +1,9 @@
 {
   "//": "The end-to-end and the smoke test both run in Node and drive a browser, so it needs both sets of globals. It is a separate project from tsconfig.json so that `src` keeps its browser-only type environment: nothing shipped to the page should typecheck against `node:fs`.",
+  "//allowJs": "For `scripts/axe.mjs` alone, which the accessibility end-to-end imports. The tag set SPEC.md 7.12 records answers for two checks now — that one in CI and the hand-run builder sweep — and the hand-run half cannot be a `*.e2e.ts`, because this config's runner would put it in CI. So the shared part is plain ESM in `scripts/`, typed by JSDoc and read from here. `checkJs` stays off: the scripts are not typechecked, they are only inferred from.",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "allowJs": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "noEmit": true,
     "types": ["node"]

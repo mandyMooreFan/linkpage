@@ -15,6 +15,8 @@
     "test:e2e": "pnpm --filter @linkpage/builder test:e2e",
     "//shots": "Deliberately not part of any test run and never wired to CI (SPEC.md 7.4): it writes pictures for a person to look at, and nothing it writes fails a build.",
     "shots": "pnpm --filter @linkpage/builder exec node scripts/review-shots.mjs",
+    "//a11y": "Deliberately not part of any test run and never wired to CI (SPEC.md 7.12, 5.3): it drives the builder through 60-odd steps in a browser and reports what axe-core finds, for a person to act on. The exported page's check is the gated tier and runs in the End-to-end job. Nothing this reports fails a build.",
+    "a11y": "pnpm --filter @linkpage/builder exec node scripts/a11y-sweep.mjs",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",

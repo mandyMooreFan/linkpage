@@ -18,8 +18,8 @@ export default tseslint.config(
      * package* — the way both scripts here are invoked.
      *
      * The browser globals below are not a lie about where this runs. `document`, `localStorage`,
-     * `HTMLElement` and `window` appear only inside `page.evaluate` callbacks, which are
-     * serialised and run in the browser rather than here.
+     * `HTMLElement`, `window` and `getComputedStyle` appear only inside `page.evaluate`
+     * callbacks, which are serialised and run in the browser rather than here.
      */
     files: ["packages/builder/scripts/**/*.mjs"],
     languageOptions: {
@@ -33,6 +33,7 @@ export default tseslint.config(
         document: "readonly",
         localStorage: "readonly",
         HTMLElement: "readonly",
+        getComputedStyle: "readonly",
       },
     },
   },

@@ -99,10 +99,12 @@
 import { chromium } from "@playwright/test";
 
 import { covered, intended, missing, slug, unreached } from "./census.mjs";
+import { ANSWERS, settle, walkFlow as walk } from "./flow.mjs";
 import { portFor } from "./port.mjs";
+import { serve } from "./serve.mjs";
 import { compare, digest, verdict } from "./stability.mjs";
 import { DEFAULT_VARIANTS, MODES, parseVariant, SHAPES, TYPES } from "./variants.mjs";
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -159,39 +161,6 @@ const SIZES = [
  * one double-click from it.
  */
 const PAGE_SIZE = "mobile";
-
-/**
- * One answer per wizard step, keyed by the question's own heading.
- *
- * Keyed by heading rather than by index so a reordered flow does not silently photograph the
- * wrong thing: an unrecognised heading stops the walk and says so, which is the failure you want.
- */
-const ANSWERS = {
-  "What kind of business is this?": { kind: "preset", choose: "Food & drink" },
-  "What's it called?": { kind: "type", value: "Ada & Sons Bakers" },
-  "One line about what you do?": {
-    kind: "type",
-    value: "Sourdough, pastries, and the best cheese scone in town",
-  },
-  "Do you have a logo?": { kind: "skip" },
-  /**
-   * **`refused` is what the owner types that we cannot use** (CL-1), photographed before the
-   * step is answered properly. The exact-colour box is the only field in the wizard that judges
-   * on screen (§7.9 decision 2), so this is the one frame in the whole set showing the sentence
-   * — and until CL-1 there was nothing to show, which was the finding.
-   */
-  "What's your colour?": { kind: "swatch", refused: "zzzzzz" },
-  "Which of these do you have?": { kind: "check", labels: ["See the menu", "Order for pickup"] },
-  "Where does “See the menu” go?": { kind: "type", value: "https://example.com/menu" },
-  "Where does “Order for pickup” go?": { kind: "type", value: "https://example.com/order" },
-  "When are you open?": { kind: "hours" },
-  "How do people reach you?": { kind: "contact" },
-  "Where are you?": { kind: "address" },
-  "Where else are you online?": { kind: "skip" },
-};
-
-const TEXTISH =
-  '[data-screen="flow"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"])';
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {
@@ -322,71 +291,6 @@ const expect = (name) => wanted.push(name);
 /** Record one that arrived. */
 const got = (name) => taken.add(name);
 
-/** Whether anything at all is answering on this run's origin. */
-async function answering() {
-  try {
-    return (await fetch(APP)).ok;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Build the app and serve it the way Pages does — under `/linkpage/`, from `dist`.
- *
- * **Both checks below exist to make one specific failure loud.** A screenshot of the wrong
- * branch is indistinguishable from a screenshot of the right one, so this is the only place
- * that can tell the difference, and it has to refuse rather than carry on. See `portFor`.
- */
-async function serve() {
-  // Before building anything: if the origin already answers, it is another run — or a stray
-  // server a killed one left behind, which `--keep-server` makes easy to do. Continuing
-  // would photograph *its* build under *our* label.
-  if (await answering()) {
-    throw new Error(
-      `something is already serving ${ORIGIN}.\n` +
-        `  This run would have photographed it instead of your own build.\n` +
-        `  Stop it, or pass --port <n>.`,
-    );
-  }
-
-  log("· building the builder");
-  execFileSync("pnpm", ["exec", "vite", "build"], { cwd: BUILDER, stdio: "inherit" });
-
-  log(`· serving it on ${ORIGIN}`);
-  const server = spawn(
-    "pnpm",
-    ["exec", "vite", "preview", "--host", HOST, "--port", String(PORT), "--strictPort"],
-    { cwd: BUILDER, stdio: "ignore" },
-  );
-
-  const deadline = Date.now() + 60_000;
-  for (;;) {
-    // The server exiting is the signal, because `stdio: "ignore"` means it is the only one
-    // we get. `--strictPort` makes vite exit rather than quietly move to another port, and
-    // without this check the loop simply keeps polling and then succeeds the moment
-    // *anyone* answers — which is precisely how a run ends up photographing a neighbour.
-    if (server.exitCode !== null) {
-      throw new Error(
-        `the preview server exited (code ${server.exitCode}) before it came up on ${APP}.\n` +
-          `  Most likely ${ORIGIN} was taken — pass --port <n>.`,
-      );
-    }
-    if (await answering()) break;
-    if (Date.now() > deadline) {
-      server.kill();
-      throw new Error(`the preview server never came up on ${APP}`);
-    }
-    await new Promise((r) => setTimeout(r, 250));
-  }
-  return server;
-}
-
-/** Settle the frame's own fade (§7.11) before the shutter, so shots are not caught mid-transition. */
-async function settle(page) {
-  await page.waitForTimeout(400);
-}
-
 /**
  * One picture. `of` narrows it to a single element rather than the viewport.
  *
@@ -406,81 +310,12 @@ async function shoot(page, size, name, of) {
   log(`  ${size.dir}/${name}.png`);
 }
 
-/** The question currently on screen, by its own heading. */
-async function heading(page) {
-  const h = page.locator('[data-screen="flow"] h1').first();
-  return (await h.count()) ? ((await h.textContent()) ?? "").trim() : null;
-}
-
-/**
- * Answer one step. Returns false when the step advances itself (the preset picker does).
- *
- * Everything is blurred afterwards. Fields normalise what you typed on blur — "2pm" becomes
- * "2:00 PM" — so a shot taken with the caret still in the box photographs a half-committed value,
- * and §7.9's judgement would hold the screen when the walk tried to move on. It also keeps the
- * shots free of an arbitrary focus ring, which would be noise in a before-and-after.
- */
-async function answer(page, spec) {
-  const result = await fill(page, spec);
-  await page.evaluate(() =>
-    document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined,
-  );
-  return result;
-}
-
-async function fill(page, spec) {
-  switch (spec.kind) {
-    case "preset":
-      await page.getByRole("button", { name: spec.choose }).first().click();
-      return false;
-    case "type":
-      await page.locator(TEXTISH).first().fill(spec.value);
-      return true;
-    case "swatch":
-      await page.locator("[data-swatch], .av, button[aria-pressed]").first().click();
-      return true;
-    case "check":
-      for (const l of spec.labels) await page.getByLabel(l, { exact: false }).first().check();
-      return true;
-    case "hours": {
-      // The day modes are `sr-only` radios driven by their labels, so the label intercepts the
-      // pointer. `force` is right here rather than a workaround: the control is the radio.
-      await page.getByRole("radio", { name: "Open", exact: true }).first().check({ force: true });
-      const times = page.locator(TEXTISH);
-      await times.nth(0).fill("7am");
-      await times.nth(1).fill("2pm");
-      return true;
-    }
-    case "contact": {
-      const f = page.locator(TEXTISH);
-      await f.nth(0).fill("020 7946 0100");
-      await f.nth(1).fill("hello@adasbakery.example");
-      return true;
-    }
-    case "address": {
-      await page
-        .locator('[data-screen="flow"] textarea')
-        .first()
-        .fill("12 Mill Lane\nHebden Bridge\nHX7 8AA");
-      /*
-       * **And the directions link, which the walk used to leave empty** (#244). It is optional,
-       * so skipping it looked harmless — but it is the field that decides what the address row
-       * says (§7.4) *and* whether the exported page turns the address into a link at all (§2.3),
-       * so two decisions had no picture anywhere in the set. The fifth instance of this script's
-       * standing failure: a screen that exists only once something optional has been answered.
-       */
-      await page.getByLabel("A link to directions").fill("maps.example/?q=12+Mill+Lane");
-      return true;
-    }
-    case "skip":
-      return true;
-    default:
-      return true;
-  }
-}
-
 /**
  * Walk the flow from empty, photographing each step on arrival and once answered.
+ *
+ * **The walk itself lives in `flow.mjs`** — it is shared with the accessibility sweep (CL-9),
+ * which needs exactly these 60-odd driven steps and wants to run a checker at each of them rather
+ * than a shutter. What is left here is what the *ritual* does with each state it is handed.
  *
  * **The walk always runs, even under `--only page`** — it is what puts a real project in
  * `localStorage`, and the page variants are that project restyled. Seeding a hand-written fixture
@@ -493,97 +328,27 @@ async function walkFlow(context, size, capture) {
   await page.evaluate(() => localStorage.clear());
   await page.goto(APP);
 
-  let n = 0;
-  const seen = new Set();
-  for (;;) {
-    if (!(await page.locator('[data-screen="flow"]').count())) break; // left the flow: the list
-    const title = await heading(page);
-    if (!title) {
-      miss("the rest of the wizard", "the flow is on screen but has no heading to name it by");
-      break;
-    }
-    if (seen.has(title) && seen.size > 1) {
-      miss(
-        "the rest of the wizard",
-        `“${title}” came round again, so the walk stopped making progress`,
-      );
-      break;
-    }
-    seen.add(title);
-
-    n += 1;
-    const name = `${String(n).padStart(2, "0")}-${slug(title)}`;
-    if (capture) await shoot(page, size, `${name}-arrive`);
-
-    const spec = ANSWERS[title];
-    if (!spec) {
-      miss(
-        "the rest of the wizard",
-        `no answer known for “${title}” — add it to ANSWERS in this script`,
-      );
-      break;
-    }
-
-    /*
-     * §7.9's sentence, before the step is answered properly (CL-1).
-     *
-     * The walk answers every question correctly, so the one surface in the flow where the tool
-     * says *this will not work* had no picture in any set — this script's standing failure for
-     * the sixth time, and the one that made CL-1's before-and-after pair come back identical.
-     * Type what cannot be used, press `Continue`, photograph, then clear and carry on.
-     *
-     * **The press is the whole point and it must not advance the flow.** Judgement holds the
-     * screen (§7.9 decision 2), so if the heading moves, the walk has photographed the wrong
-     * thing and says so rather than carrying a mislabelled frame into a review.
-     */
-    if (spec.refused !== undefined) {
-      const box = page.locator(TEXTISH).first();
-      await box.fill(spec.refused);
-      const judge = page.getByRole("button", { name: /^(Continue|Save)$/ });
-      if ((await judge.count()) && (await judge.first().isEnabled())) await judge.first().click();
-      await settle(page);
-      if ((await heading(page)) !== title) {
-        miss(
-          `“${title}” with something the tool cannot use`,
-          `pressing Continue on “${spec.refused}” advanced the flow instead of holding it`,
+  return walk(page, {
+    onArrive: async (p, name) => {
+      if (capture) await shoot(p, size, `${name}-arrive`);
+    },
+    onRefused: async (p, name) => {
+      if (capture) await shoot(p, size, `${name}-refused`);
+    },
+    onAnswered: async (p, name, title, spec) => {
+      if (capture && spec.kind !== "skip") await shoot(p, size, `${name}-filled`);
+      // A declined question is a tick-on on the list rather than a row (§7.1), so there is no row
+      // screen for it and there cannot be. Said out loud rather than left as a gap in the numbers.
+      if (spec.kind === "skip") {
+        omit(
+          `a list row for “${title}”`,
+          "this walk declines it, and a declined topic is a tick-on rather than a row — the" +
+            " question itself is photographed in the flow above",
         );
-        break;
       }
-      if (capture) await shoot(page, size, `${name}-refused`);
-      await box.fill("");
-      await settle(page);
-    }
-
-    const needsContinue = await answer(page, spec);
-    if (capture && spec.kind !== "skip") await shoot(page, size, `${name}-filled`);
-    // A declined question is a tick-on on the list rather than a row (§7.1), so there is no row
-    // screen for it and there cannot be. Said out loud rather than left as a gap in the numbers.
-    if (spec.kind === "skip") {
-      omit(
-        `a list row for “${title}”`,
-        "this walk declines it, and a declined topic is a tick-on rather than a row — the" +
-          " question itself is photographed in the flow above",
-      );
-    }
-
-    if (needsContinue) {
-      const escape = page.locator("[data-escape]");
-      const cont = page.getByRole("button", { name: /^(Continue|Save)$/ });
-      if (spec.kind === "skip" && (await escape.count())) await escape.first().click();
-      else if ((await cont.count()) && (await cont.first().isEnabled())) await cont.first().click();
-      else if (await escape.count()) await escape.first().click();
-      else {
-        miss(
-          "the rest of the wizard",
-          `nothing to press on “${title}” — no enabled Continue and no escape`,
-        );
-        break;
-      }
-    }
-    await settle(page);
-    if (n > 20) break; // a walk this long means something is wrong, not that the flow grew
-  }
-  return page;
+    },
+    onMiss: miss,
+  });
 }
 
 /** The screens that are not the wizard: the list, its rows, the sheet, the menu, the import fork. */
@@ -1070,7 +835,7 @@ async function main() {
   let server;
   let browser;
   try {
-    server = await serve();
+    server = await serve({ builder: BUILDER, host: HOST, port: PORT, log });
     browser = await chromium.launch({ args: RASTER });
 
     const count = await takeAll(browser, runRoot);
