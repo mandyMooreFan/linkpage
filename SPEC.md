@@ -2140,9 +2140,18 @@ defects live. A dead tab stop survived 847 green tests here.
    about how focus arrived, so the browser is the only instrument that can be asked. What Chromium
    computes, on every stop but the preview iframe — the one place a ring was not observed, and the
    one place the browser rather than the builder decides.
-3. **What the tool covers, it puts out of reach.** _Guarded at the attribute_ — the test asserts
-   `[inert]` is in the DOM. jsdom does not implement `inert`, so the attribute is checked, not the
-   unreachability.
+3. **What the tool covers, it puts out of reach, and what it leaves on the glass stays in reach.**
+   _Measured_ — the same browser walk counts every control each screen is showing and then presses
+   Tab around it, at both of §7.6's sizes: **159 controls over 17 screens, 133 of them reachable at
+   390 and 144 at 1440**. Two screens account for the whole difference. On the review list at 390
+   the preview page comes down over the column, and **2 of its 13 controls stay in reach** — _Edit
+   your page_ and _Download_, the two the drawer put on its own glass, so that what it covers is
+   not a dead end; the other 11 are still on the page and the keyboard cannot get to any of them.
+   Behind §7.7's download sheet, 3 of 18. **jsdom does not implement `inert`** — it neither blocks
+   focus nor prunes the tree — so the attribute was all its test could see, and that test still
+   holds where the statement is. The measurement is of what Tab reaches, which is the one question
+   both of the tool's two mechanisms answer: the drawer holds the keyboard out with `inert`, the
+   sheet holds it in with a focus trap, and those are not the same guarantee.
 4. **Motion collapses under `prefers-reduced-motion`.** _Guarded at the stylesheet_ — the `@media`
    block must exist, be non-empty, and name every duration a screen change runs. Durations are not
    measured by a standing test.
