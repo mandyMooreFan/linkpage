@@ -37,150 +37,22 @@ import { slug } from "./census.mjs";
  * Keyed by heading rather than by index so a reordered flow does not silently photograph the
  * wrong thing: an unrecognised heading stops the walk and says so, which is the failure you want.
  */
-export const ANSWERS = {
-  "What kind of business is this?": { kind: "preset", choose: "Food & drink" },
-  "What's it called?": { kind: "type", value: "Ada & Sons Bakers" },
-  "One line about what you do?": {
-    kind: "type",
-    value: "Sourdough, pastries, and the best cheese scone in town",
-  },
-  "Do you have a logo?": { kind: "skip" },
-  /**
-   * **`refused` is what the owner types that we cannot use** (CL-1), reached before the step is
-   * answered properly. The exact-colour box is the only field in the wizard that judges on screen
-   * (§7.9 decision 2), so this is the one state in the whole walk showing the sentence — and
-   * until CL-1 there was nothing to show, which was the finding.
-   */
-  "What's your colour?": { kind: "swatch", refused: "zzzzzz" },
-  "Which of these do you have?": { kind: "check", labels: ["See the menu", "Order for pickup"] },
-  "Where does “See the menu” go?": { kind: "type", value: "https://example.com/menu" },
-  "Where does “Order for pickup” go?": { kind: "type", value: "https://example.com/order" },
-  "When are you open?": { kind: "hours" },
-  "How do people reach you?": { kind: "contact" },
-  "Where are you?": { kind: "address" },
-  "Where else are you online?": { kind: "skip" },
-};
-
-/** The wizard's text-ish fields — everything a step types into. */
-export const TEXTISH =
-  '[data-screen="flow"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"])';
-
-/**
- * Settle the frame's own fade (§7.11) before the caller looks at the screen.
+/*
+ * **The answering half lives in `wizard.mjs` now** (#332). `e2e/walk.ts` drives the same wizard
+ * and had its own copy of all of this; the two had drifted five times. What stays here is the
+ * *route* — which step comes next, and what this walker does at each one — because the gated
+ * walker's route visits different things for different reasons and #315 settled that they stay
+ * apart.
  *
- * Shared so the two callers look at the same moment: a shot caught mid-transition and an audit
- * run mid-transition are the same mistake.
+ * Re-exported rather than merely imported: `review-shots.mjs` and `a11y-sweep.mjs` read `ANSWERS`
+ * from here, and moving the file under them would be churn for its own sake.
  */
+export { ANSWERS, TEXTISH, answer, heading } from "./wizard.mjs";
+
+import { ANSWERS, TEXTISH, answer, heading } from "./wizard.mjs";
+
 export async function settle(page) {
   await page.waitForTimeout(400);
-}
-
-/** The question currently on screen, by its own heading. */
-export async function heading(page) {
-  const h = page.locator('[data-screen="flow"] h1').first();
-  return (await h.count()) ? ((await h.textContent()) ?? "").trim() : null;
-}
-
-/**
- * Answer one step. Returns false when the step advances itself (the preset picker does).
- *
- * Everything is blurred afterwards. Fields normalise what you typed on blur — "2pm" becomes
- * "2:00 PM" — so a screen read with the caret still in the box is a half-committed value, and
- * §7.9's judgement would hold the screen when the walk tried to move on. It also keeps the walk
- * free of an arbitrary focus ring, which would be noise in a before-and-after.
- */
-export async function answer(page, spec) {
-  const result = await fill(page, spec);
-  await page.evaluate(() =>
-    document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined,
-  );
-  return result;
-}
-
-async function fill(page, spec) {
-  switch (spec.kind) {
-    case "preset":
-      await page.getByRole("button", { name: spec.choose }).first().click();
-      return false;
-    case "type":
-      await page.locator(TEXTISH).first().fill(spec.value);
-      return true;
-    case "swatch":
-      await page.locator("[data-swatch], .av, button[aria-pressed]").first().click();
-      return true;
-    case "check":
-      for (const l of spec.labels) await page.getByLabel(l, { exact: false }).first().check();
-      return true;
-    case "hours": {
-      /*
-       * **Found by the role, pressed by the label** — the same shape `e2e/walk.ts` uses, and for
-       * a measured reason (#302). The day modes are `sr-only` radios inside their labels (§7.10),
-       * so the control is a 1×1 clipped box and the label is the segment a person presses.
-       *
-       * **This used to be `check({ force: true })` on the radio, with a comment saying `force`
-       * was right here rather than a workaround. It was not.** `force` skips Playwright's
-       * actionability sequence, and scrolling the element into view is *part of* that sequence —
-       * so the click goes to the 1×1 box's current viewport coordinate whether or not that
-       * coordinate is on screen. On this screen it is a coin toss decided by scroll position:
-       * arrive at the hours step unscrolled and the point is over the label and it works;
-       * arrive with the page scrolled down — which is what happens to anything that has already
-       * walked the seven day rows — and Monday's radio sits ~123px *above* the viewport,
-       * `elementFromPoint` there returns `null`, and the click lands on nothing.
-       *
-       * All three candidates were measured on `main`, at both of §7.6's widths, on a scrolled
-       * screen and an unscrolled one:
-       *
-       * - `check({ force: true })` — works unscrolled, **fails scrolled** ("Clicking the checkbox
-       *   did not change its state"). Which is why CL-11 saw it fail and this ritual did not.
-       * - `check()` without `force` — **times out at both widths, always**: the radio is clipped
-       *   under its own label, so the hit-target check can never pass. That half of the old
-       *   comment was true; only the conclusion drawn from it was wrong.
-       * - **pressing the label** — lands in every case. `click()` scrolls it into view and hit-
-       *   tests honestly, so it does not depend on where the screen happens to be sitting.
-       *
-       * **And it says so when it does not take**, because this is the failure that made the
-       * ticket: a driver that silently answers nothing hands its caller a screen nobody meant to
-       * look at, and both callers here — 76 shots and 76 audited screens — would have reported
-       * on it without a word. Both turn a throw from the walk into their own loud "could not
-       * run", which is the right voice for it.
-       */
-      const open = page.getByRole("radio", { name: "Open", exact: true }).first();
-      await open.locator("xpath=ancestor::label[1]").click();
-      if (!(await open.isChecked()))
-        throw new Error(
-          "pressing “Open” on Monday did not open the day, so the hours screen was left unanswered",
-        );
-      const times = page.locator(TEXTISH);
-      await times.nth(0).fill("7am");
-      await times.nth(1).fill("2pm");
-      return true;
-    }
-    case "contact": {
-      const f = page.locator(TEXTISH);
-      await f.nth(0).fill("020 7946 0100");
-      await f.nth(1).fill("hello@adasbakery.example");
-      return true;
-    }
-    case "address": {
-      await page
-        .locator('[data-screen="flow"] textarea')
-        .first()
-        .fill("12 Mill Lane\nHebden Bridge\nHX7 8AA");
-      /*
-       * **And the directions link, which the walk used to leave empty** (#244). It is optional,
-       * so skipping it looked harmless — but it is the field that decides what the address row
-       * says (§7.4) *and* whether the exported page turns the address into a link at all (§2.3),
-       * so two decisions had no picture anywhere in the set. The fifth instance of the ritual's
-       * standing failure: a screen that exists only once something optional has been answered.
-       */
-      await page.getByLabel("A link to directions").fill("maps.example/?q=12+Mill+Lane");
-      return true;
-    }
-    case "skip":
-      return true;
-    default:
-      return true;
-  }
 }
 
 /** A step's name, as both callers spell it: its place in the flow and its own heading. */
