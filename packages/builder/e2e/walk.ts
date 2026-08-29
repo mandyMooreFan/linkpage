@@ -1,4 +1,21 @@
-import { expect, type JSHandle, type Page } from "@playwright/test";
+import { type JSHandle, type Page } from "@playwright/test";
+/*
+ * **The answering half comes from `scripts/wizard.mjs`** (#332). It used to live here as well —
+ * `ANSWERS`, `TEXTISH`, `slug`, `heading`, `answer` and `leave`, about 137 lines — and the two
+ * copies had drifted five times (#315), including a `slug` that disagreed with `census.mjs`'s on
+ * two of the twelve headings.
+ *
+ * **Plain ESM read from TypeScript, which is the seam `tsconfig.e2e.json` already cut for
+ * `scripts/axe.mjs`** and for the same reason: the hand-run half cannot be an `*.e2e.ts` without
+ * this project's runner putting it in CI, so the shared part is `scripts/`, JSDoc-typed, and read
+ * from here. `checkJs` stays off; it is inferred from, not typechecked.
+ *
+ * **What did not move is the route.** `walkScreens` below visits the builder's screens to measure
+ * them; `walkFlow` in `flow.mjs` visits them to photograph and audit them. Those are different
+ * journeys and #315 settled that they stay apart — which is also why `refused` is on the shared
+ * table and read by neither of the walks here (#333).
+ */
+import { ANSWERS, answer, heading, leave, slug } from "../scripts/wizard.mjs";
 
 /**
  * The browser walk the standing accessibility measurements ride on. `SPEC.md` §7.12, §7.6.
@@ -68,134 +85,10 @@ export interface Probes<T> {
   readonly resting?: (element: Element) => T;
 }
 
-/** One answer per wizard step, keyed by the question's own heading — as `review-shots.mjs`. */
-const ANSWERS: Record<
-  string,
-  { kind: string; value?: string; choose?: string; labels?: string[] }
-> = {
-  "What kind of business is this?": { kind: "preset", choose: "Food & drink" },
-  "What's it called?": { kind: "type", value: "Ada & Sons Bakers" },
-  "One line about what you do?": {
-    kind: "type",
-    value: "Sourdough, pastries, and the best cheese scone in town",
-  },
-  "Do you have a logo?": { kind: "skip" },
-  "What's your colour?": { kind: "swatch" },
-  "Which of these do you have?": {
-    kind: "check",
-    labels: ["See the menu", "Order for pickup"],
-  },
-  "Where does “See the menu” go?": { kind: "type", value: "https://example.com/menu" },
-  "Where does “Order for pickup” go?": { kind: "type", value: "https://example.com/order" },
-  "When are you open?": { kind: "hours" },
-  "How do people reach you?": { kind: "contact" },
-  "Where are you?": { kind: "address" },
-  "Where else are you online?": { kind: "skip" },
-};
-
-const TEXTISH =
-  '[data-screen="flow"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"])';
-
-/** A walk this long means something is wrong, not that the flow grew. */
 const MOST_STEPS = 20;
 
 /** Likewise: no screen in this builder has forty controls on it. */
 const MOST_STOPS = 60;
-
-const slug = (text: string): string =>
-  text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 40);
-
-/** The question on screen, by its own heading, or `null` once the flow is behind us. */
-async function heading(page: Page): Promise<string | null> {
-  const h = page.locator('[data-screen="flow"] h1').first();
-  return (await h.count()) ? ((await h.textContent()) ?? "").trim() : null;
-}
-
-/**
- * Fill one step in. Returns false when the step advances itself, as the preset picker does.
- *
- * Everything is blurred afterwards, for the reason `review-shots.mjs` gives — fields normalise
- * on blur — and for one more that matters here: a walk that starts tabbing with a caret already
- * in a box starts from the middle of the tab order.
- */
-async function answer(page: Page, spec: (typeof ANSWERS)[string]): Promise<boolean> {
-  let again = true;
-  switch (spec.kind) {
-    case "preset":
-      await page.getByRole("button", { name: spec.choose }).first().click();
-      again = false;
-      break;
-    case "type":
-      await page
-        .locator(TEXTISH)
-        .first()
-        .fill(spec.value ?? "");
-      break;
-    case "swatch":
-      await page.locator("[data-swatch]").first().click();
-      break;
-    case "check":
-      for (const label of spec.labels ?? [])
-        await page.getByLabel(label, { exact: false }).first().check();
-      break;
-    case "hours": {
-      /*
-       * The day modes are `sr-only` radios inside their labels (§7.10), so the segment a person
-       * presses is the label and the radio is a 1×1 box hidden inside it. Found by the role and
-       * pressed by the label, which scrolls it into view and hit-tests honestly.
-       *
-       * **`check({ force: true })` on the radio itself is the wrong instrument here, and this
-       * walk is where that was first seen** — but the report it prompted was narrower than the
-       * claim. `force` skips the scroll-into-view, so the click goes to the box's current
-       * viewport coordinate: unscrolled it is over the label and works, and *this* walk arrives
-       * at the hours step having already tabbed the seven day rows, ~367px down at 390, with
-       * Monday's radio above the top of the viewport and nothing under the point at all. So it
-       * failed here and went on working in the hand-run ritual, which arrives unscrolled.
-       * Measured, both ways, on `main`; `scripts/flow.mjs` now presses the label too (#302).
-       */
-      const open = page.getByRole("radio", { name: "Open", exact: true }).first();
-      await open.locator("xpath=ancestor::label[1]").click();
-      await expect(open).toBeChecked();
-      const times = page.locator(TEXTISH);
-      await times.nth(0).fill("7am");
-      await times.nth(1).fill("2pm");
-      break;
-    }
-    case "contact": {
-      const fields = page.locator(TEXTISH);
-      await fields.nth(0).fill("020 7946 0100");
-      await fields.nth(1).fill("hello@adasbakery.example");
-      break;
-    }
-    case "address":
-      await page
-        .locator('[data-screen="flow"] textarea')
-        .first()
-        .fill("12 Mill Lane\nHebden Bridge\nHX7 8AA");
-      await page.getByLabel("A link to directions").fill("maps.example/?q=12+Mill+Lane");
-      break;
-    default:
-      break;
-  }
-  await page.evaluate(() =>
-    document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined,
-  );
-  return again;
-}
-
-/** Leave the current step the way the walk's answer implies: Continue if it can, else the escape. */
-async function leave(page: Page, spec: (typeof ANSWERS)[string], title: string): Promise<void> {
-  const escape = page.locator("[data-escape]");
-  const next = page.getByRole("button", { name: /^(Continue|Save)$/ });
-  if (spec.kind === "skip" && (await escape.count())) await escape.first().click();
-  else if ((await next.count()) && (await next.first().isEnabled())) await next.first().click();
-  else if (await escape.count()) await escape.first().click();
-  else throw new Error(`nothing to press on “${title}”: no enabled Continue and no escape`);
-}
 
 /**
  * Every screen of the builder, from an empty start, with `visit` called on each.
