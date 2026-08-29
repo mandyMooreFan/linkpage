@@ -140,26 +140,47 @@ offers, and the names we give our own colours. All three invite correction on th
 
 ### The words the exported page writes
 
-The exported page writes eight translatable words of its own: the seven weekday abbreviations and
-the word for a closed day. Everything else on it is the owner's text. Those eight live in
-`packages/renderer/src/locale.ts`, keyed by language tag, and they are vendored rather than
-produced by `Intl` — see SPEC.md §2.5 for why, and please read that before proposing `Intl`.
+The exported page writes ten translatable words of its own: the seven weekday abbreviations, the
+word for a closed day, and the words for _opening hours_ and _directions_ that name the hours
+panel and the address link to a screen reader. Everything else on it is the owner's text. Those
+ten live in `packages/renderer/src/locale.ts`, keyed by language tag, and they are vendored
+rather than produced by `Intl` — see SPEC.md §2.5 for why, and please read that before proposing
+`Intl`.
 
 The abbreviations come from Unicode CLDR and can be checked against a version number. **The
-word for a closed day cannot.** No locale database holds the word a shop puts on its door, so
-each one is hand-authored here, and the only way to check it is to ask someone who speaks the
-language. So:
+other three cannot.** No locale database holds the word a shop puts on its door, the phrase it
+heads its opening times with, or what it writes above the link to its own map, so each of those
+is hand-authored here, and the only way to check it is to ask someone who speaks the language.
+Across the 42 languages that is **126 hand-written strings against 294 citable ones** — the
+un-citable half of the table is the larger one.
 
-- **If you speak one of the languages in that table and the closed word is not what a business
-  in your language would write, please open a PR.** That is the single highest-value
+**The _opening hours_ and _directions_ words are the newest and the thinnest, and they are what
+this section is most asking about.** All 84 of them were drafted in a single pass by one author
+who does not speak most of these languages, and `locale.ts` flags them as _drafted, not vouched
+for_. Two things make them harder to check than the closed word:
+
+- **They are invisible.** Both sit in `class="lp-sr"` text that only a screen reader reads, so
+  a wrong one never shows itself on the page the way `Mon` on a Welsh page does.
+- **Several languages want a verb phrase, not a noun.** The English _Directions_ reads as a
+  label; other languages say the equivalent of _how to get here_, because that is what a
+  business writes above its own map link. The drafts follow the language rather than the English
+  shape, which is a judgement rather than a lookup.
+
+So:
+
+- **If you speak one of the languages in that table and any of those three words is not what a
+  business in your language would write, please open a PR.** That is the single highest-value
   contribution this file can receive, and "I speak it and this is wrong" is sufficient
-  justification — no issue needed first.
-- **To add a language**, add its CLDR abbreviated weekday names and the closed word, and say in
-  the PR where the closed word comes from. Adding or correcting a language is additive: it does
-  not change `project.json`, so it is never a schema version bump (SPEC.md §4.8).
+  justification — no issue needed first. On the closed word a correction is welcome; on the two
+  new words it is **expected**.
+- **To add a language**, add its CLDR abbreviated weekday names and all three hand-authored
+  words, and say in the PR where they come from. Adding or correcting a language is additive: it
+  does not change `project.json`, so it is never a schema version bump (SPEC.md §4.8).
 - **A language that is not in the table renders English**, deliberately. A visible limitation
   beats a guess — the wrong word in the owner's own language is worse than the honest foreign
-  one.
+  one. Two of the ten are no longer visible, so a page that fell back marks them: the hidden
+  words carry `lang="en"` where the page declares something else, which is how a screen reader
+  is told the fallback happened rather than left to hear it.
 
 `AM` and `PM` are the exception and are deliberately English on every page — SPEC.md §2.5 gives
 the reason, which is CLDR's own data rather than convenience. Please read it before proposing a
@@ -195,7 +216,7 @@ it is for someone to look at the swatch and disagree.
   hex, so changing one is not a version bump (SPEC.md §4.2).
 - **Names are builder chrome and are not translated.** The builder has no localisation layer;
   `lang` belongs to the exported page. A swatch name sits with _Corner softness_, not with the
-  eight words above.
+  ten words above.
 - **Please do not propose computing them from the hex.** It was built and measured before being
   rejected, and SPEC.md §3.1 records why: brown, pink and navy are not hue bands.
 

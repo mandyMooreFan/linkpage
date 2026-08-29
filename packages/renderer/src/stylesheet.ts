@@ -182,7 +182,7 @@ function tokens(palette: Palette, chrome: Chrome): string {
  * swatch mark has to buy for itself; here the geometry gives it away free. An outline, so a page
  * never reflows when a visitor tabs. **It costs no bytes** — `--lp-ink` is eight characters
  * shorter than the role it replaces, so §6.5's chrome measurement went *down* by 8, which
- * matters because the worst realistic page has ~340 bytes of headroom under `size.test.ts`'s
+ * matters because the worst realistic page has ~215 bytes of headroom under `size.test.ts`'s
  * tripwire.
  *
  * **Two gaps repeat and are meant to.** An icon stands `--lp-space-2` from the words beside it
@@ -191,14 +191,16 @@ function tokens(palette: Palette, chrome: Chrome): string {
  * gaps and two gaps before the ladder (8, 10, 10 and 6px against 10px), which is what "roughly
  * twenty literals" buys you: not a wrong number anywhere, just no number meaning anything.
  *
- * **The hours mark is an icon, not a heading.** §6.9 gives the hours panel a clock because a
- * glyph can name a panel where §2.5 forbids the ninth string a heading would need — but it was
- * set *larger* than body text and *quieter* than body text at once, which is a heading and a
- * caption cancelling out. It takes one instrument, and the instrument is colour: `--lp-ink-muted`
- * at the inherited body size, which is exactly what every other icon on this page is. §2 ranks
- * weight and colour above size and §6 keeps icons near their drawn size, so both point the same
- * way; and the mark cannot win the argument as a *heading* anyway, because §2.5 will not give it
- * a word to head. Sitting alone on its own line is the one thing left that no other icon does,
+ * **The hours mark is an icon, not a heading.** §6.9 gives the hours panel a clock because it
+ * names the panel to a sighted reader — §2.5 has since spent a word on a real `<h2>` (#266,
+ * CL-5), but that heading is `.lp-sr`, so the glyph is still the only thing on the glass naming
+ * the panel — but it was set *larger* than body text and *quieter* than body text at once,
+ * which is a heading and a caption cancelling out. It takes one instrument, and the instrument
+ * is colour: `--lp-ink-muted` at the inherited body size, which is exactly what every other icon
+ * on this page is. §2 ranks weight and colour above size and §6 keeps icons near their drawn
+ * size, so both point the same way; and the mark cannot win the argument as a *heading* anyway,
+ * because the word §2.5 now gives it to head is one no sighted reader ever sees, so nothing here
+ * is a heading visually. Sitting alone on its own line is the one thing left that no other icon does,
  * and it is now the panel's first row rather than a band above it — `--lp-space-2` below it is
  * the hours grid's own row gap, so the clock sits in the same rhythm as the days it names.
  */

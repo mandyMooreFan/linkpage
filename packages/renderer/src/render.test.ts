@@ -261,16 +261,23 @@ describe("hours", () => {
   });
 
   /**
-   * #48, end to end: the Cardiff bakery. The eight words the renderer writes are the only
+   * #48, end to end: the Cardiff bakery. The ten words the renderer writes are the only
    * words on the page that are not the owner's, and they now follow the tag the page declares
    * rather than staying English underneath it.
+   *
+   * **Ten, and two of them are invisible.** The pair §6.9 bought (CL-5, CL-6) is exactly the
+   * pair no reader could catch staying English, because neither is on the glass — so the
+   * one place the whole count is exercised end to end is the place to say so.
    */
-  it("writes its own eight words in the language the page declares", () => {
-    const welsh = render({ ...base, lang: "cy", hours: full.hours });
+  it("writes its own ten words in the language the page declares", () => {
+    const welsh = render({ ...base, lang: "cy", hours: full.hours, address: full.address });
     expect(welsh).toContain('<html lang="cy" dir="ltr">');
     expect(welsh).toContain(">Llun</dt>");
     expect(welsh).toContain(">Ar gau<");
-    for (const english of [">Mon<", ">Sun<", ">Closed<"]) expect(welsh).not.toContain(english);
+    expect(welsh).toContain(">Oriau agor</h2>");
+    expect(welsh).toContain('<span class="lp-sr">Cyfarwyddiadau</span>');
+    const english = [">Mon<", ">Sun<", ">Closed<", ">Opening hours<", ">Directions<"];
+    for (const word of english) expect(welsh).not.toContain(word);
   });
 
   it("falls back to English words rather than failing on a language it does not hold", () => {

@@ -134,10 +134,11 @@ them at render time from whichever ICU build happens to be running, because that
 exported bytes depend on the host rather than on the project (§6.7) and could make the owner's
 preview differ from their file (§5.2).
 
-**The word for a closed day is NOT from CLDR.** There is no locale database of the word a shop
-puts on its door; that one string per language is hand-authored in this repository and is
-governed by §2.5's growth rule, not by anything below. Corrections from speakers are welcome —
-see CONTRIBUTING.md.
+**Three of SPEC.md §2.5's ten words are NOT from CLDR.** There is no locale database of the word
+a shop puts on its door, of the phrase it heads its opening times with, or of what it writes
+above the link to its own map; those three strings per language are hand-authored in this
+repository and are governed by §2.5's growth rule, not by anything below. Corrections from
+speakers are welcome — see CONTRIBUTING.md.
 
 UNICODE LICENSE V3
 
