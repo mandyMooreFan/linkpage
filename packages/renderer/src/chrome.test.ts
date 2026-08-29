@@ -35,6 +35,37 @@ const combinations: [Shape, TypePairing][] = SHAPES.flatMap((shape) =>
 );
 
 /**
+ * The corpora themselves, pinned. §5.3's rule, added on #328.
+ *
+ * **`SHAPES` and `MODES` were pinned by nothing anywhere in the suite**, and they are read by
+ * nine assertion loops across this file, `render.test.ts`, `palette.test.ts` and
+ * `stylesheet.test.ts` — every one of which asserts nothing at all over an empty list. Measured
+ * on #317: emptied at their definitions, `SHAPES` failed **five** tests and `MODES` **two**,
+ * while the six and five loops that iterate them said nothing. The mutants were caught by other
+ * tests. **A corpus can be well defended and still not defended by the checks that read it.**
+ *
+ * `combinations` is pinned too, because it is the derived list the twelve-combination describes
+ * below are built from, and "all twelve" in their names is prose that cannot fail.
+ *
+ * Named rather than counted — #181's *identify, don't count*. A shape swapped for another keeps
+ * the length and is a different product.
+ *
+ * **This is the whole of the "say so" the rule asks for**, and it is written once here rather
+ * than repeated beside all nine loops: those loops are safe because this test is, and if it goes
+ * red the loops below it are the reason to care.
+ */
+describe("the corpora these tests iterate", () => {
+  it("holds the four shapes and the two modes, by name", () => {
+    expect([...SHAPES]).toEqual(["centred", "colourBlock", "floatingCard", "ruledLeft"]);
+    expect([...MODES]).toEqual(["light", "dark"]);
+  });
+
+  it("derives exactly the twelve combinations the describes below are named for", () => {
+    expect(combinations).toHaveLength(12);
+  });
+});
+
+/**
  * The populated fixture in one particular combination.
  *
  * The patch is keyed by `Style` but valued `unknown`, because half of what these tests hand it

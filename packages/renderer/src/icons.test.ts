@@ -99,6 +99,33 @@ describe("the set covers what the spec asks of it", () => {
     expect(Object.keys(SOCIAL_MARKS)).toEqual([...SOCIAL_PLATFORMS]);
   });
 
+  /**
+   * The corpus itself, pinned. §5.3's rule, added on #328.
+   *
+   * `SOCIAL_PLATFORMS` is iterated by loops in this file and in `render.test.ts` that assert
+   * nothing at all if it is empty. Emptied at its definition, exactly **one** test in the whole
+   * suite went red (#317) — the one above, and only because `SOCIAL_MARKS` still had its keys.
+   * That is a corpus defended by another line rather than by the checks that read it, which is
+   * `census.mjs`'s warning at suite scale.
+   *
+   * Named rather than counted, which is #181's *identify, don't count*: a platform quietly
+   * swapped for another keeps the length and is a different product.
+   */
+  it("holds the ten platforms the product offers, by name", () => {
+    expect([...SOCIAL_PLATFORMS]).toEqual([
+      "instagram",
+      "facebook",
+      "x",
+      "tiktok",
+      "youtube",
+      "whatsapp",
+      "pinterest",
+      "threads",
+      "bluesky",
+      "mastodon",
+    ]);
+  });
+
   it("gives every social mark a proper name for its accessible label", () => {
     for (const platform of SOCIAL_PLATFORMS) {
       expect(SOCIAL_MARKS[platform].label, platform).not.toBe("");

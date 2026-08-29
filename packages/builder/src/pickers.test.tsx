@@ -98,12 +98,19 @@ function isNotAControl(driver: string | null): void {
   }
 
   // 3. The name is the visible control's own words, and that control is the only one there is.
+  //
+  //    There was a fourth line here — `queryAllByRole("button")` asserted not to contain the
+  //    input — and it went on #328 under §5.3's rule. It was not dead: put `role="button"` on
+  //    the input and it goes red. It was **misaimed**. The defect #254 removed was a file input
+  //    made into a second accessible button *by a name alone*, and such an input carries no role
+  //    to count: mounted, that markup gives `queryAllByRole("button")` a length of 1 that does
+  //    not contain it (#317). The absence is covered by the four assertions in step 2, which do
+  //    read the attributes a name is computed from — and §7.12 commitment 6 states the form this
+  //    repository prefers, counting the named controls a screen renders rather than asserting an
+  //    absence, which is what `FilePicker.test.tsx` does.
   const control = screen.getByRole("button", { name: driver });
   expect(stops.length, "the screen has tab stops to be absent from").toBeGreaterThan(0);
   expect(stops, "the visible control is the stop").toContain(control);
-  expect(screen.queryAllByRole("button"), "and the picker is not a second one").not.toContain(
-    input,
-  );
 
   // 4. Pressing it reaches the dialog — so the stop that went away was carrying nothing.
   const opened = vi.fn();
