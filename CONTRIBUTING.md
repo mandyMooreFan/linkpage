@@ -99,7 +99,7 @@ pnpm typecheck     # tsc across both packages
 pnpm test          # vitest
 pnpm build         # renderer tsc emit + builder vite build
 pnpm format        # prettier --write .
-pnpm test:e2e      # the one Playwright end-to-end; needs a browser (see below)
+pnpm test:e2e      # the Playwright end-to-ends; needs a browser (see below)
 ```
 
 ## Tests
@@ -112,23 +112,29 @@ The builder gets tests only where the logic is genuinely tricky (undo/redo, `pro
 import/export). **There is no coverage target and won't be one** — coverage targets on a
 form UI generate busywork PRs.
 
-### The one browser test
+### The browser tests
 
-`packages/builder/e2e/download.e2e.ts` is the whole of it, and it stays that way. It presses
-Download in a real browser, compares the bytes that land on disk to the `srcdoc` the preview
-was showing, and then opens that file from `file://` with the network switched off. Those are
-the three things jsdom cannot reach; everything else about the builder is tested without a
-browser and should stay that way.
+Five of them, in `packages/builder/e2e/`, and each is there because jsdom cannot answer its
+question — see `SPEC.md` §5.3 for the tier and what it costs.
 
-It is **not** part of `pnpm test`. Run it once, first time:
+`download.e2e.ts` presses Download in a real browser, compares the bytes that land on disk to the
+`srcdoc` the preview was showing, and then opens that file from `file://` with the network
+switched off. The other four are accessibility measurements (§7.12): `exported-page-a11y.e2e.ts`
+runs `axe-core` over the exported page, and `focus-ring.e2e.ts`, `reachability.e2e.ts` and
+`tap-target.e2e.ts` walk the builder with the Tab key — asking, respectively, what focus painted,
+what the keyboard can reach, and how big the thing under it rendered. None of those is a fact a
+DOM without layout or `:focus-visible` can state. Everything else about the builder is tested
+without a browser and should stay that way.
+
+They are **not** part of `pnpm test`. Install the browser once, first time:
 
 ```bash
 pnpm --filter @linkpage/builder exec playwright install --only-shell chromium
 pnpm test:e2e      # builds the builder, serves dist, drives it
 ```
 
-CI runs it as a separate job on one Node version, so the Node 24/26 matrix keeps its minute.
-**A new browser test needs a reason no unit test can cover**, and if this one ever needs a
+CI runs them as a separate job on one Node version, so the Node 24/26 matrix keeps its minute.
+**A new browser test needs a reason no unit test can cover**, and if one of these ever needs a
 retry to be green, fix it or delete it — a flaky browser test costs more than the guarantee it
 nominally protects, because every future change starts by suspecting itself.
 

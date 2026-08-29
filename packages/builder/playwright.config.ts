@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * The one end-to-end's runner. `SPEC.md` §5.3.
+ * The end-to-end tier's runner. `SPEC.md` §5.3.
  *
  * **One browser, one worker, no retries, and a build it serves itself.** Everything here is
  * chosen to keep a browser out of the critical path: the Vitest suites the whole repo runs on
@@ -38,7 +38,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
 
-  // Chromium alone. §5.3 asks for one end-to-end, not a browser matrix, and every extra engine
+  // Chromium alone. §5.3 asks for a tier of end-to-ends, not a browser matrix, and every extra engine
   // is another download to cache and another way for CI to be slow.
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 

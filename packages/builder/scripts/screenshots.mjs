@@ -5,8 +5,8 @@
  *   pnpm --filter @linkpage/builder exec vite preview --host 127.0.0.1 --port 4173 --strictPort &
  *   pnpm --filter @linkpage/builder exec node scripts/screenshots.mjs
  *
- * Deliberately a script rather than a Playwright test. The one end-to-end this repo has is a
- * guarantee (`SPEC.md` §5.3) and runs on every push; screenshots are neither, and putting them in
+ * Deliberately a script rather than a Playwright test. The end-to-ends this repo has are
+ * guarantees (`SPEC.md` §5.3) and run on every push; screenshots are neither, and putting them in
  * the same runner would spend CI time on a picture nobody is asserting anything about.
  *
  * It shoots the real built builder and the real exported page — nothing here is a mock-up, so a

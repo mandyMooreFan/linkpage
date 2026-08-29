@@ -61,10 +61,11 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
-  # `SPEC.md` §5.3's single end-to-end: the downloaded file is the preview, and it renders from
-  # `file://` with the network off. It is a job of its own rather than two more steps on the
-  # matrix above, because it is the only thing here that needs a browser and it must not put one
-  # on the critical path — the Node 24/26 lines stay a minute long and stay the fast signal.
+  # `SPEC.md` §5.3's browser tier: the downloaded file is the preview and renders from `file://`
+  # with the network off, plus the four accessibility walks that only a browser can make (§7.12).
+  # It is a job of its own rather than more steps on the matrix above, because it is the only
+  # thing here that needs a browser and it must not put one on the critical path — the Node 24/26
+  # lines stay a minute long and stay the fast signal.
   #
   # One Node version, one browser, one worker, no retries. See `packages/builder/playwright.config.ts`.
   e2e:
@@ -73,7 +74,9 @@ jobs:
     #
     # **Bounded, because it once was not** (issue #119). Three runs in one 40-minute window sat on
     # `Install Chromium` for 12, 19 and 37 minutes and had to be cancelled by hand; runs before
-    # that window and every run since have finished the whole job in 30 to 70 seconds. Nothing in
+    # that window and every run since have finished the whole job well inside a couple of minutes
+    # (30 to 70 seconds with the two e2e files of the time; 1m35s to 1m51s with today's five, see
+    # `SPEC.md` §5.3 for the per-file cost). Nothing in
     # the repository explains it — a *cold* cache passed on `main` in 72s inside the same window
     # that a *warm* one hung on a branch — so the cause was almost certainly outside it, and
     # transient.
