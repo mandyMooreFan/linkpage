@@ -1021,9 +1021,10 @@ measuring the thing it is named after.**
 
 **What the tier costs, because this is where someone stands when deciding to add a sixth file.**
 The End-to-end job in CI ran **44 s** with two of them, **59 s** with three, **1 m 16 s** with four
-and **1 m 35 to 1 m 42 s** with all five — about fifteen seconds a walk, and cheap because each
-walk presses keys and reads computed styles rather than photographing anything. **The job's old
-30-to-70-second band belongs to the two-file era**; call it a minute and three quarters now. That
+and **1 m 35 s to 1 m 51 s over three runs** with all five — about fifteen seconds a walk, and
+cheap because each walk presses keys and reads computed styles rather than photographing anything.
+**The job's old 30-to-70-second band belongs to the two-file era**; call it a minute and three
+quarters now, and take a single run's figure as a sample, not the cost. That
 is against a **10-minute
 bound on the job and `retries: 0` in the runner, and neither is decoration.**
 [#119](https://github.com/mandyMooreFan/linkpage/issues/119) saw three runs in one 40-minute window

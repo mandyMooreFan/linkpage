@@ -75,7 +75,7 @@ jobs:
     # **Bounded, because it once was not** (issue #119). Three runs in one 40-minute window sat on
     # `Install Chromium` for 12, 19 and 37 minutes and had to be cancelled by hand; runs before
     # that window and every run since have finished the whole job well inside a couple of minutes
-    # (30 to 70 seconds with the two e2e files of the time; 1m35s to 1m42s with today's five, see
+    # (30 to 70 seconds with the two e2e files of the time; 1m35s to 1m51s with today's five, see
     # `SPEC.md` §5.3 for the per-file cost). Nothing in
     # the repository explains it — a *cold* cache passed on `main` in 72s inside the same window
     # that a *warm* one hung on a branch — so the cause was almost certainly outside it, and
