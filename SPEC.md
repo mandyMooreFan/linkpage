@@ -133,8 +133,9 @@ the block next door. The row now reads _Open 7 days_, which is a description rat
 more a version of the hours block than `1200 × 400` is a version of the logo — so nothing in the preview
 contradicts it. **The refusal above, about the page, is untouched.**
 
-The seven weekday abbreviations and the word for a closed day are **the whole of the translatable text
-the page writes**, and they are written in the page's own language — see §2.5.
+The seven weekday abbreviations and the word for a closed day are **eight of the ten translatable
+words the page writes** — the other two are the hidden names §6.9 gives this panel and the address
+link — and they are written in the page's own language, see §2.5.
 
 **Contact.** Phone and email, rendered as `tel:` and `mailto:` links — see _Derived targets_ below for
 what reaches the link and what happens when nothing can.

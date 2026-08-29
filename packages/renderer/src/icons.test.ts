@@ -80,8 +80,10 @@ describe("the set covers what the spec asks of it", () => {
     //
     // `link` is §4.4's fallback for a platform we have no mark for — a case the owner never
     // deliberately creates. `clock` names the hours panel on the exported page (§6.9), which
-    // is the one job a glyph does that no suggestion could: §2.5 forbids the ninth string a
-    // real heading would need, and an icon is not a word.
+    // is the one job a glyph does that no suggestion could. That used to be because §2.5
+    // forbade the ninth string a real heading would need; §2.5 has since spent it (#266,
+    // CL-5), but on a visually hidden `<h2>`, so on the glass the glyph is still the only
+    // thing naming the panel and the exception stands on the same footing it always did.
     served.add(FALLBACK_ICON);
     served.add("clock");
     expect([...ICON_NAMES].filter((name) => !served.has(name))).toEqual([]);

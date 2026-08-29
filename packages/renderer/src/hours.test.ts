@@ -140,7 +140,7 @@ describe("hoursView", () => {
   });
 
   /**
-   * #48: the eight words the renderer writes are the page's, not English's. This is the
+   * #48: the ten words the renderer writes are the page's, not English's. This is the
    * Cardiff bakery from the issue — `lang="cy"`, so `Llun` and `Ar gau`, and *only* those:
    * the times either side of them are the owner's stored values formatted by rule, and they
    * do not move.

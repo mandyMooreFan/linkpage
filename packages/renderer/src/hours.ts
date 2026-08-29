@@ -79,7 +79,7 @@ export interface HoursView {
    * What a row with no intervals says, already in the page's language.
    *
    * It sits on the view rather than being a constant `render.ts` imports because it is one of
-   * the eight strings `locale.ts` translates, and this interface's promise is that nothing is
+   * the ten strings `locale.ts` translates, and this interface's promise is that nothing is
    * left to decide.
    */
   readonly closed: string;

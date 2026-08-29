@@ -1,19 +1,27 @@
 /**
  * Everything the renderer knows about the owner's language tag (`SPEC.md` §4.1): the tag the
- * page declares, the direction it reads in, and the eight words the renderer writes that the
+ * page declares, the direction it reads in, and the ten words the renderer writes that the
  * owner did not.
  *
  * **Why this file exists.** `<html lang>` is not decoration — it is what we tell assistive
  * technology to trust, and WCAG 2.2 SC 3.1.1 asks for it because a screen reader switches
- * voice on it. The page then wrote eight words of its own, in English, on every page whatever
- * the tag said: a Cardiff bakery declaring `lang="cy"` shipped `Mon`, `Tue`, `Closed`, and a
- * Welsh voice pronounced English abbreviations with Welsh phonetics (#48).
+ * voice on it. The page then wrote its own words in English, on every page whatever the tag
+ * said: a Cardiff bakery declaring `lang="cy"` shipped `Mon`, `Tue`, `Closed`, and a Welsh
+ * voice pronounced English abbreviations with Welsh phonetics (#48).
  *
- * **The translatable surface is eight strings and that is by design, not by luck.** §2.3 made
- * the address free text, the contact rows are identified by a glyph rather than by the word
- * "Phone", and the address *is* the directions link. Nothing else on the exported page is our
- * prose. A table is a proportionate answer here precisely because that surface cannot grow
- * without someone noticing.
+ * **The translatable surface is ten strings and that is by design, not by luck.** §2.3 made
+ * the address free text, and the contact rows are identified by a glyph rather than by the
+ * word "Phone" — a phone number and an email address say what they are. Nothing else on the
+ * exported page is our prose. A table is a proportionate answer here precisely because that
+ * surface cannot grow without someone noticing, and an eleventh string is a change to §2.5.
+ *
+ * **Two of the ten were bought rather than found, and the price is why.** For most of this
+ * project the count was eight, and §6.9 refused a ninth on the ground that a hidden word is
+ * still a word the renderer writes — **a refusal priced by analogy to a glyph**. A word carries
+ * no `<svg>` wrapper: no viewBox, no paint attributes, no `aria-hidden`, nothing ahead of the
+ * characters themselves. *A glyph is never as cheap as its drawing. A word is.* So `hours` and
+ * `directions` are in (#266, CL-5, CL-6), and what the decision actually cost is translation,
+ * not bytes — both are hand-authored, and the un-citable half of this table more than doubled.
  *
  * **`Intl.DateTimeFormat` is ruled out, and not on taste.** Its output tracks the ICU data
  * compiled into the host, so the same `project.json` renders differently on two Node versions
@@ -81,7 +89,7 @@ import { asText } from "./values.js";
 /** The seven abbreviations, **Monday first**, matching `hours.ts`'s storage order. */
 export type DayNames = readonly [string, string, string, string, string, string, string];
 
-/** The eight strings the renderer writes that the owner did not. */
+/** The ten strings the renderer writes that the owner did not. */
 export interface Vocabulary {
   readonly days: DayNames;
   /** What a day with zero intervals says. Not a CLDR field — see the note above. */
@@ -453,7 +461,7 @@ function lookup(value: unknown): Vocabulary | undefined {
 }
 
 /**
- * The eight words for a language tag, falling back to English.
+ * The ten words for a language tag, falling back to English.
  *
  * Total, like everything the renderer calls (§4.7): the argument is `unknown` because a
  * hand-edited `project.json` can put anything in `lang`, and every path returns a usable

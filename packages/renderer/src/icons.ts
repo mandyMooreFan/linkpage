@@ -123,8 +123,13 @@ export interface SocialGlyph extends Glyph {
  * link-button suggestion the presets make in §7.3, and `icons.test.ts` asserts that mapping in
  * both directions. The other two are named exceptions with a different job: `link` is §4.4's
  * fallback for a platform we have no mark for, and `clock` **names the hours panel on the
- * exported page** (§6.9) — the one place a glyph does the work a heading would do, because
- * §2.5 will not spend a ninth string on one.
+ * exported page** (§6.9) — the one place a glyph does the work a heading would do.
+ *
+ * **That exception used to rest on §2.5 refusing the ninth string a heading needs. It no longer
+ * does, and it survives anyway.** §2.5 has since spent that word (#266, CL-5) — but on a
+ * *visually hidden* `<h2>`, so the clock is still the only thing naming that panel on the
+ * glass. The two readers are named by two different mechanisms, and neither can do the other's
+ * job: every glyph is `aria-hidden`, and the heading is `.lp-sr`.
  */
 export const ICONS: Readonly<Record<IconName, Glyph>> = {
   menu: {

@@ -8,7 +8,7 @@
  *
  * **These are builder chrome and are never translated.** The builder has no localisation layer;
  * `lang` is a property of the *exported page*. An endonym sits with *Corner softness*, not with
- * §2.5's eight words, and it never reaches `project.json`.
+ * §2.5's ten words, and it never reaches `project.json`.
  *
  * **Hand-authored, and provisional in exactly the sense §2.5's closed words are.** No database
  * holds what a language calls itself in a form a shopkeeper would recognise, so each one can only
