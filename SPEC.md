@@ -991,8 +991,52 @@ while deciding they were happy. **Any future proposal to edit on the page must a
 
 ### 5.3 Tests
 
-Renderer-heavy Vitest: per-section snapshots plus **three invariant guards**, and one Playwright E2E
-proving the downloaded file opens standalone and matches the preview.
+Renderer-heavy Vitest: per-section snapshots plus **three invariant guards**, and a browser tier of
+**five Playwright end-to-ends** — one proving the downloaded file opens standalone and matches the
+preview, and four making measurements that cannot be made anywhere but a browser.
+
+| End-to-end                  | What it holds                                                                    |
+| --------------------------- | -------------------------------------------------------------------------------- |
+| `download.e2e.ts`           | the downloaded file opens standalone and matches the preview                     |
+| `exported-page-a11y.e2e.ts` | `axe-core` over the exported page — every shape, both modes, both widths         |
+| `focus-ring.e2e.ts`         | a focus ring is painted on every tab stop (§7.12 commitment 2)                   |
+| `reachability.e2e.ts`       | what Tab reaches, against every control a screen is showing (§7.12 commitment 3) |
+| `tap-target.e2e.ts`         | the rendered box of every tab stop, against the tap floor (§7.12 commitment 5)   |
+
+They sit in `packages/builder/e2e/`, which holds a sixth file — `walk.ts`, the shared walker the
+last three ride. The runner collects `**/*.e2e.ts` and nothing else, so a library there is never
+picked up as a spec, and the file count in that directory is not the test count.
+
+**Four of the five are in a browser because jsdom cannot answer their question, not because a
+browser was to hand** — and that is the same distinction §7.12's commitments are built on, so a
+reader who takes these for slow unit tests will try to move them back and quietly break them.
+`:focus-visible` is a judgement about _how focus arrived_, which only the thing that moved the
+focus can make. **jsdom does not implement `inert`** — it neither blocks focus nor prunes the tree —
+so a test there can read the attribute and learn nothing about what the keyboard can reach. And **a
+class string is not a rendered box.** Two of the three replaced a jsdom guard that was green over a
+real defect: a dead tab stop that survived 847 passing tests, and §7.2's progress-bar header at
+350×36 ([#305](https://github.com/mandyMooreFan/linkpage/issues/305)), which the class-string check
+never read. **Moving one of these into Vitest would not make it faster; it would make it stop
+measuring the thing it is named after.**
+
+**What the tier costs, because this is where someone stands when deciding to add a sixth file.**
+The End-to-end job in CI ran **44 s** with two of them, **59 s** with three, **1 m 16 s** with four
+and **1 m 35 s** with all five — about fifteen seconds a walk, and cheap because each walk presses
+keys and reads computed styles rather than photographing anything. That is against a **10-minute
+bound on the job and `retries: 0` in the runner, and neither is decoration.**
+[#119](https://github.com/mandyMooreFan/linkpage/issues/119) saw three runs in one 40-minute window
+sit on the browser install for 12, 19 and 37 minutes and need cancelling by hand — an unbounded job
+that hangs is worse than one that goes red, because a check that never returns cannot be acted on.
+`retries: 0` is the other half of the same argument: a browser test that goes green on the second
+attempt is one nobody will trust the first time it goes red. **A sixth file is priced in seconds
+against that bound and in the trust that a red here means something.**
+
+**Two checks sit outside all of this and fail nothing.** `pnpm shots` (§7.4's appearance ritual)
+writes pictures for a person to look at; `pnpm a11y` (§7.12) drives the real builder flow through
+76 screens in Chromium and reports what `axe-core` finds there. Both are hand-run and **never wired
+to CI, deliberately** — the root `package.json` says so in a `//`-prefixed key beside each. **They
+are not a cheaper tier of the five above and must not be read as one**: the end-to-ends are gates,
+these two are reports for a person, and §7.12's commitments rest on the gates alone.
 
 | #   | Invariant                                                                                 |
 | --- | ----------------------------------------------------------------------------------------- |

@@ -61,10 +61,11 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
-  # `SPEC.md` §5.3's single end-to-end: the downloaded file is the preview, and it renders from
-  # `file://` with the network off. It is a job of its own rather than two more steps on the
-  # matrix above, because it is the only thing here that needs a browser and it must not put one
-  # on the critical path — the Node 24/26 lines stay a minute long and stay the fast signal.
+  # `SPEC.md` §5.3's browser tier: the downloaded file is the preview and renders from `file://`
+  # with the network off, plus the four accessibility walks that only a browser can make (§7.12).
+  # It is a job of its own rather than more steps on the matrix above, because it is the only
+  # thing here that needs a browser and it must not put one on the critical path — the Node 24/26
+  # lines stay a minute long and stay the fast signal.
   #
   # One Node version, one browser, one worker, no retries. See `packages/builder/playwright.config.ts`.
   e2e:

@@ -6,9 +6,13 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 /**
- * The one Playwright end-to-end. `SPEC.md` §5.3, §5.2, §6.1, §7.7.
+ * The download end-to-end. `SPEC.md` §5.3, §5.2, §6.1, §7.7.
  *
- * > **one Playwright E2E proving the downloaded file opens standalone and matches the preview.**
+ * > **one proving the downloaded file opens standalone and matches the preview**
+ *
+ * The first of §5.3's browser tier, and the only one of the five that is about the artifact rather
+ * than about the builder's accessibility — the other four measure focus, reach and rendered boxes,
+ * which is a different reason to be in a browser (§7.12).
  *
  * **Three things live here and nothing else does**, because they are the three a DOM test cannot
  * reach: a *real download*, written by a real browser to a real disk; the bytes on that disk
