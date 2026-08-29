@@ -2213,10 +2213,13 @@ defects live. A dead tab stop survived 847 green tests here.
    line it stands on. So what is measured is the label or the line, and only where the browser or a
    declared hook says the press is forwarded. Height is the axis, because `tap` is a `min-height`
    and most controls here must not take a width floor; `tap-square` is for glyph buttons and this
-   walk reaches none. **Two stops are under it.** The `inline` weight is the deliberate one this
-   line has always carried — a word inside a sentence, which 44px would push apart. The other is
-   §7.2's bar header at 350×36, **a real miss the class string could not see because it never read
-   that button** (#305). Both are named in the check, and a third fails it.
+   walk reaches none. **Two controls are under it, and they account for thirteen stops at each
+   width** — the check prints both numbers every run, because they are not the same number and the
+   larger one is the honest one. The `inline` weight is the deliberate one this line has always
+   carried — a word inside a sentence, which 44px would push apart; it is one control and one stop.
+   The other is §7.2's bar header at 350×36, **a real miss the class string could not see because
+   it never read that button** (#305) — one control the walk meets on twelve screens, which is the
+   whole of the difference. Both are named in the check, and a third fails it.
 6. **One control, one accessible name.** _Guarded at the rendered tree_ — the three screens that open
    a file dialog are mounted, and so is the shared `FilePicker` they all follow, whose own test counts
    the named controls it renders rather than asserting an absence. `getByRole` matches strictly, so a
