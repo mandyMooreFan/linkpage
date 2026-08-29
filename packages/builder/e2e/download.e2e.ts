@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Project } from "@linkpage/renderer";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -214,4 +214,73 @@ test("the downloaded index.html is the preview's srcdoc, and it opens offline", 
   //    a page that fetched nothing, and those are opposite results.
   expect(requested, "the listener saw the page load at all").toContain(pathToFileURL(file).href);
   expect(requested.filter((url) => !url.startsWith("file://"))).toEqual([]);
+});
+
+/**
+ * The control: both of this file's load-bearing assertions, run against a known-bad case.
+ *
+ * `SPEC.md` §5.3's rule, added on #328 — this was the one gate of the five carrying no control.
+ * The other three walks each hold a named *"the walk goes red when…"* test; the byte comparison
+ * and the offline filter above had nothing showing they could fail, and **a measurement that
+ * cannot detect the absence of what it measures reports a clean screen when its own driver is
+ * broken.**
+ *
+ * **Neither half re-runs the download**, which is what keeps this cheap: the expensive part of
+ * the test above is the builder boot and the real save-to-disk, and neither is needed to ask
+ * whether the two assertions have teeth. The first half is pure `Buffer` work. The second opens
+ * one `file://` page in one context.
+ *
+ * **Why the second half is not simply asserting that the filter's expression works.** It would
+ * be a tautology written in a browser. What is under test is the whole path — a listener
+ * attached to the right event, on a context that is offline, seeing a subresource fetch at all —
+ * and the only way to know that path reports is to make a page that fetches and watch it report.
+ * An offline context still *attempts* the request, which is precisely why the listener can see
+ * it and why `offline: true` above is not hiding anything from the assertion it guards.
+ */
+test("the byte comparison and the offline filter both go red when given something bad", async ({
+  browser,
+}) => {
+  // 1. The byte comparison. A document, and the same document with one byte moved — the smallest
+  //    difference a re-encoding on the way through the Blob could introduce, and the one a
+  //    string comparison would be most likely to forgive.
+  const shown = Buffer.from("<!doctype html>\n<title>Ada’s</title>\n", "utf-8");
+  const tampered = Buffer.from(shown);
+  const at = tampered.length - 2;
+  tampered.writeUInt8(tampered.readUInt8(at) ^ 0x01, at);
+
+  expect(shown.equals(tampered), "one changed byte is a difference").toBe(false);
+  expect(
+    firstDifference(tampered, shown),
+    "and the report names the offset rather than saying false",
+  ).toContain(`first differing byte at offset ${at}`);
+
+  // The other side of the same coin: identical bytes must still compare equal, or the assertion
+  // above passes for the wrong reason and the real test would be red on every run.
+  expect(shown.equals(Buffer.from(shown))).toBe(true);
+
+  // 2. The offline filter. A page that reaches for something that is not on disk.
+  const directory = await mkdtemp(join(tmpdir(), "linkpage-e2e-control-"));
+  const bad = join(directory, "fetches.html");
+  await writeFile(
+    bad,
+    '<!doctype html><title>c</title><img src="https://example.invalid/pixel.png" alt="">',
+    "utf-8",
+  );
+
+  const offline = await browser.newContext({ offline: true });
+  const requested: string[] = [];
+  try {
+    const opened = await offline.newPage();
+    opened.on("request", (request) => requested.push(request.url()));
+    await opened.goto(pathToFileURL(bad).href);
+    await opened.waitForLoadState("networkidle");
+  } finally {
+    await offline.close();
+  }
+
+  expect(requested, "the listener saw this page load too").toContain(pathToFileURL(bad).href);
+  expect(
+    requested.filter((url) => !url.startsWith("file://")),
+    "the filter the test above rests on sees a subresource fetch",
+  ).toContain("https://example.invalid/pixel.png");
 });
