@@ -1042,6 +1042,72 @@ to CI, deliberately** — the root `package.json` says so in a `//`-prefixed key
 are not a cheaper tier of the five above and must not be read as one**: the end-to-ends are gates,
 these two are reports for a person, and §7.12's commitments rest on the gates alone.
 
+**What a check owes, and what it must say it misses.** Every check here — the five gates, the Vitest
+suite, the two hand-run instruments and the three invariants below — is held to two things. **It
+ships with a control that has been _observed red_**: run against a known-bad case and watched to
+fail. And **where it covers less than its name suggests, the limit is written beside it, in the
+code.** A check that has no control names why, in the same place, rather than leaving the absence to
+be inferred.
+
+**This is set down as a ratification, not a new standard, and reading it as new would be reading it
+wrongly.** It had been stated six times before it was ever stated as a rule, each time scoped to the
+file it was discovered in: `census.mjs` twice — _a check over nothing reports "nothing wrong"
+forever_, and _a guard that only reports what some other line already noticed is not a guard_ — this
+section once, _a class string is not a rendered box_,
+[#287](https://github.com/mandyMooreFan/linkpage/issues/287) on CL-8, whose controls _"were not
+argued, they were **induced**"_, and, most sharply, the control in `focus-ring.e2e.ts`: **a
+measurement that cannot detect the absence of what it measures reports a clean screen when its own
+driver is broken.** The sixth is §7.12, which states the other half — _each line says what its test
+actually reaches_ — and is the only place in this document that already does it. Three of the five
+gates already comply — `focus-ring`, `reachability` and
+`tap-target` each carry a named _"the walk goes red when…"_ test, and the two known defects at the
+end of this section are the second half of the rule being kept before it was written.
+
+**Two ways a check can be worth nothing, and the second is the one that has actually cost this
+repository time.** A check that **cannot fail** is the obvious case and, measured, this repository
+has none: **zero identical-operand assertions across 2,396**
+([#317](https://github.com/mandyMooreFan/linkpage/issues/317)). A check that is **misaimed** — alive,
+and pointed slightly to one side of the defect it names — is what every miss here has been. §7.2's
+progress-bar header stands at 350×36 under a 44px floor, and went unseen because the guard of the day
+read a class string and never read that button ([#305](https://github.com/mandyMooreFan/linkpage/issues/305)); the file-picker
+guard in `pickers.test.tsx` counted roles, and a file input made into a second accessible button _by
+a name alone_ carries no role to count. Both guards ran, passed, and were pointed just past the
+thing. **A rule written only against "cannot fail" would have caught neither**, which is the whole
+reason this one is written against both.
+
+**A misaimed check is deleted where something else already covers the defect, and re-aimed where
+nothing does.** Annotating it is not enough and is the tempting wrong answer: **a line that reads as
+the guard and is not stops the next person looking**, which is worse than the absence it disguises.
+Where the defect has no other cover, the check is re-aimed at it — §7.12 commitment 6 states the form
+this repository prefers, _counting the named controls a screen renders rather than asserting an
+absence_.
+
+**What binds, and what does not.** The rule binds new checks, and the four gaps named when it was
+settled ([#323](https://github.com/mandyMooreFan/linkpage/issues/323)). It is **not** a re-audit of
+the suite: seven corpora were emptied at their definitions and every one was caught — `VOCABULARIES`
+by 194 failing tests, `PRESETS` by 76, `TOPICS` by 61, `WEIGHT` by 45 — and 52 non-emptiness
+assertions were already in place across 11 files. **The small numbers are the interesting ones,
+though**: `SHAPES` drives six assertion loops and emptying it failed five tests, `MODES` five loops
+and two. The mutants were caught — by other tests, while the loops iterating them said nothing. **A
+corpus can be well defended and still not defended by the checks that read it.**
+
+**The bound of the measurement this rule rests on**, stated here because a section requiring checks
+to declare their reach must not overstate its own: **eight known-bad cases were run against 2,396
+assertions.** That is not a mutation-testing run and is not offered as one — it tested the shapes
+that had already failed here, and the corpora most likely to carry them. The working is in
+[`docs/checks-that-cannot-fail.md`](https://github.com/mandyMooreFan/linkpage/blob/main/docs/checks-that-cannot-fail.md).
+
+**It binds the two hand-run instruments as well, and _fails nothing_ is not an exemption from it.**
+The paragraph above stays exactly true — `pnpm shots` and `pnpm a11y` are reports for a person and
+stop no merge — because **this rule is about whether a check can see, not about whether it can
+block.** The two are independent, and treating the first as a privilege of the second is what
+[#270](https://github.com/mandyMooreFan/linkpage/issues/270) cost: a report that failed nothing, told
+nobody it had skipped the import screens, printed a cheerful `70 shots →` and exited 0, and was wrong
+in the same way for **three months** while several tickets read past the line. **A gate that cannot
+see wastes a red. A report that cannot see is believed.**
+
+**The three invariant guards** named at the top of this section, which the Vitest tier carries:
+
 | #   | Invariant                                                                                 |
 | --- | ----------------------------------------------------------------------------------------- |
 | 1   | The export contains no `<script>` tag, no inline event handler, no `javascript:` URL      |
