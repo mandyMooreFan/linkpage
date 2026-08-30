@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  MODES as RENDERER_MODES,
+  SHAPES as RENDERER_SHAPES,
+  TYPE_PAIRINGS as RENDERER_TYPES,
+} from "@linkpage/renderer";
+import {
   AUDIT_VARIANTS,
   DEFAULT_VARIANTS,
   MODES,
@@ -52,10 +57,52 @@ describe("the default variant set", () => {
     expect(new Set(DEFAULT_VARIANTS).size).toBe(DEFAULT_VARIANTS.length);
   });
 
-  it("stays small enough to look through", () => {
+  it("stays small enough to look through, and is these eight", () => {
     // The cost is the point: every combination is a picture somebody has to open. Eight is
     // shape × mode and nothing more; a set that grew past that grew a cross it did not need.
-    expect(DEFAULT_VARIANTS.length).toBe(SHAPES.length * MODES.length);
+    //
+    // **Named rather than counted, since #347.** This asserted
+    // `DEFAULT_VARIANTS.length === SHAPES.length * MODES.length` — which read as coverage and
+    // was a consistency check: both sides come from the same local copy, so it held at 8 = 4 × 2
+    // and would have held just as well at **0 = 0 × 0**. The eight are not a cross product
+    // either, which is what `uncoveredPairs` exists to police; they are eight chosen
+    // combinations, and eight being 4 × 2 was arithmetic rather than derivation.
+    //
+    // #181's *identify, don't count*: a combination quietly swapped for another keeps the length
+    // and is a different set of pictures.
+    expect(DEFAULT_VARIANTS).toEqual([
+      "centred-classic-light",
+      "centred-friendly-dark",
+      "colourBlock-classic-light",
+      "colourBlock-modern-dark",
+      "floatingCard-friendly-light",
+      "floatingCard-friendly-dark",
+      "ruledLeft-modern-light",
+      "ruledLeft-classic-dark",
+    ]);
+  });
+
+  /**
+   * **This module's corpus against the renderer's, which is the product's** (#347).
+   *
+   * `variants.mjs` keeps its own `SHAPES`, `MODES` and `TYPES`, and the renderer keeps the real
+   * ones in `chrome.ts`. **The duplication is forced rather than chosen**: `@linkpage/renderer`
+   * resolves to `./src/index.ts`, and this module is run by `node`, which cannot load TypeScript
+   * — measured on #330 both before and after building the renderer's `dist`, and it fails either
+   * way because the exports map points at the source regardless.
+   *
+   * **So the copy stays and this fails when it drifts.** If the renderer gains a fifth shape,
+   * `pnpm shots` would otherwise keep photographing four and say nothing — a run complete by its
+   * own lights, which is [#270](../../issues/270)'s failure exactly. `census.mjs` cannot catch it
+   * either: it compares what a run *declared* against what it *got*, and a run built from the
+   * short list declares the short list.
+   *
+   * **By name, not by length** — the same reason as the test above.
+   */
+  it("keeps the same shapes, modes and pairings the renderer does", () => {
+    expect([...SHAPES], "shapes").toEqual([...RENDERER_SHAPES]);
+    expect([...MODES], "modes").toEqual([...RENDERER_MODES]);
+    expect([...TYPES], "type pairings").toEqual([...RENDERER_TYPES]);
   });
 
   it("refuses something that is not a combination", () => {
