@@ -265,9 +265,9 @@ for (const width of WIDTHS) {
      * 133 reached at 390 and 144 at 1440 — because this is here to catch a walk that fell over,
      * not to pin the shape of the flow, which `plan.test.ts` owns and would fail twice.
      */
-    expect(screens.length, "screens the walk reached").toBeGreaterThanOrEqual(16);
-    expect(counted, "controls the walk counted").toBeGreaterThanOrEqual(140);
-    expect(reached, "controls the keyboard reached").toBeGreaterThanOrEqual(120);
+    expect(screens.length, "screens the walk reached").toBeGreaterThanOrEqual(28);
+    expect(counted, "controls the walk counted").toBeGreaterThanOrEqual(250);
+    expect(reached, "controls the keyboard reached").toBeGreaterThanOrEqual(220);
 
     /*
      * The screen the commitment is about, held by name as well as by the rule above: the list is
@@ -353,7 +353,7 @@ test("the walk goes red when what is covered comes back into reach", async ({ pa
     coveredButInReach = verdict(leaking, cover);
   });
 
-  expect(screens.length, "screens the control walked").toBeGreaterThanOrEqual(16);
+  expect(screens.length, "screens the control walked").toBeGreaterThanOrEqual(28);
   expect(counted, "controls on the list the control mutated").toBeGreaterThanOrEqual(12);
 
   expect(onGlassButOutOfReach, "what the instrument said about the covered way out").toEqual([

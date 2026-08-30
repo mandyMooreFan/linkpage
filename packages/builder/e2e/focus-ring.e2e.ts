@@ -165,8 +165,8 @@ for (const width of WIDTHS) {
      * The floors sit under those numbers rather than on them: this is here to catch a walk that
      * fell over, not to pin the flow's shape, which `plan.test.ts` owns and would fail twice.
      */
-    expect(screens.length, "screens the walk reached").toBeGreaterThanOrEqual(16);
-    expect(stops.length, "tab stops the walk reached").toBeGreaterThanOrEqual(100);
+    expect(screens.length, "screens the walk reached").toBeGreaterThanOrEqual(28);
+    expect(stops.length, "tab stops the walk reached").toBeGreaterThanOrEqual(220);
 
     expect(stops.filter((stop) => ring(stop) === "").map(bare), "stops with no focus ring").toEqual(
       [],

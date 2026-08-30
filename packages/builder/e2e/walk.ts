@@ -1,4 +1,4 @@
-import { type JSHandle, type Page } from "@playwright/test";
+import { expect, type JSHandle, type Page } from "@playwright/test";
 /*
  * **The answering half comes from `scripts/wizard.mjs`** (#332). It used to live here as well —
  * `ANSWERS`, `TEXTISH`, `slug`, `heading`, `answer` and `leave`, about 137 lines — and the two
@@ -15,7 +15,7 @@ import { type JSHandle, type Page } from "@playwright/test";
  * journeys and #315 settled that they stay apart — which is also why `refused` is on the shared
  * table and read by neither of the walks here (#333).
  */
-import { ANSWERS, answer, heading, leave, slug } from "../scripts/wizard.mjs";
+import { ANSWERS, TEXTISH, answer, heading, leave, slug } from "../scripts/wizard.mjs";
 
 /**
  * The browser walk the standing accessibility measurements ride on. `SPEC.md` §7.12, §7.6.
@@ -85,6 +85,17 @@ export interface Probes<T> {
   readonly resting?: (element: Element) => T;
 }
 
+/**
+ * How long a screen is given to finish reacting before it is measured (#343).
+ *
+ * Fields normalise what was typed on blur — "2pm" becomes "2:00 PM" — and §7.9's judgement can
+ * put a sentence on the screen a frame later. **A stop counted mid-transition is a stop measured
+ * in a state nobody ever sees**, which is a worse failure than missing it: it would be reported
+ * as a real box with a real size. `scripts/flow.mjs` waits the same 400ms in `settle`, for the
+ * same reason and against the same screens.
+ */
+const SETTLE = 400;
+
 const MOST_STEPS = 20;
 
 /** Likewise: no screen in this builder has forty controls on it. */
@@ -144,7 +155,44 @@ export async function walkScreens(
       await bar.click();
     }
 
-    if (await answer(page, spec)) await leave(page, spec, title);
+    /*
+     * **The refusal state, on the one step that has one** (§7.9, CL-1). Type what the tool cannot
+     * use, press `Continue`, and measure the screen it is holding.
+     *
+     * **The heading is asserted not to have moved, and that is not ceremony.** §7.9 decision 2
+     * holds the screen on judgement; if it advanced, everything measured after this point would
+     * belong to the next step and be reported under this one's name. `walkFlow` guards the same
+     * moment the same way in `flow.mjs`, for the same reason.
+     */
+    if (spec.refused !== undefined) {
+      const box = page.locator(TEXTISH).first();
+      await box.fill(spec.refused);
+      const judge = page.getByRole("button", { name: /^(Continue|Save)$/ });
+      if ((await judge.count()) && (await judge.first().isEnabled())) await judge.first().click();
+      await page.waitForTimeout(SETTLE);
+      expect(await heading(page), `“${title}” advanced on something it cannot use`).toBe(title);
+      await call(`${id}+refused`, `the “${title}” step, refusing what it cannot use`);
+      await box.fill("");
+      await page.waitForTimeout(SETTLE);
+    }
+
+    /*
+     * **The same screen once it has been answered, which is a different set of stops** (#343).
+     *
+     * Until this existed the walk measured every wizard screen *on arrival only*, and **fourteen
+     * stops at 390 lived in an answered state that no gate had ever seen** — nine of the twelve
+     * steps gain at least one when they are filled, and the hours step gains six as its time
+     * fields arrive. §7.12 commitment 2 called 133 stops *"every stop on them"*, which was true
+     * of the screens as visited and not of the screens as used.
+     *
+     * **Measured after `answer` and before `leave`**: that is the state a person is looking at
+     * when they press Continue, and the one the appearance ritual has always called `filled`.
+     */
+    const needsLeaving = await answer(page, spec);
+    await page.waitForTimeout(SETTLE);
+    await call(`${id}+answered`, `the “${title}” step, answered`);
+
+    if (needsLeaving) await leave(page, spec, title);
     /*
      * Wait for the screen to *change*, not for a heading to exist: the old one is still on the
      * page for a frame or two after the press (§7.11's view transition), and a walk that reads it
