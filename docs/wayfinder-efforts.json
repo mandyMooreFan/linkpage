@@ -1,0 +1,89 @@
+{
+  "//": "Every wayfinder effort that produced or amended SPEC.md, and what each one changed. SPEC.md 12 Provenance is the readable version of this list; `spec-claims.test.ts` fails when the two disagree.",
+  "//why": "12's whole job is attributing every decision in the document, and it was six efforts behind when this file was written — including the effort that wrote this file. Nobody was ever going to remember. A count nobody maintains is not a record, it is a claim.",
+  "//bound": "READ THIS BEFORE TRUSTING IT. The check pins SPEC.md to this file. NOTHING pins this file to the issue tracker. Adding a line here is a manual act, and it is meant to be part of finishing an effort rather than a thing a machine notices. What this buys is not airtightness; it is that the spec can no longer disagree with this list quietly.",
+  "//kind": "`map` is a wayfinder map. `build-order` is an implementation effort that turned an amended document into tickets — 12 names one and it is not a map, so the shape has to allow it.",
+  "efforts": [
+    {
+      "issue": 1,
+      "kind": "map",
+      "title": "linkpage v1 spec and scaffolded repo",
+      "amended": ["produced this document"]
+    },
+    {
+      "issue": 76,
+      "kind": "map",
+      "title": "the version after beta — polish the builder and the page",
+      "amended": [
+        "2.3",
+        "2.5",
+        "3.1",
+        "3.2",
+        "3.3",
+        "4.1",
+        "5.1",
+        "5.3",
+        "6.2",
+        "6.5",
+        "6.9",
+        "7.2",
+        "7.3",
+        "7.4",
+        "7.6",
+        "7.7",
+        "7.9",
+        "7.10",
+        "9",
+        "11"
+      ]
+    },
+    {
+      "issue": 116,
+      "kind": "build-order",
+      "title": "After the beta: build order",
+      "amended": ["implementation of the amended document; what v1.0.0 tags"]
+    },
+    {
+      "issue": 136,
+      "kind": "map",
+      "title": "the guided flow — orientation and motion",
+      "amended": ["7.2", "7.3", "7.9"]
+    },
+    {
+      "issue": 171,
+      "kind": "map",
+      "title": "Tailwind design audit",
+      "amended": ["7.4", "most of 7"]
+    },
+    {
+      "issue": 181,
+      "kind": "map",
+      "title": "building the agreed design changes",
+      "amended": ["7.4", "most of 7"]
+    },
+    {
+      "issue": 252,
+      "kind": "map",
+      "title": "what the last map left behind",
+      "amended": ["the closing walk's findings"]
+    },
+    {
+      "issue": 261,
+      "kind": "map",
+      "title": "what the builder promises about accessibility",
+      "amended": ["7.12"]
+    },
+    {
+      "issue": 273,
+      "kind": "map",
+      "title": "building the agreed accessibility changes",
+      "amended": ["7.12", "2.5", "6.9", "5.3", "7.10"]
+    },
+    {
+      "issue": 322,
+      "kind": "map",
+      "title": "the checks check, or say what they miss",
+      "amended": ["5.3", "7.12"]
+    }
+  ]
+}
