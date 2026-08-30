@@ -2698,11 +2698,33 @@ closed issue. Where this spec says "was rejected", the argument is there.
   §7.10, §9 and §11 — including two places where **this document was found to be claiming more than was
   true**, and says so in place rather than quietly correcting itself.
 
-This document is the destination of both efforts. **Implementation was a third, and it is finished:**
-[After the beta: build order](../../issues/116) turned the amended document into fourteen tickets and
-closed all of them, which is what `v1.0.0` tags.
+- **[Map: the guided flow — orientation and motion](../../issues/136)** — §7.2, §7.3 and §7.9.
+- **[Tailwind design audit map](../../issues/171)** and **[Map: building the agreed design
+  changes](../../issues/181)** under it — §7.4 and most of §7. The audit produced the change list; the
+  build map spent it.
+- **[Map: what the last map left behind](../../issues/252)** — the closing walk's findings, and the two
+  access defects it turned up.
+- **[Map: what the builder promises about accessibility](../../issues/261)** and **[Map: building the
+  agreed accessibility changes](../../issues/273)** under it — **§7.12 itself**, plus CL-4's rewrites of
+  §2.5 and §6.9, §5.3's browser tier and §7.10's correction.
+- **[Map: the checks check, or say what they miss](../../issues/322)** — §5.3's rule about what a check
+  owes and the four ways one is held honest, and §7.12's line on the hand-run tier now that CI reads
+  whether it worked.
+
+This document is the destination of those efforts. **Implementation of the second was its own, and it
+is finished:** [After the beta: build order](../../issues/116) turned the amended document into
+fourteen tickets and closed all of them, which is what `v1.0.0` tags.
 
 Worth recording, because it is the argument for building from a document rather than trusting one:
 **six errors in this specification were found by implementing it**, every one caught by a test or a
 screenshot rather than by re-reading. The closing comment on that build order lists them. The recurring
 shape is a document asserting something the code has never done.
+
+**And this section was the last of them.** It named three efforts while nine had touched the document,
+and it went further behind while [#322](../../issues/322) was running — three amendments, none of them
+recorded here. It was not fixed by a person noticing: `spec-claims.test.ts` was written on
+[#341](../../issues/341) to compare this list against
+[`docs/wayfinder-efforts.json`](docs/wayfinder-efforts.json), **failed on its first run naming all
+seven**, and this pass is what made it pass. **The check pins this section to that file; nothing pins
+that file to the tracker** — adding a line to it is meant to be part of finishing an effort, and what
+it buys is that this section can no longer disagree with it quietly.
