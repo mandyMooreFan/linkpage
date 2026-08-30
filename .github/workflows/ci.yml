@@ -158,3 +158,116 @@ jobs:
           name: playwright-trace
           path: packages/builder/test-results/
           retention-days: 7
+
+  # **Whether the two hand-run instruments worked — never what they found** (issue #339,
+  # settled on #324).
+  #
+  # `pnpm shots` (§7.4's appearance ritual) and `pnpm a11y` (§7.12's builder sweep) are reports
+  # for a person and remain so: **§7.12's commitments still rest on the five end-to-ends alone,
+  # and nothing here gates a finding.** What is gated is whether the instrument *ran and could
+  # see*, which SPEC.md §5.3 puts as *failing nothing is about gating, being controlled is about
+  # seeing*.
+  #
+  # **Both already grade their own exits, and until now nothing read the grade.** `review-shots`
+  # gained its exit 2 in #270 "for the reader who did not scroll up" — a reader who had never
+  # existed. That issue is why this job exists: from `be7aaff` every run printed a skip line,
+  # exited 0 by the shell's reckoning, reported a cheerful `70 shots →`, and two frames were
+  # absent from every set taken **for three months** while tickets read past the line.
+  #
+  #   1  could not run at all — no browser, no server, no app      → red
+  #   2  frames missing, or "this report cannot be believed"       → red
+  #   3  rules violated (a11y only): findings for a person         → GREEN, deliberately
+  #
+  # **Exit 3 passing is the whole subtlety.** `pnpm a11y` returns 3 today for the three rules
+  # #318 records, which the owner ruled to a successor effort. A job that went red on 3 would
+  # overturn that ruling by accident and be permanently red, which is how a check becomes
+  # something people switch off.
+  #
+  # Its own job rather than steps on End-to-end: that one is the fast signal and SPEC.md §5.3
+  # prices a sixth file there "in seconds against that bound". This is ~152s (a11y 87s, shots
+  # 65s, measured on c3ecb12), and as a job of its own it costs nothing in wall clock.
+  instruments:
+    name: Instrument health
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-24-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-24-
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Read the Playwright version
+        id: playwright
+        run: |
+          echo "version=$(node -p "require('./packages/builder/node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install Chromium
+        timeout-minutes: 5
+        run: pnpm --filter @linkpage/builder exec playwright install --with-deps --only-shell chromium
+
+      # `--label` rather than the branch name: the scripts derive a port and an output folder
+      # from it, and a branch called `main` on two concurrent runs would collide on both.
+      # **`node`, not `pnpm shots`, and this is not a style choice.** `pnpm --filter … exec`
+      # collapses every non-zero child exit to 1, so through it a finding (3) is indistinguishable
+      # from could-not-run (1) — this job would have been permanently red on #318's three rules,
+      # which is precisely the failure it is written to avoid. Measured: a script exiting 0/1/2/3
+      # comes back from pnpm as 0/1/1/1.
+      - name: The appearance ritual reached every frame it declared
+        working-directory: packages/builder
+        run: |
+          set +e
+          node scripts/review-shots.mjs --label ci-${{ github.run_id }}
+          code=$?
+          set -e
+          case "$code" in
+            0) echo "the set is complete" ;;
+            2) echo "::error title=Frames missing::The ritual meant to reach screens it could not. The set is incomplete — see COULD NOT PHOTOGRAPH in the log."; exit 1 ;;
+            1) echo "::error title=review-shots could not run::No browser, no server, or no app."; exit 1 ;;
+            *) echo "::error title=Unexpected exit $code::review-shots grades itself 0, 1 or 2. Something changed and this job has not been told."; exit 1 ;;
+          esac
+
+      - name: The accessibility sweep could see what it swept
+        working-directory: packages/builder
+        run: |
+          set +e
+          node scripts/a11y-sweep.mjs --label ci-${{ github.run_id }}
+          code=$?
+          set -e
+          case "$code" in
+            0) echo "swept clean" ;;
+            3) echo "rules violated — findings for a person, not a gate (#318). Passing deliberately." ;;
+            2) echo "::error title=Report cannot be believed::A checker that cannot prove it found something has not reported that nothing is wrong."; exit 1 ;;
+            1) echo "::error title=a11y-sweep could not run::No browser, no server, or no app."; exit 1 ;;
+            *) echo "::error title=Unexpected exit $code::a11y-sweep grades itself 0, 1, 2 or 3. Something changed and this job has not been told."; exit 1 ;;
+          esac
+
+      # Only when it went red: 86 PNGs are pure cost on a green run, and the thing worth looking
+      # at when it is red is which frames are missing rather than what the rest look like.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: instrument-output
+          path: review-shots/
+          retention-days: 7
