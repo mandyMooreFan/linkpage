@@ -1035,12 +1035,26 @@ that hangs is worse than one that goes red, because a check that never returns c
 attempt is one nobody will trust the first time it goes red. **A sixth file is priced in seconds
 against that bound and in the trust that a red here means something.**
 
-**Two checks sit outside all of this and fail nothing.** `pnpm shots` (§7.4's appearance ritual)
-writes pictures for a person to look at; `pnpm a11y` (§7.12) drives the real builder flow through
-76 screens in Chromium and reports what `axe-core` finds there. Both are hand-run and **never wired
-to CI, deliberately** — the root `package.json` says so in a `//`-prefixed key beside each. **They
-are not a cheaper tier of the five above and must not be read as one**: the end-to-ends are gates,
-these two are reports for a person, and §7.12's commitments rest on the gates alone.
+**Two checks sit outside all of this and fail nothing that they find.** `pnpm shots` (§7.4's
+appearance ritual) writes pictures for a person to look at; `pnpm a11y` (§7.12) drives the real
+builder flow through 76 screens in Chromium and reports what `axe-core` finds there. **They are not
+a cheaper tier of the five above and must not be read as one**: the end-to-ends are gates, these two
+are reports for a person, and **§7.12's commitments rest on the gates alone.** Both are run by hand
+when a person wants to look at what they say.
+
+**But CI reads whether they _worked_, which is a different question** (#339), and the two answers
+must not be run together. Both instruments grade their own exits — `1` could not run at all, `2`
+frames missing or _"this report cannot be believed"_, and, for `pnpm a11y`, `3` rules violated. **The
+`Instrument health` job fails on 1 and 2 and passes on 3**, deliberately: a finding is for a person
+to judge, and `pnpm a11y` returns 3 today for the three rules §7.12 records as a successor effort's
+work. **A job that went red on those would be permanently red, which is how a check becomes one
+people switch off.**
+
+**Until this existed, the grading was read by nobody**, which is the whole of #270: from `be7aaff`
+every run printed a skip line, exited 0 as far as anyone was watching, reported a cheerful
+`70 shots →`, and two frames were absent from every set taken **for three months** while tickets
+read past the line and reported a pair as a before and after. `review-shots`'s exit 2 was added
+_"for the reader who did not scroll up"_ — and there was no such reader.
 
 **What a check owes, and what it must say it misses.** Every check here — the five gates, the Vitest
 suite, the two hand-run instruments and the three invariants below — is held to two things. **It
@@ -2343,10 +2357,13 @@ modes, both widths — tagged **WCAG 2.2 A and AA plus axe's `best-practice` rul
 WCAG tags alone silently drop 30 of axe's 105 rules, `tabindex` and `heading-order` among them.
 That makes §6.8's claim _checked_, never _proven_: the 23-of-55 ceiling below applies to it too.
 
-**The builder's own screens are swept by the same checker under the same tags, and that tier is
-hand-run.** `pnpm a11y` drives the real flow in Chromium — every wizard step, §7.9's refusal, the
+**The builder's own screens are swept by the same checker under the same tags, and that tier's
+findings are hand-read.** `pnpm a11y` drives the real flow in Chromium — every wizard step, §7.9's refusal, the
 review list, every row opened, the download sheet, the menu and the import fork, at both of §7.6's
-sizes — and it is **never wired to CI**, deliberately, the way §7.4's appearance ritual is not.
+sizes. **Nothing it finds gates a merge**, deliberately, the way §7.4's appearance ritual does not
+— but CI does run it, and fails when it reports it could not see (§5.3's `Instrument health` job,
+#339). The three rules it reports today are a successor effort's, and the job passes them on
+purpose.
 Reaching the list takes sixty-odd driven steps, and the check would not have caught #254, #255,
 #244 or #246. **The two tiers are not interchangeable**: the exported page's is a gate and this one
 is a report for a person, and the six commitments above do not rest on it.
