@@ -1106,6 +1106,44 @@ nobody it had skipped the import screens, printed a cheerful `70 shots →` and 
 in the same way for **three months** while several tickets read past the line. **A gate that cannot
 see wastes a red. A report that cannot see is believed.**
 
+**Four ways a check discharges that, and a module owes one of them — not all four.** The rule above
+says what a check owes; this says what paying it looks like, because three of these four were being
+used here for a year and none of them was written down. A count of _test files_ was mistaken for a
+count of checked code and came back four times too pessimistic
+([#325](https://github.com/mandyMooreFan/linkpage/issues/325)).
+
+1. **By a test.** `census.mjs` (189 lines, 186 of test), `stability.mjs` (106/106), `port.mjs`
+   (30/72), `variants.mjs` (88/66). These are the modules built so they _could_ be tested —
+   `census.mjs` says so of itself: it compares two lists of names, so it can be checked red
+   _"without a browser, a server or a screenshot."_ **That property was designed in, not found.**
+2. **By a control.** `a11y-sweep.mjs` carries `CONTROLS` — a table of known failures, each with the
+   rule it must make `axe-core` fire — and `emptyRun`, and **runs every one of them on every
+   invocation** before it reports anything. It breaks the document on purpose and checks the
+   checker noticed.
+3. **By delegation to a tested module.** `review-shots.mjs` does not verify its own work: it
+   imports `covered`, `intended`, `missing` and `unreached` from `census.mjs` and `compare`,
+   `digest` and `verdict` from `stability.mjs`, and both of those are tested. **The 885 lines are
+   the driving; the judging is somewhere it can be checked red.**
+4. **By a gate exercising it.** `axe.mjs` and `scripts/wizard.mjs` have no test of their own and
+   need none: the End-to-end job runs both on every push. `wizard.mjs` arrived in this category by
+   [#332](https://github.com/mandyMooreFan/linkpage/issues/332), which moved the wizard's answering
+   half out of two copies into one — **the gated tier's copy was the one that survived**, so the
+   hand-run instruments' answering half is now run in CI as a side effect of being shared.
+
+**`a11y-sweep.mjs` is the exemplar, and its two facts must be read together rather than as a
+contradiction.** This section says it _fails nothing_, and that is true — it is a report for a
+person and stops no merge. It is also the most thoroughly controlled thing in this repository,
+proving on every run that its checker can see. **Those are not in tension: failing nothing is about
+gating, being controlled is about seeing**, which is the distinction the rule above turns on. A
+report is exactly where a control matters most, because nothing else is watching it.
+
+**Two modules are held honest by none of the four**, and are the whole of the gap:
+`scripts/serve.mjs` (76 lines) and the route left in `scripts/flow.mjs` (163). The route is watched
+indirectly — the census names a frame that never arrived, which is how
+[#270](https://github.com/mandyMooreFan/linkpage/issues/270) was caught in the end, **after three
+months.** _Indirect and slow_ is the case a control exists for, and both are
+[#336](https://github.com/mandyMooreFan/linkpage/issues/336).
+
 **The three invariant guards** named at the top of this section, which the Vitest tier carries:
 
 | #   | Invariant                                                                                 |

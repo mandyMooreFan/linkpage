@@ -10,7 +10,8 @@ Measured on `main` @ `153077c`. Baseline: **1,921 tests green** (995 renderer, 9
 ## The short answer
 
 **The habit is not in the test suite. The test suite is in good health.** What is unchecked is the
-instrument layer itself — **1,942 lines of it, with no test of any kind** — and the line where
+instrument layer itself — **1,942 lines of it, with no test of any kind** _(corrected below: this
+counted test files, and the real figure is about 239 — see the end of this document)_ — and the line where
 coverage stops is exactly the line where a browser starts.
 
 ## 1. #317's own line: a different diagnosis
@@ -142,3 +143,31 @@ and have nothing.
   mattered (#305). Whether any of the remaining 51 makes a rendered-box claim from a class string is
   a per-site reading this sweep did not do.
 - **`serve.mjs` and `axe.mjs` were not probed** beyond establishing what imports them.
+
+---
+
+## Correction, added on [#335](../../issues/335): the headline figure counted the wrong thing
+
+**"1,942 lines of it, with no test of any kind" counted _test files_, and there are four ways an
+instrument is held honest here.** Three of them are not test files. `SPEC.md` §5.3 now names all
+four; measured against them, the genuinely unheld surface is **about 239 lines, not 1,942**.
+
+| module             | lines | how it is actually held honest                                                     |
+| ------------------ | ----- | ---------------------------------------------------------------------------------- |
+| `a11y-sweep.mjs`   | 690   | **by a control** — `CONTROLS` and `emptyRun` run on _every_ invocation             |
+| `review-shots.mjs` | 885   | **by delegation** — `census.mjs` and `stability.mjs`, both tested                  |
+| `wizard.mjs`       | 222   | **by a gate** — the three walks run it every push (since [#332](../../issues/332)) |
+| `axe.mjs`          | 128   | **by a gate**                                                                      |
+| `flow.mjs`         | 163   | only indirectly, by the census naming a frame that never arrived                   |
+| `serve.mjs`        | 76    | **nothing repeatable** — [#336](../../issues/336)                                  |
+
+**The original claim is left standing above rather than edited away, and it should stay that way.**
+This document's own subject is a check that reads right and reports on something adjacent to what
+its name says. **That is exactly what its headline did**: it measured a filing convention and
+reported it as a gap. A document about instruments that cannot see, quietly deleting the moment its
+own instrument could not, would be a worse error than the miscount.
+
+**What survives the correction.** Everything the sweep actually measured still stands — the seven
+mutants and their failure counts, the zero tautologies in 2,396 assertions, the 52 non-emptiness
+guards, the gated walks' controls, and the two categories of §1. **What did not survive is a
+conclusion drawn from a count nobody had asked what it counted.**
