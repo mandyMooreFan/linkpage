@@ -98,15 +98,15 @@
 
 import { chromium } from "@playwright/test";
 
-import { covered, intended, missing, slug, unreached } from "./census.mjs";
+import { covered, intended, missing, unreached } from "./census.mjs";
+import { walkList } from "./list-route.mjs";
 import { ANSWERS, settle, walkFlow as walk } from "./flow.mjs";
 import { portFor } from "./port.mjs";
 import { serve } from "./serve.mjs";
 import { compare, digest, verdict } from "./stability.mjs";
 import { DEFAULT_VARIANTS, MODES, parseVariant, SHAPES, TYPES } from "./variants.mjs";
 import { execFileSync } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -351,227 +351,33 @@ async function walkFlow(context, size, capture) {
   });
 }
 
-/** The screens that are not the wizard: the list, its rows, the sheet, the menu, the import fork. */
-async function listScreens(page, size) {
-  if (!(await page.locator('[data-screen="list"]').count())) {
-    miss("the review list and everything behind it", "the walk never reached the list at all");
-    return;
-  }
-  // On a phone the run ends page-first: the preview covers the viewport and the rows are behind
-  // "Edit your page". That landing is itself a screen worth reviewing, so photograph it before
-  // stepping through it.
-  await shoot(page, size, "50-arrive");
-  const toRows = page.getByRole("button", { name: /Edit your page/i });
-  if (await toRows.count()) {
-    await toRows.first().click();
-    await shoot(page, size, "51-list-rows");
-  }
-
-  await rowScreens(page, size);
-  await top(page);
-
-  const download = page.getByRole("button", { name: /^Download$/ });
-  if (await download.count()) {
-    await download.first().click();
-    await shoot(page, size, "60-download-sheet");
-    const close = page.getByRole("button", { name: /^Close$/ });
-    if (await close.count()) await close.first().click();
-  }
-
-  const menu = page.locator("[data-menu] button, button[data-menu]").first();
-  if (await menu.count()) {
-    await menu.click();
-    await shoot(page, size, "61-menu");
-    await importScreens(page, size);
-    await page.keyboard.press("Escape");
-  }
-}
-
-/** Put the list back at the top, so the next screen is photographed from where it starts. */
-async function top(page) {
-  await page.evaluate(() => window.scrollTo(0, 0));
-}
-
 /**
- * **Every row, opened.** §7.4, and the first of the three misses this widening exists for.
+ * **The route through the review list comes from `scripts/list-route.mjs`** (#352).
  *
- * The walk used to open `[data-row] button` *first* and stop — so the business name was the only
- * row anybody ever saw, and every question the list re-asks (the hours, the link buttons and
- * their editor, the language picker, the six style controls) was behind a row nothing pressed.
- * #189 moved two escapes that live in exactly that blind spot and could evidence the change only
- * with a source guard.
+ * `listScreens`, `rowScreens` and `importScreens` lived here and in `a11y-sweep.mjs`, and nothing
+ * kept the copies in step. [#350](../../issues/350) read them side by side: the route was the
+ * same, but **the sweep recorded failures this file did not** — `else { miss(…) }` on all three
+ * optional steps, where this one's `if (await x.count())` guards skipped in silence, which is
+ * [#270](../../issues/270)'s own shape — while **this file recorded exclusions the sweep did
+ * not.** Neither was the base; both halves went into the shared route.
  *
- * **Named by the row's own id, numbered by its place in the list** — the id is the contract
- * `rows.ts` publishes and the number is what keeps a folder listing in reading order. A row that
- * appears or moves therefore shows up as a renamed file rather than as a silently different
- * picture.
- *
- * **Only one row is open at a time**, which is the list's own rule (§7.4) rather than something
- * arranged here: opening the next one closes the last.
- *
- * **The picture is of the row, not of the viewport.** An open row is routinely taller than a
- * phone screen, and the first thing a viewport shot loses off the bottom is the escape at the
- * foot of the question — which is exactly the screen #189 wanted and could not get. What this
- * gives up is *how much of a long row fits on one screen*; that is a real question and it is
- * answered by `51-list-rows` and by the flow's own shots of the same questions.
+ * **What stays here is the shutter**, which is the only part that was ever this file's:
+ * `scrollIntoView` before a row shot is a requirement of photography, not of the route, and it
+ * lives in `visit` for exactly that reason (#302).
  */
-async function rowScreens(page, size) {
-  const rows = page.locator("[data-row]");
-  const count = await rows.count();
-  if (count === 0) {
-    miss("every review-list row", "the list came up with no [data-row] on it");
-    return;
-  }
-
-  for (let index = 0; index < count; index += 1) {
-    const row = rows.nth(index);
-    const id = (await row.getAttribute("data-row")) ?? String(index);
-    const header = row.locator("button").first();
-    const name = `52-${String(index + 1).padStart(2, "0")}-${slug(id)}`;
-
-    // Declared here rather than in `census.mjs` because this is the first moment the run can
-    // name it: which rows the list has, and what they are called, comes from the answers the
-    // walk just gave. Declaring it *before* the press is the point — if the shot does not
-    // happen the census says which row went missing, without this loop having to notice.
-    expect(`${size.dir}/${name}`);
-    // §7.4 puts the advanced disclosure at the foot of the style row, so a run that comes back
-    // without a picture of it has lost a screen rather than skipped an optional one.
-    if (id === "style") expect(`${size.dir}/${name}-advanced`);
-
-    await header.click();
-    await row.evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
-    await shoot(page, size, name, row);
-
-    // §7.4 puts the advanced disclosure and its contrast readout at the foot of the style row.
-    // It is a surface with a design of its own — a switch, a set of colour boxes and a readout —
-    // and no other screen shows it, so it is worth the one extra press it costs.
-    const advanced = row.locator("[data-advanced] button").first();
-    if (await advanced.count()) {
-      await advanced.click();
-      await row.evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
-      await shoot(page, size, `${name}-advanced`, row);
-      await advanced.click();
+const listHooks = (page, size) => ({
+  visit: async (name, at) => {
+    if (at?.row) {
+      await at.row.evaluate((el) => el.scrollIntoView({ block: "start", behavior: "instant" }));
+      await shoot(page, size, name, at.row);
+    } else {
+      await shoot(page, size, name);
     }
-
-    await header.click();
-  }
-}
-
-/**
- * **The import fork: §7.9's refusal and §7.8's replace confirmation.** The third of the misses.
- *
- * §7.8 shows the confirmation only once a valid file has come back from an OS file picker, and
- * nothing in the walk ever opened one — so the surface was unreachable, and #200's before and
- * after were byte-identical with no picture of the thing it rebalanced. It got its pair out of a
- * throwaway script instead, which is the failure mode this ritual exists to remove.
- *
- * **The way in is the menu item, and the file arrives through the file chooser** (#270).
- *
- * This used to reach past the control and call `setInputFiles` on the clipped
- * `input[type=file]`, found by `aria-label="Open a project file"`. #254 removed that label — its
- * whole argument was that the input had stopped being a control, so the accessible name moved to
- * the visible button and the input went `aria-hidden` — and from `be7aaff` this function found
- * nothing, said `!` once, and both frames were absent from every set taken since.
- *
- * **The lesson is about what kind of thing a locator may hold on to.** §7.4's rule is roles and
- * `data-*` hooks, never utilities, "so a script that reviews design changes does not break when
- * the design changes". An `aria-label` looked like it was on the safe side of that line and is
- * not: it is part of the control's accessibility contract, so it moves when the accessibility is
- * *corrected*, which is exactly a change this ritual exists to photograph. **It was closer to a
- * class than to a hook.**
- *
- * So the walk now does what an owner does: it presses **the menu item, by role and by its own
- * visible words**, and takes the file chooser that press raises. Playwright's `filechooser`
- * event is the OS dialog, so the file arrives by the route §7.7 describes rather than beside it.
- * Nothing here names the input at all — and the input is free to change again. What this holds
- * on to is the thing the reviewer would point at.
- *
- * A second thing falls out of it for free: **the press is now part of what is photographed.** If
- * the menu item ever stops opening the dialog, this walk stops, where the old shape would have
- * carried on happily driving an input nobody could reach.
- *
- * **Two files, in the order that leaves nothing behind.** A file the tool refuses first (§7.9's
- * message, in the menu's own surface with the project intact behind it), then the real one,
- * which clears the message and raises the confirmation. Then Cancel: the picked file is dropped
- * and nothing anywhere changed, which is what lets this run in the middle of a walk.
- *
- * **The incoming file is the project's own bytes.** `store.text()` is what Download writes and
- * what the store holds, so this is a real file the tool itself produced — a hand-written fixture
- * here could drift from the schema and start being refused, which would silently turn the
- * confirmation shot back into a refusal shot. §7.8's sentence is about the *outgoing* project
- * either way.
- */
-async function importScreens(page, size) {
-  // The menu's own item, by role and by the words on it (§7.8). `…` is part of the label, so the
-  // match is anchored at the start and left open at the end — the ellipsis is a typographic
-  // decision and this should not be the thing that breaks when somebody revisits it.
-  const opener = page.getByRole("button", { name: /^Open a project file/ });
-  if (!(await opener.count())) {
-    miss(
-      "§7.9's refusal and §7.8's replace confirmation",
-      "the menu has no “Open a project file…” item to press",
-    );
-    return;
-  }
-
-  const bytes = await page.evaluate(() => localStorage.getItem("linkpage.project"));
-  if (bytes === null) {
-    miss(
-      "§7.9's refusal and §7.8's replace confirmation",
-      "there is no project in storage to hand back to the tool as a file",
-    );
-    return;
-  }
-
-  const dir = await mkdtemp(join(tmpdir(), "review-shots-"));
-  const refused = join(dir, "index.html");
-  const real = join(dir, "ada-and-sons-bakers.linkpage.json");
-  await writeFile(refused, "<!doctype html>\n<p>not a project file</p>\n", "utf8");
-  await writeFile(real, bytes, "utf8");
-
-  /** Press the menu item and hand the dialog a file — the owner's own route in (§7.7). */
-  const choose = async (what) => {
-    const [chooser] = await Promise.all([
-      page.waitForEvent("filechooser", { timeout: 5_000 }),
-      opener.first().click(),
-    ]);
-    await chooser.setFiles(what);
-  };
-
-  try {
-    // The menu opens itself when it has something to say, so these do not depend on it being
-    // left open — but it is, and that is the screen being photographed.
-    await choose(refused);
-    await page.locator("[data-refusal]").first().waitFor({ timeout: 5_000 });
-    await shoot(page, size, "62-menu-file-refused");
-
-    await choose(real);
-    await page.locator("[data-replace]").first().waitFor({ timeout: 5_000 });
-    await shoot(page, size, "63-menu-replace-confirm");
-
-    const cancel = page.locator("[data-replace]").getByRole("button", { name: /^Cancel$/ });
-    if (await cancel.count()) await cancel.first().click();
-  } catch (error) {
-    // A ritual that dies here has thrown away every screen after it, and this is the newest and
-    // most fragile part of the walk. Say which screen went missing and carry on — and now the
-    // census names the frames whatever this sentence turns out to say.
-    miss(
-      "§7.9's refusal and §7.8's replace confirmation",
-      `the import fork did not come up: ${error.message.split("\n")[0]}`,
-    );
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-
-  omit(
-    "the confirmation's “Download my work first” branch",
-    "pressing it writes a file, and this walk touches nothing outside its own output folder",
-  );
-  omit(
-    "§7.9's refusal on the first screen (under the quiet line)",
-    "the same message, in the other of its two places; reaching it needs a second walk from empty",
-  );
-}
+  },
+  declare: expect,
+  miss,
+  omit,
+});
 
 /**
  * The generated page, per style combination.
@@ -766,7 +572,7 @@ async function takeAll(browser, into) {
     const capture = only !== "page";
     if (!capture) log("  · walking the flow to build a project (not photographing it)");
     const page = await walkFlow(context, size, capture);
-    if (capture) await listScreens(page, size);
+    if (capture) await walkList(page, size, listHooks(page, size));
     if (only !== "builder" && size.dir === PAGE_SIZE) await pageVariants(context, size, browser);
     await context.close();
   }
