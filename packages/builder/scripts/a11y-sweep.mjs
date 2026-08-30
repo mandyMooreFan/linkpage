@@ -70,7 +70,8 @@
  */
 
 import { audit, TAGS, WCAG_TAGS, droppedBy, failed } from "./axe.mjs";
-import { flowFrames, LIST_FRAMES, missing, slug } from "./census.mjs";
+import { flowFrames, LIST_FRAMES, missing } from "./census.mjs";
+import { walkList } from "./list-route.mjs";
 import { ANSWERS, settle, walkFlow } from "./flow.mjs";
 import { portFor } from "./port.mjs";
 import { serve } from "./serve.mjs";
@@ -323,6 +324,21 @@ const findings = [];
 let wanted = [];
 const reached = new Set();
 /** Where the walk gave up, in the ritual's own two-part voice (#270). */
+/**
+ * **Screens this sweep deliberately does not reach**, and why (#352).
+ *
+ * ⚠️ **This file had no such ledger until the route was shared.** It did not cover the import
+ * fork's two excluded branches either — [#350](../../issues/350) found that it simply did not say
+ * so, while `review-shots.mjs` had stated them all along. A sweep that is silent about what it
+ * skipped reads as one that reached everything, which is the failure this whole tier is about.
+ *
+ * Not a kind of `miss`: an omission is a decision, a miss is a defect in the instrument.
+ */
+const omissions = [];
+const omit = (what, why) => {
+  if (!omissions.some((noted) => noted.what === what)) omissions.push({ what, why });
+};
+
 const reasons = [];
 const miss = (what, why) => {
   log(`  ! ${what} — ${why}`);
@@ -342,157 +358,6 @@ async function look(page, size, name) {
   });
   const bad = failed(results);
   log(`  ${size.dir}/${name}${bad.length === 0 ? "" : `  ← ${bad.join(", ")}`}`);
-}
-
-/** The screens that are not the wizard: the list, its rows, the sheet, the menu, the import fork. */
-async function listScreens(page, size) {
-  if (!(await page.locator('[data-screen="list"]').count())) {
-    miss("the review list and everything behind it", "the walk never reached the list at all");
-    return;
-  }
-  // On a phone the run ends page-first: the preview covers the viewport and the rows are behind
-  // "Edit your page". That landing is a screen of its own and is where §7.12's commitment 3 —
-  // what the tool covers, it puts out of reach — is actually visible.
-  await look(page, size, "50-arrive");
-  const toRows = page.getByRole("button", { name: /Edit your page/i });
-  if (await toRows.count()) {
-    await toRows.first().click();
-    await look(page, size, "51-list-rows");
-  } else {
-    miss("51-list-rows", "there is no “Edit your page” control on the list");
-  }
-
-  await rowScreens(page, size);
-  await page.evaluate(() => window.scrollTo(0, 0));
-
-  const download = page.getByRole("button", { name: /^Download$/ });
-  if (await download.count()) {
-    await download.first().click();
-    await look(page, size, "60-download-sheet");
-    const close = page.getByRole("button", { name: /^Close$/ });
-    if (await close.count()) await close.first().click();
-  } else {
-    miss("60-download-sheet", "there is no Download control on the list");
-  }
-
-  const menu = page.locator("[data-menu] button, button[data-menu]").first();
-  if (await menu.count()) {
-    await menu.click();
-    await look(page, size, "61-menu");
-    await importScreens(page, size);
-    await page.keyboard.press("Escape");
-  } else {
-    miss("61-menu and the import fork", "there is no [data-menu] control on the list");
-  }
-}
-
-/**
- * **Every row, opened.** The layers §7.12's commitment 3 is about are here and nowhere else: an
- * open row is what the drawer covers, and the checker sees the whole document either way.
- *
- * Named by the row's own id and numbered by its place in the list, the same way the appearance
- * ritual names them, so a screen means the same thing in both hand-run tiers.
- */
-async function rowScreens(page, size) {
-  const rows = page.locator("[data-row]");
-  const count = await rows.count();
-  if (count === 0) {
-    miss("every review-list row", "the list came up with no [data-row] on it");
-    return;
-  }
-
-  for (let index = 0; index < count; index += 1) {
-    const row = rows.nth(index);
-    const id = (await row.getAttribute("data-row")) ?? String(index);
-    const header = row.locator("button").first();
-    const name = `52-${String(index + 1).padStart(2, "0")}-${slug(id)}`;
-
-    // Declared here rather than up front because this is the first moment the run can name it:
-    // which rows the list has comes from the answers the walk just gave.
-    wanted.push(`${size.dir}/${name}`);
-    if (id === "style") wanted.push(`${size.dir}/${name}-advanced`);
-
-    await header.click();
-    await look(page, size, name);
-
-    const advanced = row.locator("[data-advanced] button").first();
-    if (await advanced.count()) {
-      await advanced.click();
-      await look(page, size, `${name}-advanced`);
-      await advanced.click();
-    }
-
-    await header.click();
-  }
-}
-
-/**
- * **The import fork: §7.9's refusal and §7.8's replace confirmation.**
- *
- * The way in is the menu item and the file arrives through the file chooser — the owner's own
- * route (#270), and never by reaching past the control to the clipped input, which is a thing
- * #254 correctly took the name off. §7.8's confirmation is one of the two layers §7.12 commits
- * about, so a sweep that could not reach it would be missing half of what it is for.
- *
- * **Cancel at the end**: the picked file is dropped and nothing anywhere changed, which is what
- * lets this run in the middle of a walk.
- */
-async function importScreens(page, size) {
-  const opener = page.getByRole("button", { name: /^Open a project file/ });
-  if (!(await opener.count())) {
-    miss(
-      "§7.9's refusal and §7.8's replace confirmation",
-      "the menu has no “Open a project file…” item to press",
-    );
-    return;
-  }
-
-  const bytes = await page.evaluate(() => localStorage.getItem("linkpage.project"));
-  if (bytes === null) {
-    miss(
-      "§7.9's refusal and §7.8's replace confirmation",
-      "there is no project in storage to hand back to the tool as a file",
-    );
-    return;
-  }
-
-  const { mkdtemp, rm, writeFile } = await import("node:fs/promises");
-  const { tmpdir } = await import("node:os");
-  const { join } = await import("node:path");
-
-  const dir = await mkdtemp(join(tmpdir(), "a11y-sweep-"));
-  const refused = join(dir, "index.html");
-  const real = join(dir, "ada-and-sons-bakers.linkpage.json");
-  await writeFile(refused, "<!doctype html>\n<p>not a project file</p>\n", "utf8");
-  await writeFile(real, bytes, "utf8");
-
-  const choose = async (what) => {
-    const [chooser] = await Promise.all([
-      page.waitForEvent("filechooser", { timeout: 5_000 }),
-      opener.first().click(),
-    ]);
-    await chooser.setFiles(what);
-  };
-
-  try {
-    await choose(refused);
-    await page.locator("[data-refusal]").first().waitFor({ timeout: 5_000 });
-    await look(page, size, "62-menu-file-refused");
-
-    await choose(real);
-    await page.locator("[data-replace]").first().waitFor({ timeout: 5_000 });
-    await look(page, size, "63-menu-replace-confirm");
-
-    const cancel = page.locator("[data-replace]").getByRole("button", { name: /^Cancel$/ });
-    if (await cancel.count()) await cancel.first().click();
-  } catch (error) {
-    miss(
-      "§7.9's refusal and §7.8's replace confirmation",
-      `the import fork did not come up: ${error.message.split("\n")[0]}`,
-    );
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
 }
 
 /** One size, walked end to end. */
@@ -519,7 +384,12 @@ async function sweep(browser, size) {
     onMiss: miss,
   });
 
-  await listScreens(page, size);
+  await walkList(page, size, {
+    visit: async (name) => look(page, size, name),
+    declare: (name) => wanted.push(name),
+    miss,
+    omit,
+  });
   await context.close();
 }
 
@@ -590,6 +460,14 @@ function report({ controls, empty, gone }) {
       }
     }
     log("  A screen that was not swept is not a screen that came back clean.");
+  }
+  if (omissions.length > 0) {
+    log("");
+    log("NOT REACHED ON PURPOSE — a decision, not a gap:");
+    for (const { what, why } of omissions) {
+      log(`  · ${what}`);
+      log(`      ${why}`);
+    }
   } else {
     log(
       `Every screen this run meant to reach was swept: all ${wanted.length} of them,` +
