@@ -90,11 +90,32 @@ async function advance(page: Page): Promise<"moved" | "arrived" | "stuck"> {
   const forward = page.locator('button[type="submit"]').first();
   const escape = page.locator("button[data-escape]").first();
 
+  const before = await heading(page);
+
   if ((await forward.count()) && (await forward.isEnabled())) await forward.click();
   else if (await escape.count()) await escape.click();
   else return "stuck";
 
-  await page.waitForLoadState("networkidle");
+  /*
+   * **Wait for the screen to *change*, not for the network to go quiet** (#354).
+   *
+   * This used to be `waitForLoadState("networkidle")`, which says nothing about what has
+   * painted: §7.11's view transition leaves the old screen up for a frame or two after the
+   * press. `e2e/walk.ts` had already learned this and says so in the same words — *"a walk that
+   * reads it then answers the same question twice and stops making progress"* — and the smoke
+   * did not inherit it.
+   *
+   * ⚠️ **Measured on the deployed build, this walk was reading three screens twice** and
+   * reporting `moved` each time; on the last of them `heading()` and `hasEscape()` landed on
+   * opposite sides of the transition, so the same step came back escapable and then not. **That
+   * is why the count of steps with no way past was 1, 2 or 3 depending on the morning**, and why
+   * a run could go red against a bundle nobody had touched.
+   */
+  await page.waitForFunction((last) => {
+    const h = document.querySelector('[data-screen="flow"] h1');
+    return h === null || (h.textContent ?? "").trim() !== last;
+  }, before);
+
   return "moved";
 }
 
@@ -140,9 +161,32 @@ test("the deployed builder boots, walks a first run, and exports a self-containe
   for (let step = 0; step < 25; step += 1) {
     // Arrival first: the review list is not a question, so its lack of an escape is not a finding.
     if (await page.getByRole("button", { name: /^Download$/ }).count()) break;
+
     const where = await heading(page);
-    if (!(await hasEscape(page))) unescapable.push(where);
+    const escapable = await hasEscape(page);
     const result = await advance(page);
+
+    /*
+     * **`advance` looks for the review list again, and finding it is arrival, not failure**
+     * (#354).
+     *
+     * The check above can be stale by the time `advance` runs: the last step's `Continue` returns
+     * once the network is idle, and §7.11's view transition means the list can paint a moment
+     * after that. Measured on the deployed build — `Download` counted **0** at the top of this
+     * loop and **1** immediately after `heading()`, in the same pass, with `heading()` already
+     * returning the *list's* own `<h1>`, which is the business name.
+     *
+     * ⚠️ **It used to fall through to the assertion below, which says the walk was stuck with no
+     * way forward — a different failure from the one that happened, and the opposite one: the
+     * walk had arrived.** It cost three red runs on `main` against bundles that had not changed,
+     * and it survived `retries: 1` about half the time, which is worse than failing outright.
+     *
+     * **Nothing about this pass is recorded**: the list is not a step, its heading is not a
+     * question, and its lack of an escape is the very thing the check above exists to excuse.
+     */
+    if (result === "arrived") break;
+
+    if (!escapable) unescapable.push(where);
     expect(result, `stuck on "${where}" with no way forward`).toBe("moved");
     seen.push(where);
   }
@@ -151,6 +195,24 @@ test("the deployed builder boots, walks a first run, and exports a self-containe
     page.getByRole("button", { name: /^Download$/ }),
     `never reached the review list; saw ${JSON.stringify(seen)}`,
   ).toBeVisible();
+
+  /*
+   * **No screen was answered twice** (#354).
+   *
+   * This is the symptom that made the count below unstable, asserted directly rather than left
+   * to be inferred from it. A walk that reads a screen the view transition has not finished
+   * replacing answers the same question again and reports progress it did not make — and the
+   * two facts it gathers on that pass, the heading and whether there is a way past, can land on
+   * opposite sides of the change.
+   *
+   * ⚠️ **The count below cannot catch this and was calibrated against it**: with the walk reading
+   * three screens twice, it came back 1, 2 or 3 by the morning, and `.toBe(2)` happened to be
+   * right often enough to look settled.
+   */
+  expect(
+    seen.filter((s, i) => i > 0 && s === seen[i - 1]),
+    `answered the same screen twice — the walk read a screen the transition had not finished replacing`,
+  ).toEqual([]);
 
   // §7.2, executed rather than quoted: the *only* steps without a way past are the two required
   // inputs, because §4.6 forbids inventing either. A third would mean someone shipped a step an
