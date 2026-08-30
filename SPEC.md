@@ -2303,15 +2303,19 @@ defects live. A dead tab stop survived 847 green tests here.
 2. **A focus ring is painted on every tab stop, and the line owns it.** _Measured_ — a browser walk
    presses Tab around every screen of the builder at both of §7.6's sizes and reads what focus
    painted on each stop: an outline of at least 2px that was not there at rest, or, on the fields
-   that are a line, the bottom border thickening instead. It reaches 17 screens and every stop on
-   them — 133 at 390, 144 at 1440. **jsdom could never say this**: `:focus-visible` is a judgement
+   that are a line, the bottom border thickening instead. It reaches 30 screens and every stop on
+   them — 247 at 390, 258 at 1440. **Each wizard step is measured twice, as it arrives and once it
+   has been answered** (#343), and the step §7.9 can refuse a third time while it is refusing:
+   until that landed the walk saw arrival only, and fourteen stops at 390 lived in an answered
+   state no gate had ever read — nine of the twelve steps gain one when they are filled, and the
+   hours step gains six as its time fields arrive. **jsdom could never say this**: `:focus-visible` is a judgement
    about how focus arrived, so the browser is the only instrument that can be asked. What Chromium
    computes, on every stop but the preview iframe — the one place a ring was not observed, and the
    one place the browser rather than the builder decides.
 3. **What the tool covers, it puts out of reach, and what it leaves on the glass stays in reach.**
    _Measured_ — the same browser walk counts every control each screen is showing and then presses
-   Tab around it, at both of §7.6's sizes: **159 controls over 17 screens, 133 of them reachable at
-   390 and 144 at 1440**. Two screens account for the whole difference. On the review list at 390
+   Tab around it, at both of §7.6's sizes: **273 controls over 30 screens, 247 of them reachable at
+   390 and 258 at 1440**. Two screens account for the whole difference. On the review list at 390
    the preview page comes down over the column, and **2 of its 13 controls stay in reach** — _Edit
    your page_ and _Download_, the two the drawer put on its own glass, so that what it covers is
    not a dead end; the other 11 are still on the page and the keyboard cannot get to any of them.
@@ -2325,18 +2329,18 @@ defects live. A dead tab stop survived 847 green tests here.
    measured by a standing test.
 5. **Every control the keyboard reaches clears the tap floor**, except the deliberate inline
    weight and §7.2's progress bar header. _Measured_ — the same browser walk reads the rendered box
-   of every tab stop at both of §7.6's sizes and holds it to `tap`'s 44px: 133 stops at 390, 144 at 1440. **A control is not always its own target**, and a check that read only the control would
-   fail fourteen honest ones at each width — the 20×20 checkboxes are pressed through a 350×44
+   of every tab stop at both of §7.6's sizes and holds it to `tap`'s 44px: 247 stops at 390, 258 at 1440. **A control is not always its own target**, and a check that read only the control would
+   fail twenty-eight honest ones at each width — the 20×20 checkboxes are pressed through a 350×44
    `<label>`, §7.10's 1×1 day modes through a 98×44 one, and the web-address box through the ruled
    line it stands on. So what is measured is the label or the line, and only where the browser or a
    declared hook says the press is forwarded. Height is the axis, because `tap` is a `min-height`
    and most controls here must not take a width floor; `tap-square` is for glyph buttons and this
-   walk reaches none. **Two controls are under it, and they account for thirteen stops at each
+   walk reaches none. **Two controls are under it, and they account for twenty-six stops at each
    width** — the check prints both numbers every run, because they are not the same number and the
    larger one is the honest one. The `inline` weight is the deliberate one this line has always
    carried — a word inside a sentence, which 44px would push apart; it is one control and one stop.
    The other is §7.2's bar header at 350×36, **a real miss the class string could not see because
-   it never read that button** (#305) — one control the walk meets on twelve screens, which is the
+   it never read that button** (#305) — one control the walk meets on twenty-five of them, which is the
    whole of the difference. Both are named in the check, and a third fails it.
 6. **One control, one accessible name.** _Guarded at the rendered tree_ — the three screens that open
    a file dialog are mounted, and so is the shared `FilePicker` they all follow, whose own test counts

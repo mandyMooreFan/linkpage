@@ -163,8 +163,8 @@ for (const width of WIDTHS) {
      * numbers — 17 screens, 133 stops at 390 and 144 at 1440 — rather than on them: this is here
      * to catch a walk that fell over, not to pin the flow's shape, which `plan.test.ts` owns.
      */
-    expect(screens.length, "screens the walk reached").toBeGreaterThanOrEqual(16);
-    expect(stops.length, "tab stops the walk reached").toBeGreaterThanOrEqual(100);
+    expect(screens.length, "screens the walk reached").toBeGreaterThanOrEqual(28);
+    expect(stops.length, "tab stops the walk reached").toBeGreaterThanOrEqual(220);
 
     const short = stops.filter((stop) => !clears(target(stop)));
 
@@ -201,13 +201,19 @@ for (const width of WIDTHS) {
     expect(
       forwarded.length,
       "controls smaller than the floor, pressed through something that clears it",
-    ).toBeGreaterThanOrEqual(14);
+    ).toBeGreaterThanOrEqual(26);
     expect(
       forwarded.filter((stop) => /checkbox "See the menu"/.test(stop.what)).map(say),
       "the checkbox the change list was written about",
     ).toEqual([
+      // **Twice, since #343: once as the screen arrives and once with the box ticked.** Same
+      // control, same 20×20, same label carrying the press — the second sighting is the answered
+      // state this walk did not used to visit, not a second defect. Both are pinned, because an
+      // exact list that quietly accepted "one or two" would stop being evidence.
       `flow/06-which-of-these-do-you-have stop 2: checkbox "See the menu" — 20×20 ` +
         `(target ${width.label === "390" ? "350" : "512"}×44 on a <label>)`,
+      `flow/06-which-of-these-do-you-have+answered stop 2: checkbox "See the menu" [checked] — ` +
+        `20×20 (target ${width.label === "390" ? "350" : "512"}×44 on a <label>)`,
     ]);
 
     const tally = [...new Set(short.map(excused))]
@@ -255,7 +261,7 @@ test("the walk goes red when the floor is taken away", async ({ page }) => {
     await mutant.evaluate((node: HTMLStyleElement) => node.remove());
   });
 
-  expect(screens.length, "the control walked the route").toBeGreaterThanOrEqual(16);
+  expect(screens.length, "the control walked the route").toBeGreaterThanOrEqual(28);
   expect(shrunk.length, "the control found stops to take the floor away from").toBeGreaterThan(5);
   expect(
     shrunk.filter((stop) => clears(target(stop))).map(say),
