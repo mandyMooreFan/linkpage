@@ -107,14 +107,52 @@ export async function answer(page, spec) {
   return result;
 }
 
+/**
+ * **A step that did not take says so, rather than handing on a screen it only answered in
+ * theory.** #345, generalising the read-back [#302](../../issues/302) added to the hours step.
+ *
+ * That one was found working **by luck of scroll position**, with a comment above it asserting
+ * the opposite — it was one scroll away from photographing an unanswered screen for everybody,
+ * and both callers would have reported on it without a word. The other five steps fired and
+ * moved on in exactly the same way; this is the shape, written once.
+ *
+ * **What it must not be is strict rather than correct.** Fields normalise what was typed on blur
+ * — `"2pm"` becomes `"2:00 PM"` — and `answer` blurs everything on purpose, so a read-back
+ * comparing a box to the string handed in would be wrong on the fields that matter most. **These
+ * ask whether the answer landed at all, never whether it survived unchanged.**
+ */
+async function landed(ok, what) {
+  if (!ok) throw new Error(`${what}, so the step was left unanswered`);
+}
+
+/** Whether a box holds anything after the tool has had its say about what was typed. */
+async function holds(locator) {
+  return (await locator.inputValue()).trim() !== "";
+}
+
 async function fill(page, spec) {
   switch (spec.kind) {
-    case "preset":
+    case "preset": {
+      // **The read-back is the screen moving on, because that is all this step leaves behind.**
+      // The preset picker advances by itself, so there is no control left in a pressed state to
+      // interrogate — and a click that missed looks exactly like one that landed until the next
+      // heading fails to arrive.
+      const was = await heading(page);
       await page.getByRole("button", { name: spec.choose }).first().click();
+      let moved = false;
+      for (let tries = 0; tries < 20 && !moved; tries += 1) {
+        await page.waitForTimeout(100);
+        moved = (await heading(page)) !== was;
+      }
+      await landed(moved, `pressing “${spec.choose}” did not move the flow off “${was}”`);
       return false;
-    case "type":
-      await page.locator(TEXTISH).first().fill(spec.value);
+    }
+    case "type": {
+      const box = page.locator(TEXTISH).first();
+      await box.fill(spec.value);
+      await landed(await holds(box), `the box on this step is empty after typing into it`);
       return true;
+    }
     case "swatch":
       /*
        * **`[data-swatch]` alone, which is the narrower of the two selectors that met here** and
@@ -129,6 +167,12 @@ async function fill(page, spec) {
        * the two screens with swatches on them.
        */
       await page.locator("[data-swatch]").first().click();
+      // `ColourQuestion.tsx` sets `aria-pressed` from the answer itself, so a swatch reporting
+      // pressed is the tool agreeing it took the colour — not merely that a click was dispatched.
+      await landed(
+        (await page.locator("[data-swatch][aria-pressed='true']").count()) > 0,
+        "no swatch reports itself chosen after pressing one",
+      );
       return true;
     case "check":
       for (const l of spec.labels) await page.getByLabel(l, { exact: false }).first().check();
@@ -181,6 +225,8 @@ async function fill(page, spec) {
       const f = page.locator(TEXTISH);
       await f.nth(0).fill("020 7946 0100");
       await f.nth(1).fill("hello@adasbakery.example");
+      await landed(await holds(f.nth(0)), "the phone box is empty after typing into it");
+      await landed(await holds(f.nth(1)), "the email box is empty after typing into it");
       return true;
     }
     case "address": {
@@ -195,7 +241,13 @@ async function fill(page, spec) {
        * so two decisions had no picture anywhere in the set. The fifth instance of the ritual's
        * standing failure: a screen that exists only once something optional has been answered.
        */
-      await page.getByLabel("A link to directions").fill("maps.example/?q=12+Mill+Lane");
+      const directions = page.getByLabel("A link to directions");
+      await directions.fill("maps.example/?q=12+Mill+Lane");
+      await landed(
+        (await page.locator('[data-screen="flow"] textarea').first().inputValue()).trim() !== "",
+        "the address box is empty after typing into it",
+      );
+      await landed(await holds(directions), "the directions box is empty after typing into it");
       return true;
     }
     case "skip":
