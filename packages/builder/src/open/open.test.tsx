@@ -184,6 +184,7 @@ describe("a refused file, said out loud (§7.9, §4.6)", () => {
     for (const [text, message] of [
       ["{ this is not a file", "This file appears to be damaged."],
       ["[1, 2, 3]", "This doesn't look like a linkpage file."],
+      ["<!doctype html>\n<p>the owner's own page</p>", "This doesn't look like a linkpage file."],
       ['{"version":99}', "This page was made with a newer version of linkpage"],
     ] as const) {
       cleanup();

@@ -27,6 +27,30 @@ describe("refusing a file", () => {
     expect(refusal?.message).toBe("This file appears to be damaged.");
   });
 
+  it("refuses the owner's own index.html as not a linkpage file — not as damaged (§7.9)", () => {
+    // The overwhelmingly common wrong pick is the exported page itself (§7.9). It does not parse,
+    // but nothing about it is damaged: it was never a project file, and §4.6's sentence has to
+    // be true of the file the owner is looking at.
+    const page =
+      '<!doctype html>\n<html lang="en"><head><title>Ada\'s Bakery</title></head></html>\n';
+    const refusal = refusalFor(page);
+    expect(refusal?.reason).toBe("not-a-project");
+    expect(refusal?.message).toBe("This doesn't look like a linkpage file.");
+    expect(refusal?.detail).toContain("<!doctype html>");
+  });
+
+  it("tells a file that was never JSON from a project file broken by hand-editing", () => {
+    // What tells them apart is the first character that is not whitespace. A project file's top
+    // level is always an object, so one that opens with `{` and still fails to parse is damaged
+    // — a trailing comma, a missing quote. Anything else was never a project file at all.
+    for (const text of ["", "  \n", "hello", "<svg/>", "\u0089PNG", "[1, 2,", '"unterminated']) {
+      expect(refusalFor(text)?.reason, JSON.stringify(text)).toBe("not-a-project");
+    }
+    for (const text of ["{ this is not json", '{"version": 1,}', ' \n {"links":[}', "{"]) {
+      expect(refusalFor(text)?.reason, JSON.stringify(text)).toBe("damaged");
+    }
+  });
+
   it("refuses JSON whose top level is not an object", () => {
     for (const text of ["[]", "42", '"a string"', "null", "true"]) {
       expect(refusalFor(text)?.reason, text).toBe("not-a-project");
@@ -43,7 +67,7 @@ describe("refusing a file", () => {
 
   it("says nothing technical in the message, and everything technical in the detail", () => {
     // §4.6: neither message names a JSON path; the detail sits behind a disclosure.
-    for (const text of ["{ nope", "[]", '{"version":9}']) {
+    for (const text of ["{ nope", "[]", "<!doctype html>", "", '{"version":9}']) {
       const refusal = refusalFor(text);
       expect(refusal?.detail, text).not.toBe("");
       expect(Object.values(REFUSAL_MESSAGES), text).toContain(refusal?.message);

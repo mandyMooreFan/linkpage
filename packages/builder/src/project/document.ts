@@ -13,6 +13,13 @@ import { SCHEMA_VERSION } from "@linkpage/renderer";
  * fields is not a refusal — it loads for what it has and the flow collects the rest (§7.2). A file
  * with an unrecognised `shape` is not a refusal — it falls back for rendering and keeps its value
  * in the file (§4.4).
+ *
+ * **The first refusal has two sentences, and the file's first character picks between them.**
+ * A project file's top level is always an object, so text that opens with `{` and still fails
+ * to parse was a project file once and is damaged now — a trailing comma after hand-editing.
+ * Text that opens with anything else was never a project file: the owner's own `index.html`,
+ * which §7.9 names as the overwhelmingly common wrong pick, a picture, an empty file. Calling
+ * that *damaged* told the owner something untrue about a file that is fine (#367).
  */
 
 /** A JSON object. The parsed file, exactly as it arrived — including keys we know nothing about. */
@@ -72,6 +79,20 @@ export interface Refusal {
 export type ReadResult =
   | { readonly ok: true; readonly document: ProjectDocument }
   | { readonly ok: false; readonly refusal: Refusal };
+
+/**
+ * Whether the text opens the way a project file does — with `{` as its first non-blank
+ * character. Decides which of §4.6's two sentences a file that does not parse gets.
+ */
+function opensLikeAProject(text: string): boolean {
+  return text.trimStart().startsWith("{");
+}
+
+/** The opening of a file that is not a project, for the disclosure text: one line, quoted. */
+function opening(text: string): string {
+  const head = text.trimStart().split(/\r?\n/, 1)[0] ?? "";
+  return JSON.stringify(head.length > 40 ? `${head.slice(0, 40)}…` : head);
+}
 
 function refuse(reason: RefusalReason, detail: string): ReadResult {
   return {
@@ -139,7 +160,16 @@ export function readProjectFile(text: string): ReadResult {
   try {
     parsed = JSON.parse(text) as unknown;
   } catch (error) {
-    return refuse("damaged", error instanceof Error ? error.message : String(error));
+    if (opensLikeAProject(text)) {
+      return refuse("damaged", error instanceof Error ? error.message : String(error));
+    }
+    return refuse(
+      "not-a-project",
+      text.trim() === ""
+        ? "The file is empty."
+        : `The file begins ${opening(text)} rather than with {, so it is not a project file — ` +
+            `the project is the .linkpage.json file the tool saves.`,
+    );
   }
 
   if (!isRecord(parsed)) {

@@ -891,12 +891,19 @@ as absent is how a file too new to load gets loaded anyway.
 
 **Three refusal messages**, because the owner can act differently on each:
 
-| Case                 | Message                                                                                    |
-| -------------------- | ------------------------------------------------------------------------------------------ |
-| Did not parse        | _"This file appears to be damaged."_                                                       |
-| Parsed, wrong thing  | _"This doesn't look like a linkpage file."_                                                |
-| `version` unreadable | _"This file appears to be damaged."_ — the same message; it is the same kind of trouble    |
-| Version too new      | _"This page was made with a newer version of linkpage"_ — with the canonical URL as a link |
+| Case                                      | Message                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Opens with `{`, did not parse             | _"This file appears to be damaged."_                                                       |
+| Did not parse, and does not open with `{` | _"This doesn't look like a linkpage file."_                                                |
+| Parsed, wrong thing                       | _"This doesn't look like a linkpage file."_                                                |
+| `version` unreadable                      | _"This file appears to be damaged."_ — the same message; it is the same kind of trouble    |
+| Version too new                           | _"This page was made with a newer version of linkpage"_ — with the canonical URL as a link |
+
+**The first character that is not blank tells the first two rows apart.** A project file's top level
+is always an object, so a file that opens with `{` and still does not parse was a project file once
+and is damaged now — a trailing comma after hand-editing. A file that opens with anything else was
+never a project file, and _damaged_ would be untrue of it: the overwhelmingly common wrong pick is
+the owner's own `index.html` (§7.9), and that file is fine. An empty file is the same case.
 
 None of them names a JSON path. **Technical detail sits behind a disclosure** — invisible to the owner,
 one click away for whoever hand-edited the file.
