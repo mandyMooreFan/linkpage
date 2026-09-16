@@ -10,7 +10,7 @@ import { useId, useState, type JSX, type ReactNode } from "react";
 import { BRAND_SWATCHES } from "../flow/index.js";
 import { Field } from "../flow/questions/Question.js";
 import { LADDER } from "../ui/ladder.js";
-import { TYPE } from "../ui/type.js";
+import { HEADING, TYPE } from "../ui/type.js";
 import { hasContent } from "../flow/topics.js";
 import type { Draft } from "../project/index.js";
 import { Advanced } from "./Advanced.js";
@@ -77,6 +77,19 @@ export function StyleStep({ draft, onChange }: StyleStepProps): JSX.Element {
     // the ladder right already at 24px, and follows it up now that the rung has moved. The top
     // offset is the open row's, once, and no longer this editor's (B-42).
     <div className={`flex flex-col ${LADDER.betweenFields.className}`} data-style-step>
+      {/*
+       * **The row's heading, clipped away** (#366). Every other row's body is a question, and the
+       * shell gives a question in a row an `<h2>` under the list's title (`Question.tsx`); this
+       * body is six controls with no question above them, so it carried no heading at all and the
+       * readout's `<h3>` at its foot landed straight under the list's `<h1>` — `heading-order` on
+       * both `52-07-style-advanced` frames (#318). The row is called *How it looks* one line up, in
+       * the header that opened it, so the words are already on the screen; what was missing was the
+       * outline's node, and `sr-only` is an `<h2>` for the outline that paints nothing and takes no
+       * part in the ladder — it is `position: absolute`, so the flex column's gaps do not see it.
+       * It wears its level's recipe all the same: one recipe per heading level is a source rule
+       * (`controls.test.ts`, B-32), and a heading that is clipped today is still a heading.
+       */}
+      <h2 className={`sr-only ${HEADING.screen.className}`}>How it looks</h2>
       <ColourControl
         label="Your main colour"
         hint="Everything else on the page is worked out from it."

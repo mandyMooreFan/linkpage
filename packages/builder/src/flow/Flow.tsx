@@ -325,7 +325,15 @@ export function Flow({
   }
 
   return (
-    <div
+    /*
+     * `<main>`, as the list's root has always been (#366). This was a `<div>`, so nothing on a
+     * wizard screen sat inside any landmark and `pnpm a11y` reported `landmark-one-main` and
+     * `region` on all 46 of them (#318) — the review list, one element away, was clean on both.
+     * §7.1: the two screens are the same product at two moments, and only ever one is mounted, so
+     * they are the same landmark. Nothing reads the tag: every walker finds this root by
+     * `data-screen`.
+     */
+    <main
       className="enter-fade flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
       data-screen="flow"
     >
@@ -383,6 +391,6 @@ export function Flow({
       <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
         <Preview project={working} />
       </div>
-    </div>
+    </main>
   );
 }

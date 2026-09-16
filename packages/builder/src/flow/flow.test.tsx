@@ -712,3 +712,20 @@ describe("the first screen orients before it asks (§7.3, #141)", () => {
     expect(preamble()).toBeNull();
   });
 });
+
+describe("the flow is the page's one main landmark (§7.12, #366)", () => {
+  /**
+   * `pnpm a11y` reported `landmark-one-main` and `region` on all 46 wizard screens (#318): the
+   * flow's root was a `<div>`, so nothing on a wizard screen sat inside any landmark, while the
+   * list's root has been a `<main>` since it was built. The two screens are the same product at
+   * two moments (§7.1), and they are the same landmark.
+   */
+  it("mounts its root as <main>, so every wizard screen sits inside a landmark", () => {
+    harness();
+    const main = screen.getByRole("main");
+    expect(main.getAttribute("data-screen")).toBe("flow");
+    // Everything the screen holds — the bar, the question, the preview — is inside it.
+    expect(main.contains(screen.getByRole("heading", { level: 1 }))).toBe(true);
+    expect(main.contains(document.querySelector("[data-flow-body]"))).toBe(true);
+  });
+});
