@@ -5,14 +5,15 @@ import { tabStops, walkScreens, WIDTHS, type Stop } from "./walk.js";
  * §7.12's commitment 5, measured rather than read off a class string.
  *
  * > **Every control the keyboard reaches clears the tap floor**, except the deliberate inline
- * > weight and §7.2's progress bar header.
+ * > weight.
  *
  * **What this replaces.** `controls.test.ts` asserted `expect(classes).toContain("tap")` over
  * `Button.tsx`'s four weights. That is a true fact about four strings and says two things it was
  * never entitled to say. It cannot see the *size* of anything — `tap` is a `min-height` and a
  * rendered box is a layout result — and it cannot see any control whose class string it does not
- * read: the bar header below is a hand-written `<button>` that was never in the set, and it has
- * been 8px short the whole time.
+ * read: §7.2's bar header is a hand-written `<button>` that was never in the set, and it had
+ * been 8px short the whole time — the one excused stop here from the day this file was written
+ * until #305 gave it `tap`.
  *
  * **A control is not always its own target, and this is the trap the check exists to avoid.**
  * `Checkbox.tsx` is a 20×20 box on purpose — a 20×44 tick box is a stretched rectangle in every
@@ -53,7 +54,7 @@ const FLOOR = 44;
 
 /**
  * Sub-pixel slack. A box that lays out at 43.99 is the floor doing its job, not a control 0.01px
- * short of it; the misses this check is for are whole pixels out (the bar header is eight).
+ * short of it; the misses this check is for are whole pixels out (the bar header was eight).
  */
 const SLACK = 0.5;
 
@@ -65,11 +66,9 @@ interface Rung {
   readonly forwards: boolean;
 }
 
-/** A stop's own box, its ladder, and the one thing here identified by a hook rather than words. */
+/** A stop's own box and its ladder. */
 interface Target {
   readonly ladder: Rung[];
-  /** §7.2's whole-bar toggle. Named by `data-progress-bar`, as `walk.ts` names everything. */
-  readonly bar: boolean;
 }
 
 /**
@@ -94,7 +93,7 @@ function hit(element: Element): Target {
     });
     node = node.parentElement;
   }
-  return { ladder, bar: element.matches("[data-progress-bar] > button") };
+  return { ladder };
 }
 
 /** The stop's own box — what a check that stopped at the control would have measured. */
@@ -117,13 +116,13 @@ function clears(rung: Rung | undefined): boolean {
 /**
  * Why this stop is allowed under the floor, or `""` if it is not.
  *
- * **Two entries, and the list is asserted exactly** — every excuse below has to be *used* on
- * every run, so neither can quietly outlive the thing it excuses. Fixing #305 turns this file
- * red until its line is deleted, which is the point of writing it down here rather than shrugging
- * at it in a filter.
+ * **One entry, and the list is asserted exactly** — the excuse below has to be *used* on every
+ * run, so it cannot quietly outlive the thing it excuses. There were two: §7.2's bar header stood
+ * here as *8px short and a real miss — #305* until #305 gave it `tap`, and deleting that line
+ * was what turned this file from red back to green, which is the point of writing an excuse down
+ * here rather than shrugging at it in a filter.
  */
 function excused(stop: Stop<Target>): string {
-  if (stop.focused.bar) return "§7.2's bar header, 8px short and a real miss — #305";
   if (/^(button|link) "Open it\./.test(stop.what))
     return "the `inline` weight, a word inside a sentence — Button.tsx";
   return "";
@@ -183,10 +182,7 @@ for (const width of WIDTHS) {
     expect(
       [...new Set(short.map(excused))].sort(),
       "the excuses, every one of them met on this run",
-    ).toEqual([
-      "the `inline` weight, a word inside a sentence — Button.tsx",
-      "§7.2's bar header, 8px short and a real miss — #305",
-    ]);
+    ).toEqual(["the `inline` weight, a word inside a sentence — Button.tsx"]);
 
     /*
      * **And the trap this check exists to avoid.** These are the controls a measurement that

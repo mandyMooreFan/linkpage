@@ -1087,7 +1087,7 @@ repository time.** A check that **cannot fail** is the obvious case and, measure
 has none: **zero identical-operand assertions across 2,396**
 ([#317](https://github.com/mandyMooreFan/linkpage/issues/317)). A check that is **misaimed** — alive,
 and pointed slightly to one side of the defect it names — is what every miss here has been. §7.2's
-progress-bar header stands at 350×36 under a 44px floor, and went unseen because the guard of the day
+progress-bar header stood at 350×36 under a 44px floor, and went unseen because the guard of the day
 read a class string and never read that button ([#305](https://github.com/mandyMooreFan/linkpage/issues/305)); the file-picker
 guard in `pickers.test.tsx` counted roles, and a file input made into a second accessible button _by
 a name alone_ carries no role to count. Both guards ran, passed, and were pointed just past the
@@ -2333,20 +2333,20 @@ defects live. A dead tab stop survived 847 green tests here.
    block must exist, be non-empty, and name every duration a screen change runs. Durations are not
    measured by a standing test.
 5. **Every control the keyboard reaches clears the tap floor**, except the deliberate inline
-   weight and §7.2's progress bar header. _Measured_ — the same browser walk reads the rendered box
+   weight. _Measured_ — the same browser walk reads the rendered box
    of every tab stop at both of §7.6's sizes and holds it to `tap`'s 44px: 247 stops at 390, 258 at 1440. **A control is not always its own target**, and a check that read only the control would
    fail twenty-eight honest ones at each width — the 20×20 checkboxes are pressed through a 350×44
    `<label>`, §7.10's 1×1 day modes through a 98×44 one, and the web-address box through the ruled
    line it stands on. So what is measured is the label or the line, and only where the browser or a
    declared hook says the press is forwarded. Height is the axis, because `tap` is a `min-height`
    and most controls here must not take a width floor; `tap-square` is for glyph buttons and this
-   walk reaches none. **Two controls are under it, and they account for twenty-six stops at each
-   width** — the check prints both numbers every run, because they are not the same number and the
-   larger one is the honest one. The `inline` weight is the deliberate one this line has always
-   carried — a word inside a sentence, which 44px would push apart; it is one control and one stop.
-   The other is §7.2's bar header at 350×36, **a real miss the class string could not see because
-   it never read that button** (#305) — one control the walk meets on twenty-five of them, which is the
-   whole of the difference. Both are named in the check, and a third fails it.
+   walk reaches none. **One control is under it, and it is one stop at each width** — the check
+   prints both numbers every run, because they were not always the same number and the larger one
+   is the honest one. The `inline` weight is the deliberate one this line has always carried — a
+   word inside a sentence, which 44px would push apart. It is named in the check, and a second
+   fails it. There was a second: §7.2's bar header at 350×36, **a real miss the class string could
+   not see because it never read that button** (#305) — one control the walk met on twenty-five
+   stops, excused by number until #305 gave it `tap` and the excuse was deleted.
 6. **One control, one accessible name.** _Guarded at the rendered tree_ — the three screens that open
    a file dialog are mounted, and so is the shared `FilePicker` they all follow, whose own test counts
    the named controls it renders rather than asserting an absence. `getByRole` matches strictly, so a
