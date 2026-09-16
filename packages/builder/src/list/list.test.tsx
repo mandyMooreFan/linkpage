@@ -602,6 +602,28 @@ describe("how it looks (§3.1, §3.4)", () => {
     expect(screen.getByRole("heading", readout)).toBeTruthy();
   });
 
+  /**
+   * The row's heading outline, which `pnpm a11y` read as `heading-order` on both
+   * `52-07-style-advanced` frames (#318, #366). Every other row's body is a question, and the
+   * shell gives a question in a row an `<h2>` under the list's title; this row's body is the six
+   * controls, so it carried no heading of its own and the readout's `<h3>` landed straight under
+   * the `<h1>`. The `<h2>` is the row's own name, clipped away — the label is already on the
+   * screen in the row's header, one line up, and nothing visible moves.
+   */
+  it("keeps the readout's <h3> one step under a heading for the row (#366)", () => {
+    editing();
+    openRow(/^How it looks/);
+    fireEvent.click(screen.getByRole("button", { name: "Advanced colours" }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "How it looks" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 3, name: "What the numbers say" })).toBeTruthy();
+    // The whole outline in document order: no heading sits more than one level under the one before it.
+    const levels = screen.getAllByRole("heading").map((h) => Number(h.tagName.slice(1)));
+    for (let i = 1; i < levels.length; i++) {
+      expect((levels[i] ?? 0) - (levels[i - 1] ?? 0), levels.join(" → ")).toBeLessThanOrEqual(1);
+    }
+  });
+
   it("states its numbers and does nothing else (§3.4)", () => {
     editing(POPULATED, { onDownload: () => {} });
     openRow(/^How it looks/);

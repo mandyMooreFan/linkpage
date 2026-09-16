@@ -1051,9 +1051,10 @@ when a person wants to look at what they say.
 must not be run together. Both instruments grade their own exits — `1` could not run at all, `2`
 frames missing or _"this report cannot be believed"_, and, for `pnpm a11y`, `3` rules violated. **The
 `Instrument health` job fails on 1 and 2 and passes on 3**, deliberately: a finding is for a person
-to judge, and `pnpm a11y` returns 3 today for the three rules §7.12 records as a successor effort's
-work. **A job that went red on those would be permanently red, which is how a check becomes one
-people switch off.**
+to judge. `pnpm a11y` returned 3 from the day the job was built until #366, for the three rules
+§7.12 records, and **a job that had gone red on those would have been permanently red, which is how
+a check becomes one people switch off.** It returns 0 today; the rule is unchanged, because the
+next finding is still a person's to judge.
 
 **Until this existed, the grading was read by nobody**, which is the whole of #270: from `be7aaff`
 every run printed a skip line, exited 0 as far as anyone was watching, reported a cheerful
@@ -2371,8 +2372,13 @@ findings are hand-read.** `pnpm a11y` drives the real flow in Chromium — every
 review list, every row opened, the download sheet, the menu and the import fork, at both of §7.6's
 sizes. **Nothing it finds gates a merge**, deliberately, the way §7.4's appearance ritual does not
 — but CI does run it, and fails when it reports it could not see (§5.3's `Instrument health` job,
-#339). The three rules it reports today are a successor effort's, and the job passes them on
-purpose.
+#339). **It sweeps the 76 screens clean today** (#366). From the day it was built it reported three
+`best-practice` rules, and the job passed them on purpose: `landmark-one-main` and `region` on all
+46 wizard screens, because the flow's root was a `<div>` while the list's was a `<main>`, and
+`heading-order` on the style row's opened readout, an `<h3>` under the list's `<h1>` with no `<h2>`
+for the row. They were #318's, ruled to a successor effort on #273, and cleared before
+`v1.1.0-beta` — the flow's root is a `<main>` and the style row carries its own clipped `<h2>`.
+#318's eleven undecided `color-contrast` results stand as they were: not findings, and not clean.
 Reaching the list takes sixty-odd driven steps, and the check would not have caught #254, #255,
 #244 or #246. **The two tiers are not interchangeable**: the exported page's is a gate and this one
 is a report for a person, and the six commitments above do not rest on it.

@@ -178,10 +178,11 @@ jobs:
   #   2  frames missing, or "this report cannot be believed"       → red
   #   3  rules violated (a11y only): findings for a person         → GREEN, deliberately
   #
-  # **Exit 3 passing is the whole subtlety.** `pnpm a11y` returns 3 today for the three rules
-  # #318 records, which the owner ruled to a successor effort. A job that went red on 3 would
-  # overturn that ruling by accident and be permanently red, which is how a check becomes
-  # something people switch off.
+  # **Exit 3 passing is the whole subtlety.** `pnpm a11y` returned 3 from the day this job was
+  # built until #366, for the three rules #318 records, which the owner had ruled to a successor
+  # effort. A job that went red on 3 would have overturned that ruling by accident and been
+  # permanently red, which is how a check becomes something people switch off. It returns 0
+  # today; the next finding is still a person's to judge, so 3 still passes.
   #
   # Its own job rather than steps on End-to-end: that one is the fast signal and SPEC.md §5.3
   # prices a sixth file there "in seconds against that bound". This is ~152s (a11y 87s, shots
