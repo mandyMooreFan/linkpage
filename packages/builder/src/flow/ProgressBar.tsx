@@ -153,10 +153,19 @@ export function ProgressBar({
       {/*
        * The whole bar is the control (§7.2): full-width named rows beat per-segment targets on
        * a phone, so tapping anywhere on it drops open the run's topic list.
+       *
+       * **It carries `tap` because it is a control, and the floor is §7.6's** (#305). It stood at
+       * 350×36 — eight pixels short — on every wizard screen for as long as it existed, and the
+       * class-string guard of the day never read it because it is a hand-written `<button>`
+       * rather than one of `Button.tsx`'s weights; `tap-target.e2e.ts` measures the rendered box
+       * now, and this header was its one excused stop until this line. The words and the track
+       * are 36px tall and a `<button>` centres what it holds, so the floor lands as 4px of air
+       * above the words and 4px under the track — measured on the before-and-after pair, every
+       * screen beneath the bar moves down 8px and the bar itself 4px.
        */}
       <button
         type="button"
-        className="block w-full cursor-pointer bg-transparent p-0 text-left"
+        className="tap block w-full cursor-pointer bg-transparent p-0 text-left"
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => setOpen(!open)}
