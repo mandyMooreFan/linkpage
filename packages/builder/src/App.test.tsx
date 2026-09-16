@@ -773,6 +773,19 @@ describe("opening a project you already have (§7.8, §7.9)", () => {
       expect(document.querySelectorAll("[data-row]").length).toBeGreaterThan(0);
     });
 
+    it("says the owner's own index.html is not a linkpage file, not that it is damaged (#367)", async () => {
+      // §7.9: picking `index.html` instead of the project file is the overwhelmingly common
+      // mistake. The frame `62-menu-file-refused` hands exactly this file, and the sentence on
+      // it has to be true — the page is fine, it just is not the project.
+      openTheMenu();
+      await pick("<!doctype html>\n<p>the owner's own page</p>\n", "index.html");
+
+      const panel = document.querySelector("[data-menu-panel]");
+      expect(panel?.textContent).toContain("This doesn't look like a linkpage file.");
+      expect(panel?.textContent).not.toContain("damaged");
+      expect(title()).toBe("Ada's Bakery");
+    });
+
     it("puts the technical half behind a disclosure, closed (§4.6)", async () => {
       openTheMenu();
       await pick('{"version": 99}');
