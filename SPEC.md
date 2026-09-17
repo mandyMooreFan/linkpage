@@ -1000,8 +1000,8 @@ while deciding they were happy. **Any future proposal to edit on the page must a
 ### 5.3 Tests
 
 Renderer-heavy Vitest: per-section snapshots plus **three invariant guards**, and a browser tier of
-**six Playwright end-to-ends** — one proving the downloaded file opens standalone and matches the
-preview, and five making measurements that cannot be made anywhere but a browser.
+**seven Playwright end-to-ends** — one proving the downloaded file opens standalone and matches the
+preview, and six making measurements that cannot be made anywhere but a browser.
 
 | End-to-end                  | What it holds                                                                    |
 | --------------------------- | -------------------------------------------------------------------------------- |
@@ -1009,14 +1009,15 @@ preview, and five making measurements that cannot be made anywhere but a browser
 | `exported-page-a11y.e2e.ts` | `axe-core` over the exported page — every shape, both modes, both widths         |
 | `focus-ring.e2e.ts`         | a focus ring is painted on every tab stop (§7.12 commitment 2)                   |
 | `hover.e2e.ts`              | every enabled button offers a hand and changes under the pointer (§7.4)          |
+| `layout.e2e.ts`             | where screen one's boxes land: the frame's edge, the footer's foot (§7.6, §7.8)  |
 | `reachability.e2e.ts`       | what Tab reaches, against every control a screen is showing (§7.12 commitment 3) |
 | `tap-target.e2e.ts`         | the rendered box of every tab stop, against the tap floor (§7.12 commitment 5)   |
 
-They sit in `packages/builder/e2e/`, which holds a seventh file — `walk.ts`, the shared walker the
-last four ride. The runner collects `**/*.e2e.ts` and nothing else, so a library there is never
+They sit in `packages/builder/e2e/`, which holds an eighth file — `walk.ts`, the shared walker four
+of them ride. The runner collects `**/*.e2e.ts` and nothing else, so a library there is never
 picked up as a spec, and the file count in that directory is not the test count.
 
-**Five of the six are in a browser because jsdom cannot answer their question, not because a
+**Six of the seven are in a browser because jsdom cannot answer their question, not because a
 browser was to hand** — and that is the same distinction §7.12's commitments are built on, so a
 reader who takes these for slow unit tests will try to move them back and quietly break them.
 `:focus-visible` is a judgement about _how focus arrived_, which only the thing that moved the
@@ -1086,9 +1087,9 @@ section once, _a class string is not a rendered box_,
 argued, they were **induced**"_, and, most sharply, the control in `focus-ring.e2e.ts`: **a
 measurement that cannot detect the absence of what it measures reports a clean screen when its own
 driver is broken.** The sixth is §7.12, which states the other half — _each line says what its test
-actually reaches_ — and is the only place in this document that already does it. Four of the six
-gates already comply — `focus-ring`, `hover`, `reachability` and
-`tap-target` each carry a named _"the walk goes red when…"_ test, and the two known defects at the
+actually reaches_ — and is the only place in this document that already does it. Five of the seven
+gates already comply — `focus-ring`, `hover`, `layout`, `reachability` and
+`tap-target` each carry a named _"…goes red when…"_ test, and the two known defects at the
 end of this section are the second half of the rule being kept before it was written.
 
 **Two ways a check can be worth nothing, and the second is the one that has actually cost this
@@ -1933,8 +1934,9 @@ the editor says so out loud.
 
 The preview is **not a pane**. It is a **full-width drawer the owner steps in and out of**: tap to
 bring the page up over the whole screen, look, step back to the question. On a laptop the drawer has
-room to sit open beside the question, so it does. **The same interaction at two sizes**, not a desktop
-design with a mobile fallback.
+room to sit open beside the question, so it does — **standing on the same left edge as its control**
+(#371): paper is start-aligned, and a frame centred in its column shared no edge with the button
+above it. **The same interaction at two sizes**, not a desktop design with a mobile fallback.
 
 What this deliberately gives up: on a narrow screen you cannot watch the page change _while_ you type.
 Being one tap from the page is close enough, and pretending otherwise is what forces a desktop-only
@@ -2022,7 +2024,10 @@ file. The tool knows nothing about your host and will not imply it does.**
 
 A statement, not a question — it adds an exit to the screen without adding a decision to it. **The
 person with a file arrives knowing they have one** and is scanning for the way in; someone starting
-fresh has no reason to look and reads past it. The line opens the OS file picker **directly**; an
+fresh has no reason to look and reads past it. **Beside the preview it sits at the foot of the
+column, as a footer** (#371) — the column's slack lands between the presets and the line, not
+under it — and on a phone it follows the presets, where the drawer's control is the footer (§7.6).
+_Measured_ on screen one at both of §7.6's sizes (`layout.e2e.ts`). The line opens the OS file picker **directly**; an
 intermediate "import a project" screen would be a screen whose only content is a button.
 
 A fork screen — _start fresh or open a file?_ — was rejected for the same reason a pre-flow preset

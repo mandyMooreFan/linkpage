@@ -56,6 +56,7 @@ const NUMBER: Record<string, number> = {
   four: 4,
   five: 5,
   six: 6,
+  seven: 7,
   ten: 10,
 };
 

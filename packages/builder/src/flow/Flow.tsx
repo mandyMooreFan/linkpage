@@ -334,15 +334,18 @@ export function Flow({
      * `data-screen`.
      */
     <main
-      className="enter-fade flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:items-start wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
+      className="enter-fade flex min-h-dvh flex-col gap-6 bg-ground p-5 font-serif text-ink wide:flex-row wide:justify-center wide:gap-12 wide:px-8 wide:py-12"
       data-screen="flow"
     >
       {/*
        * Balanced in the viewport (#148, walk moment 3): on a phone the bar is the header and
        * the drawer's control below becomes the footer, which is what `flex-1` here buys — the
        * column grows to the screen and the control is carried to its bottom edge. On wide the
-       * column shrinks to its content (the root is items-start), so it is a no-op there and
-       * nothing branches.
+       * same `flex-1` runs down into the question (#371, walk moment 2): the root used to be
+       * `items-start` there, so the column shrank to its content and screen one's *Open it.*
+       * line hung under the last preset; the columns now stretch to the root's `min-h-dvh`, and
+       * `Question` carries its footer to the foot. The other screens have no footer and look
+       * exactly as they did.
        *
        * **The third part of that composition — the question centred between them — is gone**
        * (#196, B-70). See the content div below.
@@ -381,7 +384,10 @@ export function Flow({
            * answer.
            */}
           <div
-            className="[view-transition-name:flow-content]"
+            // `wide:flex-1` and the flex chain below it: the column's slack reaches the
+            // question's footer on wide (#371). Narrow keeps it — the slack there is the
+            // drawer control's (#148), and this box is not a flex item of anything on a phone.
+            className="[view-transition-name:flow-content] wide:flex wide:flex-1 wide:flex-col"
             key={step.id === "linkUrl" ? step.pick.id : step.id}
           >
             {question(step)}
