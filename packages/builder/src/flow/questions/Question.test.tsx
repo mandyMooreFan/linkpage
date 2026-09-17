@@ -431,3 +431,68 @@ describe("Continue with no answer yet (§7.9 decision 1, #368)", () => {
     expect(sentence()).toBeNull();
   });
 });
+
+/**
+ * **The three ways off a screen stand in one row** (`SPEC.md` §7.4; #370, walk moment 7).
+ *
+ * The desktop walk saw `Continue`, the escape and `Back` as three shapes scattered down the
+ * column — a fill, an outline, then a sentence a section further down. They are one set of
+ * choices, so they share one row, in the order the keyboard has always met them; a long escape
+ * wraps the row rather than overflowing it. `Back` moves inside the form to do it, which changes
+ * nothing about what it does — it was never a submit.
+ */
+describe("the three ways off a screen stand in one row (#370)", () => {
+  const exits = (): HTMLButtonElement[] =>
+    [...document.querySelectorAll("button")].filter((button) =>
+      /^(Continue|We don't need one|Back)$/.test(button.textContent ?? ""),
+    ) as HTMLButtonElement[];
+
+  it("puts Continue, the escape and Back in one wrapping row, in that order", () => {
+    mount(
+      <Question
+        title="Q"
+        onSubmit={vi.fn()}
+        escape={{ label: "We don't need one", onEscape: vi.fn() }}
+        onBack={vi.fn()}
+      >
+        <input type="text" />
+      </Question>,
+    );
+    const three = exits();
+    expect(three.map((button) => button.textContent)).toEqual([
+      "Continue",
+      "We don't need one",
+      "Back",
+    ]);
+    const rows = new Set(three.map((button) => button.parentElement));
+    expect(rows.size, "one row").toBe(1);
+    const row = [...rows][0] as HTMLElement;
+    expect(row.className).toMatch(/\bflex\b/);
+    expect(row.className).toMatch(/\bflex-wrap\b/);
+    expect(row.closest("form"), "the row is the form's").not.toBeNull();
+  });
+
+  it("keeps Back a button that never submits", () => {
+    const onSubmit = vi.fn();
+    const onBack = vi.fn();
+    mount(
+      <Question title="Q" onSubmit={onSubmit} onBack={onBack}>
+        <input type="text" />
+      </Question>,
+    );
+    const back = exits().find((button) => button.textContent === "Back") as HTMLButtonElement;
+    expect(back.type).toBe("button");
+    fireEvent.click(back);
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("draws no row when a screen has no way off it", () => {
+    mount(
+      <Question title="Q">
+        <input type="text" />
+      </Question>,
+    );
+    expect(document.querySelector("[data-question-exits]")).toBeNull();
+  });
+});

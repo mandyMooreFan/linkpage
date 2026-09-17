@@ -492,7 +492,7 @@ export function List({
                      * button with no `aria-pressed` to fire them, so a sixth copy of the treatment
                      * sat in the source styling nothing at all (#192).
                      */
-                    className="tap flex w-full flex-col gap-0.5 rounded-sm border border-rule bg-transparent px-4 py-3 text-start font-sans"
+                    className="tap flex w-full flex-col gap-0.5 rounded-sm border border-rule bg-transparent px-4 py-3 text-start font-sans enabled:hover:border-ink"
                     onClick={() => onAdd(topic)}
                   >
                     <span className="font-medium">{TOPIC_LABELS[topic]}</span>
@@ -1007,7 +1007,7 @@ function Menu({
         {/* Unavailable rather than inert until #36 is behind it — as with Download above. */}
         <button
           type="button"
-          className="tap w-full rounded-sm bg-transparent px-3 py-2 text-start font-sans disabled:text-ink-quiet"
+          className="tap w-full rounded-sm bg-transparent px-3 py-2 text-start font-sans enabled:hover:bg-rule/40 disabled:text-ink-quiet"
           disabled={onImport === undefined}
           onClick={onImport}
         >

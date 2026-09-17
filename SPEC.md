@@ -1000,22 +1000,23 @@ while deciding they were happy. **Any future proposal to edit on the page must a
 ### 5.3 Tests
 
 Renderer-heavy Vitest: per-section snapshots plus **three invariant guards**, and a browser tier of
-**five Playwright end-to-ends** — one proving the downloaded file opens standalone and matches the
-preview, and four making measurements that cannot be made anywhere but a browser.
+**six Playwright end-to-ends** — one proving the downloaded file opens standalone and matches the
+preview, and five making measurements that cannot be made anywhere but a browser.
 
 | End-to-end                  | What it holds                                                                    |
 | --------------------------- | -------------------------------------------------------------------------------- |
 | `download.e2e.ts`           | the downloaded file opens standalone and matches the preview                     |
 | `exported-page-a11y.e2e.ts` | `axe-core` over the exported page — every shape, both modes, both widths         |
 | `focus-ring.e2e.ts`         | a focus ring is painted on every tab stop (§7.12 commitment 2)                   |
+| `hover.e2e.ts`              | every enabled button offers a hand and changes under the pointer (§7.4)          |
 | `reachability.e2e.ts`       | what Tab reaches, against every control a screen is showing (§7.12 commitment 3) |
 | `tap-target.e2e.ts`         | the rendered box of every tab stop, against the tap floor (§7.12 commitment 5)   |
 
-They sit in `packages/builder/e2e/`, which holds a sixth file — `walk.ts`, the shared walker the
-last three ride. The runner collects `**/*.e2e.ts` and nothing else, so a library there is never
+They sit in `packages/builder/e2e/`, which holds a seventh file — `walk.ts`, the shared walker the
+last four ride. The runner collects `**/*.e2e.ts` and nothing else, so a library there is never
 picked up as a spec, and the file count in that directory is not the test count.
 
-**Four of the five are in a browser because jsdom cannot answer their question, not because a
+**Five of the six are in a browser because jsdom cannot answer their question, not because a
 browser was to hand** — and that is the same distinction §7.12's commitments are built on, so a
 reader who takes these for slow unit tests will try to move them back and quietly break them.
 `:focus-visible` is a judgement about _how focus arrived_, which only the thing that moved the
@@ -1085,8 +1086,8 @@ section once, _a class string is not a rendered box_,
 argued, they were **induced**"_, and, most sharply, the control in `focus-ring.e2e.ts`: **a
 measurement that cannot detect the absence of what it measures reports a clean screen when its own
 driver is broken.** The sixth is §7.12, which states the other half — _each line says what its test
-actually reaches_ — and is the only place in this document that already does it. Three of the five
-gates already comply — `focus-ring`, `reachability` and
+actually reaches_ — and is the only place in this document that already does it. Four of the six
+gates already comply — `focus-ring`, `hover`, `reachability` and
 `tap-target` each carry a named _"the walk goes red when…"_ test, and the two known defects at the
 end of this section are the second half of the rule being kept before it was written.
 
@@ -1856,6 +1857,27 @@ a carded direction clipped the hours row, colliding directly with the row decisi
 flow and the list the same product at two moments, so they share it, and the migration to it happens in
 one pass rather than screen by screen: a half-migrated tree contradicts §7.1 visibly for as long as it
 runs.
+
+**Every pressable thing says so under the pointer, and the ways off a screen stand in one row**
+(#370, from the desktop walk's moments 7 and 8). The walk hovered the outlined escape — _We don't
+need one_ — and got nothing: an arrow for a cursor and no change of paint, so it read as not
+clickable; and it saw `Continue`, that escape and `Back` as three shapes scattered down the column.
+So: **the cursor is a hand on every enabled button**, written once in the base stylesheet rather
+than per recipe (Tailwind v4's reset had taken it off `<button>`, and it had been put back by hand
+on one recipe of nine), and on a `<summary>` and on a label that forwards a press to a checkbox or
+a radio. **Under the pointer each recipe changes the one thing it is made of, and only while it
+can be pressed**: the filled button's fill steps toward the ground — a shade of the same ink, as
+the renderer's hover is a step along a ramp and never a second colour — a hairline turns to ink, a
+quiet sentence takes the full ink, a word inside a sentence thickens its line, a full-width row
+takes a faint tint of the rule colour, and the bar's header underlines its words. A disabled
+control does neither. _Measured_ — a browser walk hovers every enabled button on every screen the
+ritual reaches at 1440 and reads what changed (`hover.e2e.ts`); a phone has no hover, so 390 is not
+read, and a source guard holds that every recipe declares a mark and none spells a cursor. **And
+`Continue`, the escape and `Back` stand in one row, in that order** — the order the keyboard has
+always met them in, so §7.12's counts do not move — on one baseline, wrapping onto a second line
+when a long escape needs it; each keeps its own weight, so the fill still marks the one primary
+thing on the screen. `Back` had stood a whole section below as _the most separate thing on the
+screen_; it is now the last thing in the row, still the quiet weight, still never a submit.
 
 **Paper carries one deliberate exception: §7.2's progress bar** (#139). The bar uses the standard
 pattern's own vocabulary — a rounded grey track with a coloured fill — which is progress _chrome_, and

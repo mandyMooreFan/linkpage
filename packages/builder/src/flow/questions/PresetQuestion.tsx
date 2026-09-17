@@ -126,7 +126,7 @@ export function PresetQuestion({
               // draws the choice inside it (#192). What was here recoloured the border *and* laid
               // a bracket-valued inset shadow over it — one faux border built twice, with the
               // arbitrary value unexplained.
-              className="tap flex w-full flex-col gap-0.5 rounded-sm border border-rule bg-transparent px-4 py-3 text-start font-sans aria-pressed:picked"
+              className="tap flex w-full flex-col gap-0.5 rounded-sm border border-rule bg-transparent px-4 py-3 text-start font-sans enabled:hover:border-ink aria-pressed:picked"
               aria-pressed={chosen === preset.id}
               onClick={() => onChoose(preset.id)}
             >

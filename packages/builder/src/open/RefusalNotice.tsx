@@ -50,7 +50,7 @@ export function RefusalNotice({ refusal }: RefusalNoticeProps): JSX.Element {
        * somewhere to look, without the message above having to be written for them.
        */}
       <details className={`mt-2 ${TYPE.quietLine.className}`}>
-        <summary className="cursor-pointer">Technical detail</summary>
+        <summary>Technical detail</summary>
         <p className="mt-1 [overflow-wrap:anywhere]" data-refusal-text>
           {refusal.detail}
         </p>

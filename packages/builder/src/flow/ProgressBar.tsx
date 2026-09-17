@@ -165,7 +165,12 @@ export function ProgressBar({
        */}
       <button
         type="button"
-        className="tap block w-full cursor-pointer bg-transparent p-0 text-left"
+        // Under the pointer the words underline: the header is chrome with a disclosure behind
+        // it, and an underline is what the tool's pressable sentences do (#370) — at the
+        // browser's own offset, because `underline-offset-4` is a mark that says "one of the
+        // tool's buttons" and this is not one. The hand is `theme.css`'s, for every enabled
+        // button — it used to be spelled here alone.
+        className="tap block w-full bg-transparent p-0 text-left enabled:hover:underline"
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => setOpen(!open)}
@@ -202,7 +207,9 @@ export function ProgressBar({
           <li key={unit.label} className="border-b border-rule">
             <button
               type="button"
-              className="tap flex w-full items-baseline justify-between bg-transparent px-0 py-2 text-left"
+              // A full-width row takes a faint tint of the rule colour under the pointer — the
+              // one mark a row without a box of its own can make (#370).
+              className="tap flex w-full items-baseline justify-between bg-transparent px-0 py-2 text-left enabled:hover:bg-rule/40"
               aria-current={unit === current ? "step" : undefined}
               onClick={() => {
                 setOpen(false);
@@ -220,7 +227,7 @@ export function ProgressBar({
           <li className="border-b border-rule">
             <button
               type="button"
-              className="tap block w-full bg-transparent px-0 py-2 text-left text-ink-quiet"
+              className="tap block w-full bg-transparent px-0 py-2 text-left text-ink-quiet enabled:hover:bg-rule/40"
               onClick={onLeave}
             >
               Done for now

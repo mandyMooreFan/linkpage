@@ -74,7 +74,7 @@ export const ROW_STACK_PADDING = { className: "py-5", px: 20 } as const;
  * lower line is the owner's answer and takes the ink (B-62), while in the picker the lower line is
  * a sample and stays quiet.
  */
-export const ROW_BUTTON = `tap flex w-full flex-col gap-0.5 bg-transparent ${ROW_PADDING.className} text-start font-sans`;
+export const ROW_BUTTON = `tap flex w-full flex-col gap-0.5 bg-transparent ${ROW_PADDING.className} text-start font-sans enabled:hover:bg-rule/40`;
 
 /**
  * What an open row is delimited by (B-41, B-42).

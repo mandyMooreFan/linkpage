@@ -400,3 +400,31 @@
     outline-offset: 2px;
   }
 }
+
+/**
+ * The hand (`SPEC.md` §7.4; #370, walk moment 8).
+ *
+ * **Tailwind v4's reset took `cursor: pointer` off `<button>`** — v3 had it — and nothing here
+ * put it back, so every button in the builder offered an arrow, and the outlined escape read as
+ * not clickable. It had been put back by hand on exactly one of the nine hand-written recipes
+ * (the bar's header) and forgotten on the other eight and on all four weights, which is the
+ * shape of a rule written per call site. So it is written once, here, for every button that can
+ * be pressed; a disabled one keeps the arrow, which is the browser's own way of saying so.
+ *
+ * **The same hand for the other things a press lands on.** A `<summary>` opens a disclosure and
+ * a label wrapping a checkbox or a radio forwards the press to it (§7.10's day segments,
+ * §7.3's link ticks) — both are pressed the way a button is, so both say so the way a button
+ * does. A label on a text field is deliberately not here: pressing it only moves the caret.
+ *
+ * What changes *under* the pointer is each recipe's own business — a weight changes its fill,
+ * its hairline, its ink or its underline, and `Button.tsx` says which — because the mark has to
+ * be made of whatever the control is made of. `hover.e2e.ts` reads both, hand and mark, on every
+ * button of every screen.
+ */
+@layer base {
+  button:enabled,
+  summary,
+  label:has(input:is([type="checkbox"], [type="radio"])) {
+    cursor: pointer;
+  }
+}
