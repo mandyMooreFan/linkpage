@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
 import { useState, type JSX, type ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DownloadSheet, type FileDownload } from "../download/index.js";
 import { POPULATED } from "../fixtures.js";
 import type { Topic } from "../flow/topics.js";
@@ -12,6 +12,7 @@ import { ROW_OPEN } from "../ui/row.js";
 import { WEIGHT } from "../ui/Button.js";
 import { filledLabels, quietButtons, textClasses, widthDisagreements } from "../ui/fill.testing.js";
 import { List, MENU_PANEL } from "./List.js";
+import { TYPING_SETTLE_MS } from "../flow/questions/typing.js";
 
 /**
  * The review list, driven by pressing things. `SPEC.md` §7.4, §7.5, §7.1, §3.4, §7.7.
@@ -1148,5 +1149,70 @@ describe("what leaves, and what arrives (§7.7, §7.8)", () => {
     // badge, no "unsaved", nothing that would nag a screen this design keeps calm.
     expect(before).not.toMatch(/unsaved|not downloaded|since you/i);
     expect(document.body.textContent).not.toMatch(/unsaved|not downloaded|since you/i);
+  });
+});
+
+/**
+ * The page beside the rows shows what is being typed in an open row, before Save (#373; §7.2,
+ * §7.4). A row is the flow's own question, so the rule is the flow's: the answer in progress
+ * lands on the page once the keys pause, nothing is written until Save, and closing the row
+ * without saving takes it off the page again. `flow.test.tsx` holds the flow's side.
+ */
+describe("the page beside the rows shows what is being typed (#373)", () => {
+  const frame = (): string =>
+    document.querySelector("[data-preview-frame]")?.getAttribute("srcdoc") ?? "";
+  const pause = (): void => {
+    act(() => {
+      vi.advanceTimersByTime(TYPING_SETTLE_MS);
+    });
+  };
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("puts a row's answer on the page once the keys pause, and writes nothing", () => {
+    const { seen } = editing();
+    openRow(/Business name/);
+
+    fireEvent.change(screen.getByLabelText(/Business name/), {
+      target: { value: "Bakewell Bakers" },
+    });
+    expect(frame()).not.toContain("Bakewell Bakers");
+    pause();
+    expect(frame()).toContain("Bakewell Bakers");
+    expect(seen).toHaveLength(0);
+  });
+
+  it("takes it off the page when the row is closed without saving", () => {
+    const { seen } = editing();
+    openRow(/Business name/);
+    fireEvent.change(screen.getByLabelText(/Business name/), {
+      target: { value: "Bakewell Bakers" },
+    });
+    pause();
+    expect(frame()).toContain("Bakewell Bakers");
+
+    fireEvent.click(screen.getByRole("button", { name: /Business name/, expanded: true }));
+    expect(frame()).not.toContain("Bakewell Bakers");
+    expect(seen).toHaveLength(0);
+  });
+
+  it("puts the page back to what is written when Download is pressed (§5.2)", () => {
+    const onDownload = vi.fn();
+    editing(POPULATED, { onDownload });
+    openRow(/Business name/);
+    fireEvent.change(screen.getByLabelText(/Business name/), {
+      target: { value: "Bakewell Bakers" },
+    });
+    pause();
+    expect(frame()).toContain("Bakewell Bakers");
+
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    expect(onDownload).toHaveBeenCalledTimes(1);
+    // The file is the written draft; the page shows that file. The row keeps its typing.
+    expect(frame()).not.toContain("Bakewell Bakers");
+    expect((screen.getByLabelText(/Business name/) as HTMLInputElement).value).toBe(
+      "Bakewell Bakers",
+    );
   });
 });

@@ -1,7 +1,8 @@
 import type { Hours, Interval, Weekday } from "@linkpage/renderer";
-import { useState, type JSX } from "react";
+import { useMemo, useState, type JSX } from "react";
 import { WEEKDAYS } from "../topics.js";
 import { Field, Question } from "./Question.js";
+import { useTyping } from "./typing.js";
 import { Button } from "../../ui/Button.js";
 import { TimeBox } from "../../ui/TimeBox.js";
 import { SEEDED_HOURS_PREFERENCES } from "../../project/environment.js";
@@ -99,6 +100,8 @@ const isFilled = (form: DayForm): boolean =>
 export interface HoursQuestionProps {
   readonly initial: Hours | undefined;
   readonly onAnswer: (hours: Hours) => void;
+  /** The hours as they stand while they are typed, for the page beside the question (#373). */
+  readonly onTyping?: (hours: Hours) => void;
   readonly onSkip: () => void;
   readonly onBack?: () => void;
 }
@@ -106,6 +109,7 @@ export interface HoursQuestionProps {
 export function HoursQuestion({
   initial,
   onAnswer,
+  onTyping,
   onSkip,
   onBack,
 }: HoursQuestionProps): JSX.Element {
@@ -191,6 +195,11 @@ export function HoursQuestion({
       note,
     };
   }
+
+  // Held per (days, note) rather than rebuilt per render: `useTyping` reports on change, and a
+  // fresh object every render would be a change every render.
+  const standing = useMemo(answer, [days, note]);
+  useTyping(standing, onTyping);
 
   // Anything said is an answer; pressed before that, Continue says so (§7.9 decision 1, #368).
   // The door in `topics.ts` decides again, on the cleaned value, so a day opened and left blank

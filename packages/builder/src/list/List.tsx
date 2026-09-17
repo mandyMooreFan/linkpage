@@ -3,6 +3,7 @@ import { useEffect, useId, useState, type JSX, type ReactNode } from "react";
 import { applyIntake, type LogoIntake } from "../logo/index.js";
 import { NameQuestion, TaglineQuestion } from "../flow/questions/HeaderQuestions.js";
 import { HoursQuestion } from "../flow/questions/HoursQuestion.js";
+import { useTypedPage } from "../flow/questions/typing.js";
 import { LogoQuestion } from "../flow/questions/LogoQuestion.js";
 import { Field, QuestionShellProvider } from "../flow/questions/Question.js";
 import {
@@ -172,6 +173,17 @@ export function List({
    */
   const [open, setOpen] = useState<RowId | null>(null);
   const { rows, uncovered } = listRows(draft);
+
+  /**
+   * What the page beside the rows shows while a row's answer is typed (#373, `typing.ts`). A
+   * row is the flow's own question (§7.4), so the page beside it fills in as the flow's does,
+   * and opening or closing any row drops it: the page then shows what is written.
+   */
+  const { typed, show, drop } = useTypedPage();
+  const openRow = (id: RowId | null): void => {
+    drop();
+    setOpen(id);
+  };
 
   /**
    * Whether the preview drawer is over this screen rather than beside it (#186).
@@ -358,13 +370,18 @@ export function List({
           : "primary"
       }
       disabled={onDownload === undefined}
-      onClick={onDownload}
+      // The file is what is written; the page goes back to that first, so the two never
+      // disagree at the moment they are compared (#373, §5.2). The open row keeps its typing.
+      onClick={() => {
+        drop();
+        onDownload?.();
+      }}
     >
       Download
     </Button>
   );
 
-  const close = (): void => setOpen(null);
+  const close = (): void => openRow(null);
 
   /** Commit an answer and collapse the row: the question is finished with. */
   const answered = (next: Draft): void => {
@@ -457,7 +474,7 @@ export function List({
               key={row.id}
               row={row}
               open={open === row.id}
-              onToggle={() => setOpen(open === row.id ? null : row.id)}
+              onToggle={() => openRow(open === row.id ? null : row.id)}
             >
               {editor(row.id)}
             </RowItem>
@@ -506,7 +523,8 @@ export function List({
 
       <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
         <Preview
-          project={draft}
+          // What is being typed in an open row, while it is; what is written, otherwise (#373).
+          project={typed ?? draft}
           onList
           onCover={setCovered}
           action={covered ? download : undefined}
@@ -523,6 +541,7 @@ export function List({
           <NameQuestion
             initial={draft.header.name}
             onAnswer={(name) => answered(answerName(draft, name))}
+            onTyping={(name) => show(answerName(draft, name))}
           />
         );
 
@@ -531,6 +550,7 @@ export function List({
           <TaglineQuestion
             initial={draft.header.tagline}
             onAnswer={(tagline) => answered(answerTagline(draft, tagline))}
+            onTyping={(tagline) => show(answerTagline(draft, tagline))}
             onSkip={() => removed("tagline")}
           />
         );
@@ -570,6 +590,7 @@ export function List({
           <HoursQuestion
             initial={draft.hours}
             onAnswer={(hours) => answered(answerSection(draft, { section: "hours", value: hours }))}
+            onTyping={(hours) => show(answerSection(draft, { section: "hours", value: hours }))}
             onSkip={() => removed("hours")}
           />
         );
@@ -580,6 +601,9 @@ export function List({
             initial={draft.contact}
             onAnswer={(contact) =>
               answered(answerSection(draft, { section: "contact", value: contact }))
+            }
+            onTyping={(contact) =>
+              show(answerSection(draft, { section: "contact", value: contact }))
             }
             onSkip={() => removed("contact")}
           />
@@ -592,6 +616,9 @@ export function List({
             onAnswer={(address) =>
               answered(answerSection(draft, { section: "address", value: address }))
             }
+            onTyping={(address) =>
+              show(answerSection(draft, { section: "address", value: address }))
+            }
             onSkip={() => removed("address")}
           />
         );
@@ -603,6 +630,7 @@ export function List({
             onAnswer={(social) =>
               answered(answerSection(draft, { section: "social", value: social }))
             }
+            onTyping={(social) => show(answerSection(draft, { section: "social", value: social }))}
             onSkip={() => removed("social")}
           />
         );

@@ -4,6 +4,7 @@ import type { Suggestion } from "../presets.js";
 import { UrlField } from "../../ui/TextField.js";
 import { buttonJudge } from "../../project/unusable.js";
 import { Field, Question } from "./Question.js";
+import { useTyping } from "./typing.js";
 import { TextInput } from "../../ui/TextInput.js";
 import { Checkbox } from "../../ui/Checkbox.js";
 import { Button } from "../../ui/Button.js";
@@ -170,6 +171,8 @@ export interface LinkUrlQuestionProps {
   readonly position: number;
   readonly total: number;
   readonly onAnswer: (url: string) => void;
+  /** The address as it stands while it is typed, for the page beside the question (#373). */
+  readonly onTyping?: (url: string) => void;
   readonly onSkip: () => void;
   readonly onBack?: () => void;
 }
@@ -238,10 +241,12 @@ export function LinkUrlQuestion({
   position,
   total,
   onAnswer,
+  onTyping,
   onSkip,
   onBack,
 }: LinkUrlQuestionProps): JSX.Element {
   const [url, setUrl] = useState("");
+  useTyping(url, onTyping);
 
   // Two sentences in the hint the screen already has, which is the trick §7.10 uses on the hours
   // screen: no new chrome for a count, on a flow that §7.2 decided carries no progress display.

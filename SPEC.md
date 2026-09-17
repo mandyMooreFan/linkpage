@@ -1570,7 +1570,9 @@ that tint and its own surface inherits the invisibility.
 **The flow is the empty state; the review list is the editing screen. They are the same product at two
 moments.**
 
-A new owner is walked through **one question per screen**, with the page filling in beside them. When
+A new owner is walked through **one question per screen**, with the page filling in beside them —
+**as they type, where the page has room to sit beside the question** (#373): the answer in progress
+lands on the page a quarter-second behind the keys, and `Continue` is what writes it (§7.2). When
 the questions run out they land on a **review list** — every answer a row, the page beside it — and
 that list is where they live from then on. Coming back a month later opens the list, not the flow.
 
@@ -1657,6 +1659,12 @@ discards it, exactly as `Back` does**: nothing is written until something is ans
 silently committed half-typed text would be §7.9's "did that save?" fear built into navigation. A run
 still ends as it always did — walking off its last screen — and jumped-over topics stay unanswered,
 visible as the gap between the bar's count and its total, waiting as unticked rows.
+
+**The page beside the question is not the store** (#373). It shows what is being typed before it is
+answered — that is §7.1's filling-in, and a page that held still until the next screen read as one
+screen late on the beta walk — but showing is not writing. Nothing reaches storage until `Continue`,
+the same door judges the answer in progress as judges the answered one, and `Back` or a jump takes
+the half-typed answer off the page as it takes it off the screen.
 
 **The page is still the progress that matters.** The step order _is_ §2.1's page order, the store is
 **write-through** — answers reach storage as they are given — so closing the tab at screen four loses
@@ -1749,7 +1757,10 @@ in the flow, since nothing is filled in yet.
 
 ### 7.4 The review list
 
-Every answer is a row. The page sits beside it. Also on the list:
+Every answer is a row. The page sits beside it — and an open row is the flow's own question, so the
+page beside it fills in as the row is typed, and _Save_ is what writes it (#373, §7.2) — pressing
+_Download_ puts the page back to what is written first, so the page and the file never disagree (§5.2).
+Also on the list:
 
 - **Download** (§7.7).
 - **Import**, in the list's menu (§7.8).
@@ -1941,6 +1952,12 @@ above it. **The same interaction at two sizes**, not a desktop design with a mob
 What this deliberately gives up: on a narrow screen you cannot watch the page change _while_ you type.
 Being one tap from the page is close enough, and pretending otherwise is what forces a desktop-only
 builder. §7.2's bar is what tells you where you are in the meantime.
+
+**Where the page does sit beside the question, it changes while you type** (#373): a quarter-second
+after the keys pause, on every typed question. The logo had always shown itself before `Continue`
+(§6.6); the name, typed into a box beside a page that held still, was the beta walk's moment 5, and
+the same rule now covers both. A phone that brings the drawer up over a half-typed screen sees the
+same half-typed page. What is _written_ is the same at both sizes: nothing, until `Continue` (§7.2).
 
 **On the review list, the drawer defaults open at every size** (#147). The laptop always landed with
 the page beside the list; the phone was the only size where arriving hid it, and the #138 walk's

@@ -11,6 +11,7 @@ import { LinksQuestion, LinkUrlQuestion } from "./questions/LinkQuestions.js";
 import { LogoQuestion } from "./questions/LogoQuestion.js";
 import { HoursQuestion } from "./questions/HoursQuestion.js";
 import { PresetQuestion } from "./questions/PresetQuestion.js";
+import { useTypedPage } from "./questions/typing.js";
 import { AddressQuestion, ContactQuestion, SocialQuestion } from "./questions/SectionQuestions.js";
 import { barUnits, ProgressBar } from "./ProgressBar.js";
 import {
@@ -43,6 +44,15 @@ import {
  * returns the draft unchanged when the answer is empty, and an unchanged draft is not passed to
  * `onChange` — so an owner who opens the flow and escapes every question leaves no project
  * behind, which matters because §7.8 counts any non-empty project as something to lose.
+ *
+ * **But the page beside the question shows what is being typed** (#373, §7.1, §7.6). Each
+ * question reports its answer as it stands (`useTyping`), the same door turns it into a draft,
+ * and that draft goes to the preview and nowhere else: not to `working`, not to `onChange`,
+ * not to storage. It is shown a quarter-second after the keys stop rather than on every key,
+ * so the frame is not reloaded mid-word, and it is dropped the moment the owner leaves the
+ * screen by any road — `Continue` shows what was answered, `Back` and a jump show what is
+ * written, which is §7.2's "jumping away from a half-answered screen discards it" kept on the
+ * page as well as on the screen.
  *
  * **Answers reach storage as they are given, not at the end.** The store is write-through
  * (#30), so a closed tab loses at most the screen in progress; and a reload mid-flow re-enters
@@ -106,6 +116,9 @@ export function Flow({
    */
   const [doneUnits, setDoneUnits] = useState<ReadonlySet<string>>(new Set());
 
+  /** What the page beside the question shows while an answer is typed (#373, `typing.ts`). */
+  const { typed, show, drop } = useTypedPage();
+
   const steps = planSteps({ entry, draft: opening, preset, picks });
 
   // A plan with nothing in it is a plan that is already finished. Reachable only from a caller
@@ -124,12 +137,18 @@ export function Flow({
    * honest reduced form, so there is no second code path to keep true.
    */
   function navigate(action: () => void): void {
-    if (typeof document.startViewTransition !== "function") {
+    // Leaving the screen by any road drops what was being typed from the page (§7.2): the next
+    // screen shows what is written, and a pause that had not yet elapsed shows nothing.
+    const move = () => {
+      drop();
       action();
+    };
+    if (typeof document.startViewTransition !== "function") {
+      move();
       return;
     }
     document.startViewTransition(() => {
-      flushSync(action);
+      flushSync(move);
     });
   }
 
@@ -171,6 +190,13 @@ export function Flow({
 
   const onBack = at > 0 ? () => navigate(() => setAt(at - 1)) : undefined;
 
+  /** A pick and the address typed for it, as the link door takes them. */
+  const linkOf = (pick: Pick, url: string) => ({
+    label: pick.label,
+    url,
+    ...(pick.icon === undefined ? {} : { icon: pick.icon }),
+  });
+
   const suggestions = preset === null ? [] : findPreset(preset).suggestions;
 
   function question(step: Step): JSX.Element {
@@ -195,6 +221,7 @@ export function Flow({
           <NameQuestion
             initial={working.header.name}
             onAnswer={(name) => commit(answerName(working, name))}
+            onTyping={(name) => show(answerName(working, name))}
             onBack={onBack}
           />
         );
@@ -204,6 +231,7 @@ export function Flow({
           <TaglineQuestion
             initial={working.header.tagline}
             onAnswer={(tagline) => commit(answerTagline(working, tagline))}
+            onTyping={(tagline) => show(answerTagline(working, tagline))}
             onSkip={() => goNext()}
             onBack={onBack}
           />
@@ -233,6 +261,7 @@ export function Flow({
           <ColourQuestion
             initial={working.style.brand}
             onAnswer={(brand) => commit(answerBrand(working, brand))}
+            onTyping={(brand) => show(answerBrand(working, brand))}
             onBack={onBack}
           />
         );
@@ -262,15 +291,8 @@ export function Flow({
             pick={step.pick}
             position={step.position}
             total={step.total}
-            onAnswer={(url) =>
-              commit(
-                addLink(working, {
-                  label: step.pick.label,
-                  url,
-                  ...(step.pick.icon === undefined ? {} : { icon: step.pick.icon }),
-                }),
-              )
-            }
+            onAnswer={(url) => commit(addLink(working, linkOf(step.pick, url)))}
+            onTyping={(url) => show(addLink(working, linkOf(step.pick, url)))}
             onSkip={() => goNext()}
             onBack={onBack}
           />
@@ -281,6 +303,7 @@ export function Flow({
           <HoursQuestion
             initial={working.hours}
             onAnswer={(hours) => commit(answerSection(working, { section: "hours", value: hours }))}
+            onTyping={(hours) => show(answerSection(working, { section: "hours", value: hours }))}
             onSkip={() => goNext()}
             onBack={onBack}
           />
@@ -292,6 +315,9 @@ export function Flow({
             initial={working.contact}
             onAnswer={(contact) =>
               commit(answerSection(working, { section: "contact", value: contact }))
+            }
+            onTyping={(contact) =>
+              show(answerSection(working, { section: "contact", value: contact }))
             }
             onSkip={() => goNext()}
             onBack={onBack}
@@ -305,6 +331,9 @@ export function Flow({
             onAnswer={(address) =>
               commit(answerSection(working, { section: "address", value: address }))
             }
+            onTyping={(address) =>
+              show(answerSection(working, { section: "address", value: address }))
+            }
             onSkip={() => goNext()}
             onBack={onBack}
           />
@@ -316,6 +345,9 @@ export function Flow({
             initial={working.social}
             onAnswer={(social) =>
               commit(answerSection(working, { section: "social", value: social }))
+            }
+            onTyping={(social) =>
+              show(answerSection(working, { section: "social", value: social }))
             }
             onSkip={() => goNext()}
             onBack={onBack}
@@ -395,7 +427,8 @@ export function Flow({
         </div>
       </div>
       <div className="mx-auto w-full max-w-lg wide:mx-0 wide:flex-1">
-        <Preview project={working} />
+        {/* What is being typed, while it is; what is written, otherwise (#373). */}
+        <Preview project={typed ?? working} />
       </div>
     </main>
   );
