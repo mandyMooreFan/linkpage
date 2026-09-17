@@ -165,7 +165,12 @@ export function Question({
   return (
     <FormProvider {...form}>
       <JudgeContext.Provider value={judges.current}>
-        <section className="font-serif">
+        {/*
+         * A flex column on wide, so a footer can take the column's slack and sit at the foot
+         * (#371, walk moment 2). Only the preset screen has one (§7.8); every other screen has
+         * the same boxes in the same places, flex or not.
+         */}
+        <section className="font-serif wide:flex wide:flex-1 wide:flex-col">
           {/*
            * A form, so Enter submits — the owner typing a business name should not have to
            * find a button. `noValidate` because the browser's own bubbles are the modal §7.9
@@ -282,7 +287,11 @@ export function Question({
           </form>
 
           {footer !== undefined && (
-            <div className="mt-8 border-t border-rule pt-4 font-sans">{footer}</div>
+            // The outer box takes the slack (`mt-auto` on wide); the inner keeps the rung above
+            // the rule, so a tall question still gets its 32px before the footer.
+            <div className="wide:mt-auto" data-question-footer>
+              <div className="mt-8 border-t border-rule pt-4 font-sans">{footer}</div>
+            </div>
           )}
         </section>
       </JudgeContext.Provider>

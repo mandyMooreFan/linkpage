@@ -190,8 +190,16 @@ export function Preview({ project, onList = false, action, onCover }: PreviewPro
        * monitor stretching a 27.5rem-wide frame into a strip nothing on a phone resembles. The
        * smaller of the two wins, which is `80dvh` on every screen shorter than about 920px.
        */}
+      {/*
+       * On wide the frame stands on the same left edge as its control (#371, walk moment 1).
+       * It was centred in its column at every size, which on a phone is nothing — the frame is
+       * the column's width there — and beside the question was a frame 36px in from the button
+       * above it, sharing no edge with anything. Paper is start-aligned; the frame now is too.
+       * Centred stays for the drawer over a phone, where a tablet-wide overlay would otherwise
+       * pin a phone-shaped page to its left.
+       */}
       <div
-        className="min-h-0 flex-1 justify-center [&:not([hidden])]:flex wide:h-[min(80dvh,46rem)] wide:flex-none"
+        className="min-h-0 flex-1 justify-center [&:not([hidden])]:flex wide:h-[min(80dvh,46rem)] wide:flex-none wide:justify-start"
         id={drawerId}
         hidden={!open}
       >
