@@ -60,9 +60,10 @@ export const ANSWERS = {
   "Do you have a logo?": { kind: "skip" },
   /**
    * **`refused` is what the owner types that we cannot use** (CL-1), reached before the step is
-   * answered properly. The exact-colour box is the only field in the wizard that judges on screen
-   * (§7.9 decision 2), so this is the one state in the whole walk showing the sentence — and
-   * until CL-1 there was nothing to show, which was the finding.
+   * answered properly. The exact-colour box was the only field in the wizard that judged on
+   * screen when this was written (§7.9 decision 2); since #368 email and the web addresses judge
+   * too, and every screen answers an empty `Continue` with a sentence — but this stays the one
+   * refused state the walk photographs, because it is the one CL-1 found nothing to show for.
    */
   "What's your colour?": { kind: "swatch", refused: "zzzzzz" },
   "Which of these do you have?": { kind: "check", labels: ["See the menu", "Order for pickup"] },

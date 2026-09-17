@@ -32,14 +32,22 @@ export function NameQuestion({ initial, onAnswer, onBack }: NameQuestionProps): 
       title="What's it called?"
       hint="The name at the top of your page."
       onSubmit={() => onAnswer(name)}
-      submitDisabled={name.trim() === ""}
       onBack={onBack}
     >
+      {/*
+       * The whole answer is this one field, so §7.9 decision 1's sentence is the field's own
+       * (#368): under the box, on `Continue`, with `aria-invalid` on the box it is about. There
+       * is no escape here to name — this is the one screen with no way past but answering.
+       */}
       <TextField
         label="Business name"
         value={name}
         onValueChange={setName}
         autoComplete="organization"
+        name="name"
+        validate={(value) =>
+          value.trim() === "" ? "The page needs a name — type it here to go on." : true
+        }
       />
     </Question>
   );
@@ -65,11 +73,18 @@ export function TaglineQuestion({
       title="One line about what you do?"
       hint="It sits under your name. Plenty of pages do fine without one."
       onSubmit={() => onAnswer(tagline)}
-      submitDisabled={tagline.trim() === ""}
       escape={{ label: "We don't need one", onEscape: onSkip }}
       onBack={onBack}
     >
-      <TextField label="Tagline" value={tagline} onValueChange={setTagline} />
+      <TextField
+        label="Tagline"
+        value={tagline}
+        onValueChange={setTagline}
+        name="tagline"
+        validate={(value) =>
+          value.trim() === "" ? "Nothing typed yet — add a line, or say you don't need one." : true
+        }
+      />
     </Question>
   );
 }

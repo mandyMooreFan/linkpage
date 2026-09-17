@@ -739,6 +739,9 @@ function LangRow({
 }): JSX.Element {
   const [value, setValue] = useState(draft.lang ?? "");
   const [typing, setTyping] = useState(!isListed(value));
+  // §7.9 decision 1 (#368): Save is never greyed. Pressed with no code, it says so under the
+  // box — this editor has no `Question` shell, so it holds the one sentence itself.
+  const [pressedEmpty, setPressedEmpty] = useState(false);
   const fieldId = useId();
   const listId = useId();
 
@@ -822,6 +825,11 @@ function LangRow({
                 A language code, like <code>en</code> or <code>fr-CA</code>.
               </>
             }
+            message={
+              pressedEmpty && value.trim() === ""
+                ? "No language yet — pick one above, or type its code."
+                : undefined
+            }
           >
             <TextInput
               id={fieldId}
@@ -841,8 +849,11 @@ function LangRow({
 
       <Button
         weight="primary"
-        disabled={value.trim() === ""}
         onClick={() => {
+          if (value.trim() === "") {
+            setPressedEmpty(true);
+            return;
+          }
           onChange(setLang(draft, value));
           onDone();
         }}

@@ -192,8 +192,9 @@ export function HoursQuestion({
     };
   }
 
-  // Continue is available once anything has been said. The door in `topics.ts` decides again,
-  // on the cleaned value, so a day opened and left blank is not an answer either way.
+  // Anything said is an answer; pressed before that, Continue says so (§7.9 decision 1, #368).
+  // The door in `topics.ts` decides again, on the cleaned value, so a day opened and left blank
+  // is not an answer either way.
   const said =
     note.trim() !== "" ||
     WEEKDAYS.some((day) => {
@@ -210,7 +211,9 @@ export function HoursQuestion({
       // rather than fourteen times, and costs no chrome on the screen #111 just shortened.
       hint="Type times how you'd say them. Leave a day alone if you'd rather not say."
       onSubmit={() => onAnswer(answer())}
-      submitDisabled={!said}
+      unanswered={
+        said ? undefined : "Nothing filled in yet — set a day, or say you don't have set hours."
+      }
       escape={{ label: "We don't have set hours", onEscape: onSkip }}
       onBack={onBack}
     >
@@ -253,7 +256,7 @@ export function HoursQuestion({
                        *
                        * **It used to be a solid ink fill**, which cost twice. It made every day's
                        * untouched default — all seven start on "Not shown" — the strongest object
-                       * on a screen whose one real action, `Continue`, sits disabled and pale
+                       * on a screen whose one real action, `Continue`, then sat disabled and pale
                        * beneath them (§4, §6; design change 3, which is why this fill moves here
                        * rather than there). And being a square fill inside a `rounded-sm`
                        * container, it overran the container's own corners at either end of the

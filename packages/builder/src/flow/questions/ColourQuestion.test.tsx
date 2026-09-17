@@ -62,10 +62,18 @@ describe("the constrained field (§3.3)", () => {
 
 describe("the question", () => {
   it("cannot be declined — it is the one thing the owner must give (§3.1)", () => {
-    mount(<ColourQuestion initial={undefined} onAnswer={vi.fn()} />);
+    const onAnswer = vi.fn();
+    mount(<ColourQuestion initial={undefined} onAnswer={onAnswer} />);
 
     expect(document.querySelector("[data-escape]")).toBeNull();
-    expect(submit().disabled).toBe(true);
+    // No escape, and no grey button either (§7.9 decision 1, #368): the way past is answering,
+    // and pressing Continue says so rather than doing nothing.
+    expect(submit().disabled).toBe(false);
+    fireEvent.click(submit());
+    expect(document.querySelector("[data-message]")?.textContent).toBe(
+      "No colour yet — press a swatch, or type one.",
+    );
+    expect(onAnswer).not.toHaveBeenCalled();
   });
 
   it("answers with the swatch the owner pressed", () => {
@@ -117,13 +125,25 @@ describe("the question", () => {
     expect(onAnswer).toHaveBeenCalledWith(BRAND_SWATCHES[0]?.hex);
   });
 
-  it("waits until something is there at all", () => {
+  it("says so until something is there at all, then stops the moment it is (#368)", () => {
     // `Continue`'s one meaning, on the screen that cannot be declined: nothing picked and
-    // nothing typed is the only state with nothing to say.
-    mount(<ColourQuestion initial={undefined} onAnswer={vi.fn()} />);
-    expect(submit().disabled).toBe(true);
+    // nothing typed is the state with no answer — and since #368 the button says it when
+    // pressed instead of going grey. Whitespace is still nothing.
+    const onAnswer = vi.fn();
+    mount(<ColourQuestion initial={undefined} onAnswer={onAnswer} />);
+    expect(document.querySelector("[data-message]")).toBeNull();
+
+    fireEvent.click(submit());
+    expect(document.querySelector("[data-message]")?.textContent).toContain("No colour yet");
     fireEvent.change(screen.getByLabelText(/exact colour/), { target: { value: "   " } });
-    expect(submit().disabled).toBe(true);
+    expect(document.querySelector("[data-message]")?.textContent).toContain("No colour yet");
+    expect(onAnswer).not.toHaveBeenCalled();
+
+    // Quick to stop: the sentence goes when the answer arrives, before Continue is pressed again.
+    fireEvent.click(swatches()[2] as Element);
+    expect(document.querySelector("[data-message]")).toBeNull();
+    fireEvent.click(submit());
+    expect(onAnswer).toHaveBeenCalledWith(BRAND_SWATCHES[2]?.hex);
   });
 
   it("tells the owner when junk is the only thing there (CL-1, finding A-1)", () => {

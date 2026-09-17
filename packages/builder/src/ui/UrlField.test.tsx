@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render as mount, screen } from "@testing-library/re
 import { useState, type JSX } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { UrlField } from "./TextField.js";
+import { Question } from "../flow/questions/Question.js";
 
 /**
  * The permanent `https://` prefix, mounted (design change 10, finding B-55).
@@ -153,5 +154,48 @@ describe("the line is still one thing to press", () => {
     open("https://mysite.com");
     fireEvent.pointerDown(document.querySelector("[data-url-scheme]") as Element);
     expect(document.activeElement).toBe(box());
+  });
+});
+
+/**
+ * The judged variant (#368): the same field, opted into §7.9's judgement the way `TextField`
+ * is, so the sentence sits under the line and the *box* carries `aria-invalid` — not the
+ * `<span>` around it, which is the part of the shape that could have gone wrong.
+ */
+describe("a judged web-address field", () => {
+  it("says its sentence on Continue, on the box, and stops the moment the address is usable", () => {
+    const onSubmit = vi.fn();
+    const Harness = (): JSX.Element => {
+      const [value, setValue] = useState("");
+      return (
+        <Question title="Q" onSubmit={onSubmit}>
+          <UrlField
+            label="Web address"
+            value={value}
+            onValueChange={setValue}
+            name="url"
+            validate={(v) => (v.trim() === "" || v.includes(".") ? true : "Won't work.")}
+          />
+        </Question>
+      );
+    };
+    mount(<Harness />);
+    const submit = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+    fireEvent.change(box(), { target: { value: "a" } });
+    expect(document.querySelector("[data-message]")).toBeNull();
+    expect(box().getAttribute("aria-invalid")).toBeNull();
+
+    fireEvent.click(submit);
+    expect(document.querySelector("[data-message]")?.textContent).toBe("Won't work.");
+    expect(box().getAttribute("aria-invalid")).toBe("true");
+    expect(describedText(box())).toContain("Won't work.");
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    fireEvent.change(box(), { target: { value: "a.example" } });
+    expect(document.querySelector("[data-message]")).toBeNull();
+    expect(box().getAttribute("aria-invalid")).toBeNull();
+    fireEvent.click(submit);
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });

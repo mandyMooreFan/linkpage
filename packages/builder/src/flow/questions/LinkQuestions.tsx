@@ -2,6 +2,7 @@ import { useId, useState, type JSX } from "react";
 import type { Pick } from "../plan.js";
 import type { Suggestion } from "../presets.js";
 import { UrlField } from "../../ui/TextField.js";
+import { buttonJudge } from "../../project/unusable.js";
 import { Field, Question } from "./Question.js";
 import { TextInput } from "../../ui/TextInput.js";
 import { Checkbox } from "../../ui/Checkbox.js";
@@ -78,7 +79,15 @@ export function LinksQuestion({
       title="Which of these do you have?"
       hint="We'll ask where each one goes next. Nothing is added until it has somewhere to point."
       onSubmit={() => onAnswer(picks)}
-      submitDisabled={picks.length === 0}
+      // §7.9 decision 1 (#368). *Something else* has no suggestions to tick, so its sentence
+      // names the one control it does have.
+      unanswered={
+        picks.length > 0
+          ? undefined
+          : suggestions.length > 0
+            ? "Nothing ticked yet — tick one, add your own, or say no buttons for now."
+            : "Nothing added yet — type what the button should say and press Add, or say no buttons for now."
+      }
       escape={{ label: "No buttons for now", onEscape: onSkip }}
       onBack={onBack}
     >
@@ -213,10 +222,11 @@ function runPosition(position: number, total: number): string | undefined {
 /**
  * The second half of the pick-list: where one button goes.
  *
- * `Continue` is unavailable until there is something in the box, and the escape drops the pick
- * rather than adding an empty button. Between them there is no path from this screen to a link
- * without a URL — which is the whole of "a button exists only once it has a URL", enforced
- * again in `addLink` so that it does not depend on this screen being right.
+ * `Continue` holds the screen until there is an address the page can make a target from (§7.9
+ * decisions 1 and 6, #368), and the escape drops the pick rather than adding an empty button.
+ * Between them there is no path from this screen to a link without a URL — which is the whole
+ * of "a button exists only once it has a URL", enforced again in `addLink` so that it does not
+ * depend on this screen being right.
  */
 export function LinkUrlQuestion({
   pick,
@@ -241,12 +251,26 @@ export function LinkUrlQuestion({
           : `Paste the web address. It's usually easiest to copy it from your browser. ${where}`
       }
       onSubmit={() => onAnswer(url)}
-      submitDisabled={url.trim() === ""}
       escape={{ label: "Leave this one out", onEscape: onSkip }}
       onBack={onBack}
     >
-      {/* No judge (§7.9 decision 5): an unusable address is the review list's mark. */}
-      <UrlField label="Web address" value={url} onValueChange={setUrl} />
+      {/*
+       * Judged on `Continue` with the renderer's own `linkHref` (#368): an address the page
+       * would drop the button for — the walk's one-letter `a` — holds the screen with the same
+       * sentence the review row would have shown a screen later. The whole answer is this one
+       * field, so the presence sentence is its own too.
+       */}
+      <UrlField
+        label="Web address"
+        value={url}
+        onValueChange={setUrl}
+        name="url"
+        validate={(value) =>
+          value.trim() === ""
+            ? "Nothing pasted yet — paste the address, or leave this one out."
+            : buttonJudge(value)
+        }
+      />
     </Question>
   );
 }

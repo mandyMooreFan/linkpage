@@ -110,10 +110,20 @@ describe("the logo step", () => {
     expect(screen.getByRole("button", { name: "Choose a different file" })).toBeTruthy();
   });
 
-  it("will not continue past a screen with nothing on it", () => {
-    view(null, { ok: true, logo: LOGO, encoding: "image/png", notice: null });
-    expect((document.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(
-      true,
+  it("will not continue past a screen with nothing on it — and says so (§7.9 decision 1, #368)", () => {
+    const { onContinue } = view(null, {
+      ok: true,
+      logo: LOGO,
+      encoding: "image/png",
+      notice: null,
+    });
+    const submit = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+    expect(submit.disabled).toBe(false);
+
+    fireEvent.click(submit);
+    expect(document.querySelector("[data-message]")?.textContent).toBe(
+      "No picture chosen yet — choose a file, or say you don't have one.",
     );
+    expect(onContinue).not.toHaveBeenCalled();
   });
 });

@@ -70,6 +70,8 @@ const title = (): string => screen.getByRole("heading", { level: 1 }).textConten
 const onList = (): boolean => screen.queryByText(LIST) !== null;
 const escapeButton = (): HTMLButtonElement | null => document.querySelector("[data-escape]");
 const submit = (): HTMLButtonElement | null => document.querySelector('button[type="submit"]');
+/** §7.9's one sentence on the screen, whichever slot it stands in; `null` when there is none. */
+const message = (): string | null => document.querySelector("[data-message]")?.textContent ?? null;
 
 const NAME = "What's it called?";
 const COLOUR = "What's your colour?";
@@ -217,6 +219,181 @@ describe("the flow runs end to end, for each preset", () => {
     for (const key of ["hours", "contact", "address", "social", "tagline"]) {
       expect(text).not.toContain(`"${key}"`);
     }
+  });
+});
+
+/**
+ * `Continue` is never greyed: press it, then see what stops you. `SPEC.md` §7.9 decision 1, #368.
+ *
+ * The owner's rule from the desktop walk (#359, moment 4), site-wide: a grey button says something
+ * is wrong and nothing about what, so every screen with a `Continue` lets it be pressed and answers
+ * an empty press with one sentence, in place, and holds. The same press judges what the page cannot
+ * use — an email, a web address — with the renderer's own floors; the phone is never judged.
+ */
+describe("Continue is never greyed (§7.9 decision 1, #368)", () => {
+  /** Walk to the screen with this heading, declining everything on the way but the required two. */
+  function reach(heading: string, preset: PresetId = "food"): ReturnType<typeof harness> {
+    const flow = harness();
+    for (let guard = 0; guard < 40 && title() !== heading; guard += 1) {
+      const here = title();
+      if (here === PRESET_QUESTION) choosePreset(preset);
+      else if (here === NAME) {
+        type(/Business name/, "Ada's Bakery");
+        fireEvent.click(submit() as Element);
+      } else if (here === COLOUR) {
+        fireEvent.click(document.querySelectorAll("[data-swatch]")[0] as Element);
+        fireEvent.click(submit() as Element);
+      } else fireEvent.click(escapeButton() as Element);
+    }
+    expect(title()).toBe(heading);
+    return flow;
+  }
+
+  it("answers an empty press on every screen, holds, and never disables the button", () => {
+    harness();
+    const pressed: string[] = [];
+
+    for (let guard = 0; guard < 40 && !onList(); guard += 1) {
+      const heading = title();
+      const button = submit();
+
+      if (button !== null) {
+        expect(button.disabled, `Continue greyed on "${heading}"`).toBe(false);
+        expect(message(), `a sentence before any press on "${heading}"`).toBeNull();
+
+        fireEvent.click(button);
+        expect(title(), `an empty Continue advanced "${heading}"`).toBe(heading);
+        expect(message(), `no sentence for an empty Continue on "${heading}"`).toBeTruthy();
+        // One sentence, not one per control (§7.9 decision 3's slot, once).
+        expect(document.querySelectorAll("[data-message]")).toHaveLength(1);
+        pressed.push(heading);
+      }
+
+      if (heading === PRESET_QUESTION) choosePreset("food");
+      else if (heading === NAME) {
+        type(/Business name/, "Ada's Bakery");
+        // Quick to stop: the sentence goes as the answer arrives, before Continue is pressed.
+        expect(message()).toBeNull();
+        fireEvent.click(submit() as Element);
+      } else if (heading === COLOUR) {
+        fireEvent.click(document.querySelectorAll("[data-swatch]")[0] as Element);
+        expect(message()).toBeNull();
+        fireEvent.click(submit() as Element);
+      } else fireEvent.click(escapeButton() as Element);
+    }
+
+    expect(onList()).toBe(true);
+    // Every screen but step one, which is answered by choosing (§7.3).
+    expect(pressed).toEqual([
+      NAME,
+      "One line about what you do?",
+      "Do you have a logo?",
+      COLOUR,
+      "Which of these do you have?",
+      "When are you open?",
+      "How do people reach you?",
+      "Where are you?",
+      "Where else are you online?",
+    ]);
+  });
+
+  it("names the one control the *Something else* screen has, which has nothing to tick", () => {
+    reach("Which of these do you have?", "other");
+    fireEvent.click(submit() as Element);
+    expect(message()).toContain("press Add");
+  });
+
+  describe("the contact screen (walk moment 15)", () => {
+    const CONTACT = "How do people reach you?";
+
+    it("judges the email on Continue with the page's own floor, and holds until it is fixed", () => {
+      const flow = reach(CONTACT);
+      type(/Email/, "hello@");
+      // Silent while typing (§7.9 decision 2).
+      expect(message()).toBeNull();
+
+      fireEvent.click(submit() as Element);
+      expect(title()).toBe(CONTACT);
+      expect(message()).toBe("Tapping this won't open an email — check the address.");
+      const box = screen.getByLabelText(/Email/);
+      expect(box.getAttribute("aria-invalid")).toBe("true");
+
+      type(/Email/, "hello@ada.example");
+      expect(message()).toBeNull();
+      expect(box.getAttribute("aria-invalid")).toBeNull();
+      fireEvent.click(submit() as Element);
+      expect(title()).not.toBe(CONTACT);
+      expect((flow.latest() as Draft).contact).toEqual({ email: "hello@ada.example" });
+    });
+
+    it("lets through what the mend would fix, so nothing storable is ever held", () => {
+      const flow = reach(CONTACT);
+      type(/Email/, "hello @ada.example");
+      fireEvent.click(submit() as Element);
+      expect(title()).not.toBe(CONTACT);
+      expect((flow.latest() as Draft).contact).toEqual({ email: "hello@ada.example" });
+    });
+
+    it("never judges the phone — a vanity number goes through as typed (§2.3)", () => {
+      const flow = reach(CONTACT);
+      type(/Phone/, "0800 CHICKEN");
+      fireEvent.click(submit() as Element);
+      expect(title()).not.toBe(CONTACT);
+      expect((flow.latest() as Draft).contact).toEqual({ phone: "0800 CHICKEN" });
+    });
+
+    it("keeps the escape as the way past a held screen", () => {
+      const flow = reach(CONTACT);
+      type(/Email/, "hello@");
+      fireEvent.click(submit() as Element);
+      expect(message()).toBeTruthy();
+      fireEvent.click(escapeButton() as Element);
+      expect(title()).not.toBe(CONTACT);
+      expect((flow.latest() as Draft).contact).toBeUndefined();
+    });
+  });
+
+  describe("the three web addresses (walk moment 12)", () => {
+    it("holds a link button's address the page would drop the button for", () => {
+      const flow = reach("Which of these do you have?");
+      fireEvent.click(screen.getByRole("checkbox", { name: "Book a table" }));
+      fireEvent.click(submit() as Element);
+      const here = title();
+
+      type(/Web address/, "a");
+      fireEvent.click(submit() as Element);
+      expect(title()).toBe(here);
+      expect(message()).toBe("This button won't work — paste the address from your browser.");
+
+      type(/Web address/, "ada.example/book");
+      expect(message()).toBeNull();
+      fireEvent.click(submit() as Element);
+      expect((flow.latest() as Draft).links).toEqual([
+        { label: "Book a table", url: "https://ada.example/book", icon: "calendar" },
+      ]);
+    });
+
+    it("holds a directions link the same way, in the link's own words", () => {
+      const ADDRESS = "Where are you?";
+      reach(ADDRESS);
+      type(/Address/, "12 Mill Lane");
+      type(/A link to directions/, "a");
+      fireEvent.click(submit() as Element);
+      expect(title()).toBe(ADDRESS);
+      expect(message()).toBe("This link won't work — paste the address from your browser.");
+    });
+
+    it("holds a social address the same way, on the row it is in", () => {
+      const SOCIAL = "Where else are you online?";
+      reach(SOCIAL);
+      type(/Where/, "instagram");
+      type(/Your page there/, "a");
+      fireEvent.click(submit() as Element);
+      expect(title()).toBe(SOCIAL);
+      expect(message()).toBe("This link won't work — paste the address from your browser.");
+      const box = screen.getByLabelText(/Your page there/);
+      expect(box.getAttribute("aria-invalid")).toBe("true");
+    });
   });
 });
 
@@ -407,8 +584,11 @@ describe("link buttons seed as a pick-list, never as pre-created rows (§7.3)", 
     fireEvent.click(submit() as Element);
     expect(title()).toBe("Where does “Book a table” go?");
 
-    // Continue is unavailable until there is a destination.
-    expect(submit()?.disabled).toBe(true);
+    // Pressed without a destination, Continue says so and holds (§7.9 decision 1, #368).
+    expect(submit()?.disabled).toBe(false);
+    fireEvent.click(submit() as Element);
+    expect(title()).toBe("Where does “Book a table” go?");
+    expect(message()).toBe("Nothing pasted yet — paste the address, or leave this one out.");
     type(/Web address/, "https://ada.example/book");
     fireEvent.click(submit() as Element);
 
