@@ -77,7 +77,12 @@ export function LinksQuestion({
   return (
     <Question
       title="Which of these do you have?"
-      hint="We'll ask where each one goes next. Nothing is added until it has somewhere to point."
+      // §7.3 (#369). The cold walk ticked two of these without knowing what a tick committed
+      // to: *See the menu* reads as a question about the business, and a hint that spoke only of
+      // where each one *goes* assumed the owner already knew they were links. So the hint says
+      // so first, in the screen's own verb — *tick* over suggestions, *add* where *Something
+      // else* left none to tick.
+      hint={`Each one you ${suggestions.length > 0 ? "tick" : "add"} becomes a button on your page. We'll ask where they go next — nothing is added until it has somewhere to point.`}
       onSubmit={() => onAnswer(picks)}
       // §7.9 decision 1 (#368). *Something else* has no suggestions to tick, so its sentence
       // names the one control it does have.
