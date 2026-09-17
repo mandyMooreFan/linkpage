@@ -196,6 +196,29 @@ describe("every answer is a row (§7.4)", () => {
     expect(seen).toEqual([]);
   });
 
+  it("never greys the language row's Save; pressed with no code, it says so (§7.9 decision 1, #368)", () => {
+    const { latest } = editing();
+    openRow(/^Page language/);
+    fireEvent.click(screen.getByRole("button", { name: "Or type a code" }));
+    fireEvent.change(screen.getByLabelText("Or type a code"), { target: { value: "" } });
+
+    const save = screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
+    expect(document.querySelector("[data-message]")).toBeNull();
+
+    fireEvent.click(save);
+    expect(document.querySelector("[data-message]")?.textContent).toBe(
+      "No language yet — pick one above, or type its code.",
+    );
+    // Nothing was written: an empty press is not a Save.
+    expect(latest()).toBeUndefined();
+
+    fireEvent.change(screen.getByLabelText("Or type a code"), { target: { value: "fr-CA" } });
+    expect(document.querySelector("[data-message]")).toBeNull();
+    fireEvent.click(save);
+    expect(latest()?.lang).toBe("fr-CA");
+  });
+
   it("saves an edited answer through the flow's own door", () => {
     const { latest } = editing();
     openRow(/^A line about what you do/);

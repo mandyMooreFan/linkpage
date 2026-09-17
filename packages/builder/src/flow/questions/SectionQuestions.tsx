@@ -7,6 +7,7 @@ import {
 } from "@linkpage/renderer";
 import { useId, useState, type JSX } from "react";
 import { TextField, UrlField } from "../../ui/TextField.js";
+import { emailJudge, linkJudge } from "../../project/unusable.js";
 import { Field, Question } from "./Question.js";
 import { TextArea, TextInput } from "../../ui/TextInput.js";
 import { Button } from "../../ui/Button.js";
@@ -18,9 +19,14 @@ import { LADDER } from "../../ui/ladder.js";
  *
  * Each carries its always-present escape, and each is answerable in part: an owner with a
  * phone and no email answers the contact question by filling one box. What none of them can do
- * is answer with nothing — `Continue` is unavailable until something has been typed, and
- * `answerSection` refuses an empty value again on the way through, so "skip it and you don't
- * have it" is true of the file whatever the screen does.
+ * is answer with nothing — `Continue` pressed on an empty screen says so and holds (§7.9
+ * decision 1, #368), and `answerSection` refuses an empty value again on the way through, so
+ * "skip it and you don't have it" is true of the file whatever the screen does.
+ *
+ * **Email and the two web addresses are judged on `Continue`; the phone never is** (#368).
+ * The judges are `unusable.ts`'s, over the renderer's own floors, so the screen holds on
+ * exactly what the review row would have marked a screen later — and lets through exactly
+ * what the page can use.
  *
  * **The address question does not appear for every owner** (§7.3). "We come to you" never asks
  * for one, so a sole trader working from home does not publish their home address because the
@@ -49,11 +55,19 @@ export function ContactQuestion({
       title="How do people reach you?"
       hint="Either one is plenty. They become a tap-to-call and a tap-to-email link."
       onSubmit={() => onAnswer({ phone, email })}
-      submitDisabled={phone.trim() === "" && email.trim() === ""}
+      unanswered={
+        phone.trim() === "" && email.trim() === ""
+          ? "Nothing typed yet — add a phone or an email, or say it's not on your page."
+          : undefined
+      }
       escape={{ label: "Not on my page", onEscape: onSkip }}
       onBack={onBack}
     >
-      {/* No judge on either box (§7.9 decision 5): their notice is the review list's mark. */}
+      {/*
+       * No judge on the phone, on purpose (§7.9 decision 1): a vanity number or an extension is
+       * right as typed, and its notice stays the review list's mark. The email is judged with
+       * the floor the page dials `mailto:` by, spaces stripped first as the mend would.
+       */}
       <TextField
         label="Phone"
         type="tel"
@@ -69,6 +83,8 @@ export function ContactQuestion({
         spellCheck={false}
         autoCapitalize="none"
         autoComplete="email"
+        name="email"
+        validate={emailJudge}
       />
     </Question>
   );
@@ -103,7 +119,11 @@ export function AddressQuestion({
       title="Where are you?"
       hint="Write it the way you'd write it on an envelope."
       onSubmit={() => onAnswer({ lines: lines.split("\n"), directionsUrl })}
-      submitDisabled={lines.trim() === "" && directionsUrl.trim() === ""}
+      unanswered={
+        lines.trim() === "" && directionsUrl.trim() === ""
+          ? "Nothing typed yet — add the address, or say there's no place to visit."
+          : undefined
+      }
       escape={{ label: "We don't have a place to visit", onEscape: onSkip }}
       onBack={onBack}
     >
@@ -120,6 +140,8 @@ export function AddressQuestion({
         hint="Optional. From your maps app's share button."
         value={directionsUrl}
         onValueChange={setDirectionsUrl}
+        name="directionsUrl"
+        validate={linkJudge}
       />
     </Question>
   );
@@ -162,7 +184,11 @@ export function SocialQuestion({
       title="Where else are you online?"
       hint="Instagram, Facebook, anywhere people already follow you."
       onSubmit={() => onAnswer([...rows])}
-      submitDisabled={!said}
+      unanswered={
+        said
+          ? undefined
+          : "Nothing filled in yet — say where, and paste your page there; or say you're not on social."
+      }
       escape={{ label: "We're not on social", onEscape: onSkip }}
       onBack={onBack}
     >
@@ -198,6 +224,8 @@ export function SocialQuestion({
               label="Your page there"
               value={row.url}
               onValueChange={(url) => update(index, { ...row, url })}
+              name={`social-${index}`}
+              validate={linkJudge}
             />
           </li>
         ))}

@@ -10,8 +10,10 @@ import { splitWebAddress, typedWebAddress } from "./webAddress.js";
  * controlled by the question that owns the value. What #142 adds is the seam for judgement —
  * a field that carries `validate` is registered with the form `Question` provides, so its
  * sentence appears **on `Continue` and not before**, then re-checks live (§7.9 decision 2).
- * A field without `validate` is never judged on screen at all: phone, email and the URLs keep
- * their §7.9 notice where it always was, the review list's mark (decision 5).
+ * A field without `validate` is never judged on screen at all — the phone is the one that has
+ * none, on purpose (§7.9 decision 1), and keeps its notice where it always was, the review
+ * list's mark (decision 5). Email and the web addresses are judged since #368, with the
+ * renderer's own floors (`unusable.ts`).
  */
 
 export interface TextFieldProps {
@@ -20,8 +22,10 @@ export interface TextFieldProps {
   readonly value: string;
   readonly onValueChange: (next: string) => void;
   /**
-   * §7.9's sentence when the value cannot be used — return `true` for a usable (or empty)
-   * value, the sentence otherwise. Requires `name`. Absent, the field is never judged here.
+   * §7.9's sentence when the value cannot be used — return `true` for a usable value, the
+   * sentence otherwise. Empty is usually usable too; on a screen whose whole answer is this
+   * field it is decision 1's case instead, and the sentence returned is the presence one.
+   * Requires `name`. Absent, the field is never judged here.
    */
   readonly validate?: (value: string) => string | true;
   /** The registration name; unique within one question. Required with `validate`. */
@@ -86,25 +90,49 @@ export interface UrlFieldProps {
   readonly onValueChange: (next: string) => void;
   /** Leaving the box, with the whole address. The review list mends here; nothing else uses it. */
   readonly onCommit?: (value: string) => void;
+  /**
+   * §7.9's judge, over the whole address (#368) — `unusable.ts`'s `buttonJudge` or `linkJudge`,
+   * so the screen and the review row cannot disagree. Requires `name`. Absent, never judged.
+   */
+  readonly validate?: (value: string) => string | true;
+  /** The registration name; unique within one question. Required with `validate`. */
+  readonly name?: string;
 }
 
-export function UrlField({
-  label,
-  hint,
-  value,
-  onValueChange,
-  onCommit,
-}: UrlFieldProps): JSX.Element {
+export function UrlField(props: UrlFieldProps): JSX.Element {
+  if (props.validate !== undefined && props.name !== undefined) {
+    return <JudgedUrl {...props} name={props.name} validate={props.validate} />;
+  }
+  return (
+    <Field label={props.label} hint={props.hint}>
+      {urlInput(props)}
+    </Field>
+  );
+}
+
+function JudgedUrl(
+  props: UrlFieldProps & {
+    readonly name: string;
+    readonly validate: (v: string) => string | true;
+  },
+): JSX.Element {
+  const message = useJudged(props.name, props.value, props.validate);
+  return (
+    <Field label={props.label} hint={props.hint} message={message}>
+      {urlInput(props)}
+    </Field>
+  );
+}
+
+function urlInput({ value, onValueChange, onCommit }: UrlFieldProps): JSX.Element {
   const { scheme, rest } = splitWebAddress(value);
   return (
-    <Field label={label} hint={hint}>
-      <UrlInput
-        scheme={scheme}
-        value={rest}
-        onChange={(event) => onValueChange(typedWebAddress(value, event.target.value))}
-        onBlur={onCommit === undefined ? undefined : () => onCommit(value)}
-      />
-    </Field>
+    <UrlInput
+      scheme={scheme}
+      value={rest}
+      onChange={(event) => onValueChange(typedWebAddress(value, event.target.value))}
+      onBlur={onCommit === undefined ? undefined : () => onCommit(value)}
+    />
   );
 }
 

@@ -2043,32 +2043,53 @@ re-open the picker_; in place makes it _pick again_.
 #### When the owner types something we cannot use
 
 Five fields carry a derived machine target (§2.3), and sometimes no target can be derived. **The tool
-mends what it can, says nothing when it succeeds, and never stops the owner — but what it cannot use
-leaves a mark that outlives the screen.**
+mends what it can, says nothing when it succeeds, and never locks the owner out — there is always a
+way past — but what it cannot use leaves a mark that outlives the screen.**
 
-**1. It never blocks.** `Continue` keeps its single existing meaning — _you haven't answered yet_ — and
-nothing about the _shape_ of an answer can take it away. §3.3 already committed to report-never-block for
-contrast, which is the one thing that can genuinely make a page unreadable; it would be strange to hold a
-phone number to a stricter standard than legibility. **The deciding asymmetry is that our rules go stale
-and the owner's phone number does not.** A number we wrongly judge unusable would, if it blocked, lock an
-owner out of publishing their own page — a failure with no recovery inside the product. A value we
-wrongly _accept_ costs one broken button, which decisions 5 and 6 then catch.
+**1. It never blocks, and it is never greyed** (#368). `Continue` keeps its single meaning — _you haven't
+answered yet_ — but it says so when pressed, rather than by going grey. Every screen with a `Continue`
+can press it at any time. Pressed with no answer, it answers with one sentence in decision 3's slot,
+under what stops the owner — under the field, on a screen whose answer is one field; under the controls
+as a group, on a screen whose answer is spread across several — and holds. Pressed with something the
+page cannot use, decision 2's judgement speaks the same way. The escape stays the way past on every
+screen that has one, and the sentence names it. The presence sentences are each screen's own, in
+decision 6's shape — what is missing, then the way on — and `flow.test.tsx` presses `Continue` empty on
+every screen to see one.
 
-> **Immediate consequence for the colour screen**, today the only screen that blocks on shape: the half
-> of its condition that watches the hex box goes. As it stands, picking a swatch and then typing junk into
-> the box kills `Continue` even though a perfectly good answer is selected. Under this rule `Continue`
-> depends only on whether an answer exists; junk in the box is ignored, the swatch stands, and the message
-> explains why the typing had no effect.
->
-> **And typing into the box is an answer having been attempted** (CL-1, finding A-1). That first pass
-> fixed the swatch case and left the harder one: with **nothing** picked and junk in the box, there was
-> still no answer, so `Continue` went away — **and a disabled button leaves the tab order.** A keyboard
-> owner tabbed the whole step, wrapped, and met no button, no sentence, and no cue that anything was
-> wrong; the shape of what they typed was taking `Continue` away after all, one step further back. So
-> **anything in the box keeps the button**, and pressing it is answered with the sentence. This is the
-> only screen where it can arise — the two that block on presence are the two with no escape (§4.6), and
-> this is the one of those whose answer can be typed. Judging on a keystroke instead is the option
-> decision 2 refuses.
+**Why it is never greyed** (#359, moment 4; the owner's rule, site-wide). A grey button says something
+is wrong and nothing about what — _a disabled button with no explanation is the harder experience_ —
+and it leaves the tab order, so a keyboard owner tabs the whole step, wraps, and meets no button, no
+sentence and no cue (CL-1, finding A-1, which this rule finishes: there is always a button, and pressing
+it is always answered). Before #368 `Continue` went grey until the screen had an answer, and every screen
+wrote its own idea of _an answer_ into the button; now every screen hands the shell the sentence to say
+instead.
+
+**Why it never blocks on a phone number, and now judges the other four.** §3.3 already committed to
+report-never-block for contrast, which is the one thing that can genuinely make a page unreadable; it
+would be strange to hold a phone number to a stricter standard than legibility. **The deciding asymmetry
+is that our rules go stale and the owner's phone number does not.** A number we wrongly judged unusable
+would, if it held the screen, lock an owner out of publishing their own page — a failure with no
+recovery inside the product, because the contact screen's escape drops the email with it. So **the
+phone is never judged on screen**: a vanity number, an extension, a second number goes through and stays
+on the page as text (§2.3), and the review row's mark (decision 5) is its notice. **Email and the three
+web-address fields are judged on `Continue`** (#368; the owner's decision on #361, superseding the
+earlier position that only the review row spoke for them). The floors are the renderer's own —
+`mailtoHref` over the mended address, `linkHref` — never a second opinion, and what they refuse holds the
+screen with decision 6's sentence until it is fixed, cleared, or the escape taken, the way the hours
+screen's time has held since #142. What separates these four from the phone is the cost of being wrong
+in each direction: a wrongly refused address holds one screen, with an escape beside it and a sentence
+that says paste it from your browser; a wrongly _accepted_ one is a button absent from the page (§2.3),
+which the walk met as silence — a one-letter address and a half-typed email both went through without
+a word (#359, moments 12 and 15), the review row saying what the screen would not.
+
+> **The colour screen, which used to be the only screen this could arise on.** It blocked on the
+> _shape_ of an answer once — junk in the hex box killed `Continue` even with a swatch picked — and #142
+> stopped that; then CL-1 found the harder half: with **nothing** picked and junk in the box there was
+> still no answer, so `Continue` went away, **and a disabled button leaves the tab order**. The fix then
+> was _anything in the box keeps the button_, and it was the one screen where the rule was needed,
+> because it is the one required screen whose answer can be typed. Under #368 the rule is every
+> screen's and the special case is gone: nothing picked and nothing typed is answered with the presence
+> sentence, junk in the box with the hex sentence, and the swatch stands under either.
 
 **2. It speaks on `Continue`, and not before** (#142). Nothing judges the owner while they are still
 answering — not on a keystroke, and not on leaving a field, which on a phone is half of typing. Tapping
@@ -2112,12 +2133,14 @@ _format_, _valid_, and any other word that names our diagnosis rather than the o
 | A link button's URL           | _"**This button won't work** — paste the address from your browser."_               |
 | `directionsUrl`, a social URL | _"**This link won't work** — paste the address from your browser."_                 |
 | Phone                         | _"**Tapping this won't dial** — add the number in digits if you want it tappable."_ |
+| Email                         | _"**Tapping this won't open an email** — check the address."_                       |
 | A time (§7.10)                | _"**This time won't reach your page** — try 5:30pm."_                               |
 
 **Email's sentence is written to phone's shape rather than to the buttons'**, and for phone's reason: an
 address the floor cannot use is not a broken link either, and the same hint promises tap-to-email in the
 same breath as tap-to-call. Recorded because this table was first written with no email row at all —
-§2.3's floor can refuse an address, so the omission was a gap rather than a decision.
+§2.3's floor can refuse an address, so the omission was a gap rather than a decision; the row landed
+with #368, when the contact screen started saying it (the review row had said it since #142).
 
 **One noun of variation, not a second voice.** Directions and social are not buttons, so calling them one
 would be untrue. **Phone gets its own sentence because nothing is broken** — a vanity number, an extension
@@ -2317,7 +2340,7 @@ defects live. A dead tab stop survived 847 green tests here.
    presses Tab around every screen of the builder at both of §7.6's sizes and reads what focus
    painted on each stop: an outline of at least 2px that was not there at rest, or, on the fields
    that are a line, the bottom border thickening instead. It reaches 30 screens and every stop on
-   them — 247 at 390, 258 at 1440. **Each wizard step is measured twice, as it arrives and once it
+   them — 262 at 390, 273 at 1440. **Each wizard step is measured twice, as it arrives and once it
    has been answered** (#343), and the step §7.9 can refuse a third time while it is refusing:
    until that landed the walk saw arrival only, and fourteen stops at 390 lived in an answered
    state no gate had ever read — nine of the twelve steps gain one when they are filled, and the
@@ -2327,8 +2350,8 @@ defects live. A dead tab stop survived 847 green tests here.
    one place the browser rather than the builder decides.
 3. **What the tool covers, it puts out of reach, and what it leaves on the glass stays in reach.**
    _Measured_ — the same browser walk counts every control each screen is showing and then presses
-   Tab around it, at both of §7.6's sizes: **273 controls over 30 screens, 247 of them reachable at
-   390 and 258 at 1440**. Two screens account for the whole difference. On the review list at 390
+   Tab around it, at both of §7.6's sizes: **288 controls over 30 screens, 262 of them reachable at
+   390 and 273 at 1440**. Two screens account for the whole difference. On the review list at 390
    the preview page comes down over the column, and **2 of its 13 controls stay in reach** — _Edit
    your page_ and _Download_, the two the drawer put on its own glass, so that what it covers is
    not a dead end; the other 11 are still on the page and the keyboard cannot get to any of them.
@@ -2342,7 +2365,7 @@ defects live. A dead tab stop survived 847 green tests here.
    measured by a standing test.
 5. **Every control the keyboard reaches clears the tap floor**, except the deliberate inline
    weight. _Measured_ — the same browser walk reads the rendered box
-   of every tab stop at both of §7.6's sizes and holds it to `tap`'s 44px: 247 stops at 390, 258 at 1440. **A control is not always its own target**, and a check that read only the control would
+   of every tab stop at both of §7.6's sizes and holds it to `tap`'s 44px: 262 stops at 390, 273 at 1440. **A control is not always its own target**, and a check that read only the control would
    fail twenty-eight honest ones at each width — the 20×20 checkboxes are pressed through a 350×44
    `<label>`, §7.10's 1×1 day modes through a 98×44 one, and the web-address box through the ruled
    line it stands on. So what is measured is the label or the line, and only where the browser or a
@@ -2494,36 +2517,37 @@ one, by someone who wants to run it — not smuggled into a free static tool as 
 
 Ruled out on purpose. The first contributor to ask "why not?" has a written answer here.
 
-| Not doing                                              | Why                                                                                                                                          |
-| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Click analytics, visitor tracking**                  | Needs a backend to record events. Whether a paste-your-own-snippet field is acceptable is deliberately left undecided rather than pulled in. |
-| **Contact and lead-capture forms**                     | A form POST needs a server. `mailto:` and `tel:` links in the contact section are the substitute.                                            |
-| **Custom domain setup**                                | DNS is owned by whichever host the owner picks, not by an export tool. May survive only as a link in the walkthrough.                        |
-| **Multi-page sites**                                   | This is the line between a link page and a website builder. One page, one file, one export.                                                  |
-| **Reordering sections**                                | §2.1. Additive later if ever wanted.                                                                                                         |
-| **Drag-and-drop button reordering**                    | §7.5.                                                                                                                                        |
-| **A "featured" link flag**                             | §2.3 — position is the emphasis mechanism.                                                                                                   |
-| **An announcement banner**                             | §2.2 — the update model is wrong for time-sensitive content.                                                                                 |
-| **Icon or image uploads for links**                    | §2.4.                                                                                                                                        |
-| **Publishing on the owner's behalf**                   | Constraint 6. There is no backend to publish from.                                                                                           |
-| **Tracking whether the file was uploaded**             | §7.7.                                                                                                                                        |
-| **Editing directly on the previewed page**             | §5.2 — it costs the preview-is-the-export guarantee.                                                                                         |
-| **WebP / AVIF export**                                 | §6.6.                                                                                                                                        |
-| **Round-trip payload in the exported HTML**            | §6.7.                                                                                                                                        |
-| **Publishing the renderer to npm**                     | Not in v1.                                                                                                                                   |
-| **Collapsing "Mon–Fri" on the page**                   | §2.3 — refused on the absence of a complaint, not on difficulty. The dispatching rule is recorded there.                                     |
-| **A progress indicator in the flow**                   | §7.2 — no honest global count exists; the page is the progress display.                                                                      |
-| **Blocking `Continue` on the shape of an answer**      | §7.9 — our rules go stale and the owner's phone number does not.                                                                             |
-| **Learning, inferring or asking the owner's country**  | §2.3 — it would make a wrong `lang` region harmful, where §4.1 keeps it harmless.                                                            |
-| **A phone-number mask, or a phone-metadata library**   | §2.3 — the mask rewrites the owner's text; the library needs the country we declined.                                                        |
-| **Turning a social handle into a URL**                 | §2.3 — _handle_ is not one concept, and a template table goes stale silently.                                                                |
-| **Computing a name for the owner's colour**            | §3.1 — naming their brand is a claim we cannot check.                                                                                        |
-| **Asking the owner for the page's language**           | §4.1 — a screen spent on a consequence the owner cannot predict.                                                                             |
-| **`<input type="time">` in the builder**               | §7.10 — five presses against one, and a clipping bug we cannot reach.                                                                        |
-| **Tailwind, or any CSS toolchain, in the renderer**    | §5.1 — the export's CSS is derived per project, and §6.7 must not depend on a third party's output ordering.                                 |
-| **Dark mode in the builder**                           | §7.4 — a dark surround changes how the owner's colour reads.                                                                                 |
-| **A standing visual-regression suite for the builder** | §7.4 — precisely the flaky instrument `retries: 0` already refuses.                                                                          |
-| **A _visible_ heading on the exported hours panel**    | §6.9 — §2.5 now spends a word on a visually hidden one; on screen the glyph is what names the panel.                                         |
+| Not doing                                              | Why                                                                                                                                                     |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Click analytics, visitor tracking**                  | Needs a backend to record events. Whether a paste-your-own-snippet field is acceptable is deliberately left undecided rather than pulled in.            |
+| **Contact and lead-capture forms**                     | A form POST needs a server. `mailto:` and `tel:` links in the contact section are the substitute.                                                       |
+| **Custom domain setup**                                | DNS is owned by whichever host the owner picks, not by an export tool. May survive only as a link in the walkthrough.                                   |
+| **Multi-page sites**                                   | This is the line between a link page and a website builder. One page, one file, one export.                                                             |
+| **Reordering sections**                                | §2.1. Additive later if ever wanted.                                                                                                                    |
+| **Drag-and-drop button reordering**                    | §7.5.                                                                                                                                                   |
+| **A "featured" link flag**                             | §2.3 — position is the emphasis mechanism.                                                                                                              |
+| **An announcement banner**                             | §2.2 — the update model is wrong for time-sensitive content.                                                                                            |
+| **Icon or image uploads for links**                    | §2.4.                                                                                                                                                   |
+| **Publishing on the owner's behalf**                   | Constraint 6. There is no backend to publish from.                                                                                                      |
+| **Tracking whether the file was uploaded**             | §7.7.                                                                                                                                                   |
+| **Editing directly on the previewed page**             | §5.2 — it costs the preview-is-the-export guarantee.                                                                                                    |
+| **WebP / AVIF export**                                 | §6.6.                                                                                                                                                   |
+| **Round-trip payload in the exported HTML**            | §6.7.                                                                                                                                                   |
+| **Publishing the renderer to npm**                     | Not in v1.                                                                                                                                              |
+| **Collapsing "Mon–Fri" on the page**                   | §2.3 — refused on the absence of a complaint, not on difficulty. The dispatching rule is recorded there.                                                |
+| **A progress indicator in the flow**                   | §7.2 — no honest global count exists; the page is the progress display.                                                                                 |
+| **Blocking `Continue` on the shape of a phone number** | §7.9 — our rules go stale and the owner's number does not. Email and web addresses are judged on `Continue` since #368, with the renderer's own floors. |
+| **A greyed `Continue`**                                | §7.9 — a grey button says something is wrong and nothing about what, and it leaves the tab order; pressing it is answered instead (#368).               |
+| **Learning, inferring or asking the owner's country**  | §2.3 — it would make a wrong `lang` region harmful, where §4.1 keeps it harmless.                                                                       |
+| **A phone-number mask, or a phone-metadata library**   | §2.3 — the mask rewrites the owner's text; the library needs the country we declined.                                                                   |
+| **Turning a social handle into a URL**                 | §2.3 — _handle_ is not one concept, and a template table goes stale silently.                                                                           |
+| **Computing a name for the owner's colour**            | §3.1 — naming their brand is a claim we cannot check.                                                                                                   |
+| **Asking the owner for the page's language**           | §4.1 — a screen spent on a consequence the owner cannot predict.                                                                                        |
+| **`<input type="time">` in the builder**               | §7.10 — five presses against one, and a clipping bug we cannot reach.                                                                                   |
+| **Tailwind, or any CSS toolchain, in the renderer**    | §5.1 — the export's CSS is derived per project, and §6.7 must not depend on a third party's output ordering.                                            |
+| **Dark mode in the builder**                           | §7.4 — a dark surround changes how the owner's colour reads.                                                                                            |
+| **A standing visual-regression suite for the builder** | §7.4 — precisely the flaky instrument `retries: 0` already refuses.                                                                                     |
+| **A _visible_ heading on the exported hours panel**    | §6.9 — §2.5 now spends a word on a visually hidden one; on screen the glyph is what names the panel.                                                    |
 
 ---
 

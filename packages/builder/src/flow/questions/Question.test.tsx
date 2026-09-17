@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
-import { cleanup, render as mount, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
-import { Field } from "./Question.js";
+import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { Field, Question } from "./Question.js";
 import { LADDER } from "../../ui/ladder.js";
 import { TextField } from "../../ui/TextField.js";
 import { TextArea } from "../../ui/TextInput.js";
@@ -365,5 +365,69 @@ describe("a field built from the tool's own controls", () => {
     expect(box.tagName).toBe("TEXTAREA");
     expect(describedText(box)).toBe("Write it the way you'd write it on an envelope.");
     expect(screen.getByRole("textbox", { name: "Address" })).toBeDefined();
+  });
+});
+
+/**
+ * The shell's own sentence for a screen with no answer yet. `SPEC.md` §7.9 decision 1, #368.
+ *
+ * `submitDisabled` used to grey the button; `unanswered` hands the shell the sentence to say
+ * instead. This is the one place the mechanism is tested on its own — every screen's wording is
+ * `flow.test.tsx`'s — so it is the place that says what the sentence is made of: the same hook,
+ * role and one-per-screen shape as `Field`'s message, and none of it when there is nothing to say.
+ */
+describe("Continue with no answer yet (§7.9 decision 1, #368)", () => {
+  const submit = (): HTMLButtonElement =>
+    document.querySelector('button[type="submit"]') as HTMLButtonElement;
+  const sentence = (): HTMLElement | null => document.querySelector("[data-message]");
+
+  it("is never disabled, says the sentence when pressed, and holds", () => {
+    const onSubmit = vi.fn();
+    mount(
+      <Question title="Q" onSubmit={onSubmit} unanswered="Nothing yet — say something.">
+        <input type="text" />
+      </Question>,
+    );
+
+    expect(submit().disabled).toBe(false);
+    expect(sentence()).toBeNull();
+
+    fireEvent.click(submit());
+    expect(sentence()?.textContent).toBe("Nothing yet — say something.");
+    expect(sentence()?.getAttribute("role")).toBe("alert");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("clears the moment there is an answer, and advances on the next press", () => {
+    const onSubmit = vi.fn();
+    const view = mount(
+      <Question title="Q" onSubmit={onSubmit} unanswered="Nothing yet.">
+        <input type="text" />
+      </Question>,
+    );
+    fireEvent.click(submit());
+    expect(sentence()).not.toBeNull();
+
+    view.rerender(
+      <Question title="Q" onSubmit={onSubmit}>
+        <input type="text" />
+      </Question>,
+    );
+    expect(sentence()).toBeNull();
+    fireEvent.click(submit());
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("reserves no layout and says nothing when the screen is answered from the start", () => {
+    const onSubmit = vi.fn();
+    mount(
+      <Question title="Q" onSubmit={onSubmit}>
+        <input type="text" />
+      </Question>,
+    );
+    expect(sentence()).toBeNull();
+    fireEvent.click(submit());
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(sentence()).toBeNull();
   });
 });

@@ -97,13 +97,23 @@ export interface QuestionProps {
   /** Overrides the shell's verb, for a question whose button is about something else. */
   readonly submitLabel?: string;
   /**
-   * Continue is unavailable until the answer is one.
+   * §7.9 decision 1 (#368): the sentence `Continue` answers with while the screen has no answer
+   * yet — `undefined` once it has one. **It never greys the button.** Pressed with this set, the
+   * shell says it under the controls, in decision 3's slot, and holds; it clears the moment the
+   * screen hands `undefined` instead.
    *
    * Paired with the escape, this is the mechanism behind "a ticked-but-empty section is not a
    * state that exists" at the surface: there is a way past every screen without answering it,
-   * and it is never the button that writes.
+   * and it is never the button that writes. It used to be `submitDisabled`, and the button went
+   * grey — which said something was wrong and nothing about what, and took the button out of the
+   * tab order with it (#359, moment 4; CL-1).
+   *
+   * A screen whose whole answer is one field says this under that field instead, through the
+   * field's own `validate` (the name, the tagline, a link's address): the sentence then carries
+   * `aria-invalid` on the box it is about. A screen whose answer is spread over several controls
+   * hands it here, once, for all of them.
    */
-  readonly submitDisabled?: boolean;
+  readonly unanswered?: string;
   /** Shown while the flow is past its first screen. */
   readonly onBack?: () => void;
   /** Below the controls: §7.8's quiet line, and §7.9's message when there is one. */
@@ -118,7 +128,7 @@ export function Question({
   escape,
   onSubmit,
   submitLabel,
-  submitDisabled = false,
+  unanswered,
   onBack,
   footer,
 }: QuestionProps): JSX.Element {
@@ -128,13 +138,29 @@ export function Question({
    * §7.9 decision 2 (#142): judgement speaks on `Continue` and not before, then re-checks
    * live. react-hook-form is the error store every question shares — `useJudged` below is how
    * a field opts in — and the judging itself runs synchronously at submit, because a valid
-   * answer must advance in the same tick it always did. A field without a judge — phone,
-   * email, a web address — is never judged on screen, and its notice stays the review list's
-   * mark (decision 5). A submit with something unusable shows its sentences and stays;
-   * `submitDisabled` remains what it always was — presence, never shape (decision 1).
+   * answer must advance in the same tick it always did. A field without a judge — the phone
+   * is the one that has none, on purpose — is never judged on screen, and its notice stays the
+   * review list's mark (decision 5). A submit with something unusable shows its sentences and
+   * stays; a submit with no answer at all shows `unanswered` and stays (decision 1, #368). The
+   * button itself is never disabled.
    */
   const form = useForm();
   const judges = useRef(new Map<string, () => string | true>());
+
+  // The presence sentence lives in the same store as the judges' sentences, under a name no
+  // field can take, so it clears and re-checks by the one mechanism (`useJudged`'s, below).
+  const state = useFormState({ control: form.control });
+  const presence = form.getFieldState(PRESENCE, state).error?.message;
+  const latestUnanswered = useRef(unanswered);
+  latestUnanswered.current = unanswered;
+  useEffect(() => {
+    if (presence === undefined) return;
+    if (unanswered === undefined) form.clearErrors(PRESENCE);
+    else if (unanswered !== presence) {
+      form.setError(PRESENCE, { type: "unanswered", message: unanswered });
+    }
+    // Quick to stop: re-checked on every change to whether there is an answer.
+  }, [unanswered]);
 
   return (
     <FormProvider {...form}>
@@ -150,8 +176,12 @@ export function Question({
             noValidate
             onSubmit={(event) => {
               event.preventDefault();
-              if (submitDisabled) return;
               let held = false;
+              if (latestUnanswered.current === undefined) form.clearErrors(PRESENCE);
+              else {
+                form.setError(PRESENCE, { type: "unanswered", message: latestUnanswered.current });
+                held = true;
+              }
               for (const [name, judge] of judges.current) {
                 const verdict = judge();
                 if (verdict === true) form.clearErrors(name);
@@ -196,10 +226,21 @@ export function Question({
               className={`${LADDER.outOfHeading.className} flex flex-col ${LADDER.betweenFields.className} font-sans`}
             >
               {children}
+              {/*
+               * Decision 1's sentence for a screen whose answer is spread over its controls: the
+               * same slot, role and hook as `Field`'s message, so a test, the walk and a screen
+               * reader meet one kind of sentence — and, like `Field`'s, no layout is reserved
+               * for it when there is nothing to say.
+               */}
+              {presence !== undefined && (
+                <p className={TYPE.notice.className} data-message data-unanswered role="alert">
+                  {presence}
+                </p>
+              )}
             </div>
 
             {onSubmit !== undefined && (
-              <Button type="submit" weight="primary" className="mt-6" disabled={submitDisabled}>
+              <Button type="submit" weight="primary" className="mt-6">
                 {submitLabel ?? shell.submitLabel}
               </Button>
             )}
@@ -243,6 +284,9 @@ export function Question({
  * same tick it always did, and only an unusable one holds the screen to say its sentence.
  */
 const JudgeContext = createContext<Map<string, () => string | true> | null>(null);
+
+/** The store's name for decision 1's sentence. Not a field, so no field can collide with it. */
+const PRESENCE = "__unanswered";
 
 /**
  * Opt a field into §7.9's judgement (#142): silent until `Continue`, then the sentence under

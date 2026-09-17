@@ -59,7 +59,13 @@ export function LogoQuestion({
       title="Do you have a logo?"
       hint="A picture file from your signage, menus or social profile."
       onSubmit={onContinue}
-      submitDisabled={logo === null || busy}
+      // §7.9 decision 1 (#368): pressed with no picture, it says so. While a file is still being
+      // read the picture is not here yet either, and the sentence clears on its own when it is.
+      unanswered={
+        logo === null
+          ? "No picture chosen yet — choose a file, or say you don't have one."
+          : undefined
+      }
       escape={{ label: "We don't have one", onEscape: onSkip }}
       onBack={onBack}
     >

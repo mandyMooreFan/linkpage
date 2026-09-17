@@ -1,4 +1,4 @@
-import { linkHref, mailtoHref, socialLabel, telHref } from "@linkpage/renderer";
+import { linkHref, mailtoHref, mendEmail, socialLabel, telHref } from "@linkpage/renderer";
 import type { Topic } from "../flow/topics.js";
 import type { Draft } from "./index.js";
 
@@ -24,6 +24,37 @@ const given = (value: string | undefined): value is string =>
 
 const URL_FIX = "paste the address from your browser";
 const PHONE_FIX = "add the number in digits if you want it tappable";
+const EMAIL_SENTENCE = "Tapping this won't open an email — check the address.";
+
+/**
+ * The screen's judges (§7.9 decisions 1 and 6, #368): what a web-address or email field says on
+ * `Continue` when the page could make no target from it, in the same words the row and the sheet
+ * use, so the owner meets one sentence in three places rather than three sentences.
+ *
+ * **Empty is not unusable.** Each returns `true` for a blank value: whether a blank is an answer is
+ * the screen's question (decision 1's presence sentence), not the value's.
+ *
+ * **Judged as the mend would leave it.** `linkHref` is `mendUrl`'s own test, and an email is judged
+ * with its spaces stripped, so what `topics.ts` would store as usable is never held on screen.
+ *
+ * **There is no phone judge, and there will not be one.** §7.9 decision 1: our rules go stale and
+ * the owner's number does not, so its notice stays the review row's mark.
+ */
+export function buttonJudge(url: string): string | true {
+  return url.trim() === "" || linkHref(url.trim()) !== undefined
+    ? true
+    : `This button won't work — ${URL_FIX}.`;
+}
+
+export function linkJudge(url: string): string | true {
+  return url.trim() === "" || linkHref(url.trim()) !== undefined
+    ? true
+    : `This link won't work — ${URL_FIX}.`;
+}
+
+export function emailJudge(email: string): string | true {
+  return email.trim() === "" || mailtoHref(mendEmail(email)) !== undefined ? true : EMAIL_SENTENCE;
+}
 
 /**
  * The row's mark: one quiet line saying this row holds something the page cannot use (§7.4).
@@ -50,7 +81,7 @@ export function rowMark(draft: Draft, topic: Topic): string | undefined {
         return `Tapping this won't dial — ${PHONE_FIX}.`;
       }
       if (given(email) && mailtoHref(email) === undefined) {
-        return "Tapping this won't open an email — check the address.";
+        return EMAIL_SENTENCE;
       }
       return undefined;
     }
