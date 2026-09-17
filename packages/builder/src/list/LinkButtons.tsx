@@ -57,7 +57,7 @@ import { TYPE } from "../ui/type.js";
  * Written once because it is written twice on the screen, and the pair must not drift.
  */
 export const REORDER_CLASS =
-  "tap-square rounded-sm border border-rule bg-transparent text-lg " +
+  "tap-square rounded-sm border border-rule bg-transparent text-lg enabled:hover:border-ink " +
   "disabled:border-rule disabled:text-ink-quiet";
 
 export interface LinkButtonsProps {

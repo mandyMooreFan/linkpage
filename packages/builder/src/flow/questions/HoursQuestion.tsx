@@ -275,7 +275,7 @@ export function HoursQuestion({
                        * forwards the ring to the label that hides its own control, so the ring is
                        * still spelled once and a future segmented control gets it for free.
                        */
-                      className="tap flex cursor-pointer items-center px-3 text-sm has-checked:picked"
+                      className="tap flex items-center px-3 text-sm has-checked:picked"
                     >
                       <input
                         type="radio"

@@ -129,7 +129,8 @@ export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProp
               // rows, the hours segments and the language list take. This is the control it was
               // shaped around: the only picked thing in the tool with a fill of its own, which is
               // why the mark brings a clearing of ground with it rather than being laid on ink.
-              className="size-12 rounded-full border border-rule aria-pressed:picked"
+              // Its hairline turns to ink under the pointer, as every outlined thing's does (#370).
+              className="size-12 rounded-full border border-rule enabled:hover:border-ink aria-pressed:picked"
               data-swatch
               style={{ background: swatch.hex }}
               // The name, not the code: a screen reader hears twelve names rather than twelve

@@ -203,7 +203,7 @@ function ColourControl({
               type="button"
               // Pixel-identical to the flow's grid (#192) — one list of colours with two callers
               // has to be one control with two callers.
-              className="size-12 rounded-full border border-rule aria-pressed:picked"
+              className="size-12 rounded-full border border-rule enabled:hover:border-ink aria-pressed:picked"
               data-swatch
               style={{ background: swatch.hex }}
               aria-label={swatch.name}

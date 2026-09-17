@@ -50,6 +50,22 @@ import type { ButtonHTMLAttributes, JSX, Ref } from "react";
  * in. That is the rule this file is now the single home of — before #234 `WEIGHT.quiet` declared
  * no colour at all and `Back` overrode it at its own call site, so the only place the tertiary
  * ink was written down was the one exception to it.
+ *
+ * **Every weight says it is pressable under the pointer, with the one thing it is made of**
+ * (`SPEC.md` §7.4; #370, walk moment 8). The desktop walk hovered the outlined escape and got
+ * nothing — no change of paint, an arrow for a cursor — so it read as not clickable. The hand
+ * is not a weight's to give: Tailwind v4's reset took `cursor: pointer` off every `<button>`,
+ * and `theme.css`'s base layer puts it back once, on every enabled button in the tool, so no
+ * recipe spells a cursor (the `disabled:cursor-default` each weight used to carry restated the
+ * browser's own default, B-1's declaration that draws nothing). The mark *is* the weight's:
+ * `primary` steps its fill toward the ground (`bg-ink/85` — a shade of the same ink, the way
+ * the renderer's hover is a step along a ramp and never a second colour), `secondary` turns its
+ * hairline to ink, `quiet` takes the full ink it rests a step below, and `inline`, which has
+ * only its sentence's ink, thickens its line — the move a text field makes when it is reached.
+ * Each is `enabled:hover:` rather than `hover:`, so an unavailable control changes nothing under
+ * the pointer and the disabled vocabulary stays the only thing it says. `controls.test.ts`
+ * holds that each mark draws something the weight does not already wear; `hover.e2e.ts` hovers
+ * every button on every screen and reads what changed.
  */
 export type ButtonWeight = "primary" | "secondary" | "quiet" | "inline";
 
@@ -60,10 +76,10 @@ export type ButtonWeight = "primary" | "secondary" | "quiet" | "inline";
 export const WEIGHT: Record<ButtonWeight, string> = {
   primary:
     "tap w-fit rounded-sm bg-ink px-4 py-2 font-sans text-base text-ground " +
-    "disabled:cursor-default disabled:bg-rule disabled:text-ink-quiet",
+    "enabled:hover:bg-ink/85 disabled:bg-rule disabled:text-ink-quiet",
   secondary:
     "tap w-fit rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base " +
-    "disabled:cursor-default disabled:border-rule disabled:text-ink-quiet",
+    "enabled:hover:border-ink disabled:border-rule disabled:text-ink-quiet",
   /**
    * A sentence you can press — `Back`, `Remove`, `Cancel`, "Or type a code" (§4's tertiary).
    *
@@ -91,7 +107,7 @@ export const WEIGHT: Record<ButtonWeight, string> = {
    */
   quiet:
     "tap w-fit bg-transparent py-2 font-sans text-base text-ink-quiet underline " +
-    "underline-offset-4 disabled:cursor-default disabled:no-underline",
+    "underline-offset-4 enabled:hover:text-ink disabled:no-underline",
   /**
    * A link inside a sentence — "Already have a project file? **Open it.**"
    *
@@ -114,7 +130,9 @@ export const WEIGHT: Record<ButtonWeight, string> = {
    * `w-fit` on it would be a width for a thing that has none. If a call site ever needs it to be
    * a box, what it needs is one of the other three.
    */
-  inline: "bg-transparent p-0 font-sans text-base underline underline-offset-4",
+  inline:
+    "bg-transparent p-0 font-sans text-base underline underline-offset-4 " +
+    "enabled:hover:decoration-2",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

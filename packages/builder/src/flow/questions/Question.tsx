@@ -239,38 +239,50 @@ export function Question({
               )}
             </div>
 
-            {onSubmit !== undefined && (
-              <Button type="submit" weight="primary" className="mt-6">
-                {submitLabel ?? shell.submitLabel}
-              </Button>
-            )}
+            {/*
+             * The ways off a screen, in one row (§7.4; #370, walk moment 7). The desktop walk
+             * saw `Continue`, the escape and `Back` as three shapes scattered down the column —
+             * a fill, an outline, then a sentence a whole section further down (B-8 had given
+             * `Back` the inter-section rung as "the most separate thing on the screen"). They
+             * are one set of choices, so they stand together: the same three weights, the same
+             * order the keyboard has always met them in (§7.12's counts do not move), on one
+             * baseline, wrapping onto a second line when a long escape needs it rather than
+             * pushing the column wider. `Back` comes inside the form to do it; it is still
+             * `type="button"`, so the form never sees it. The row takes the rung `Continue`
+             * used to take on its own, and a screen with no way off it draws no row.
+             *
+             * The escape and `Back` keep their own ink and shape — the fill still marks the one
+             * primary thing on the screen (§4). What changed is only where they stand.
+             */}
+            {(onSubmit !== undefined || escape !== undefined || onBack !== undefined) && (
+              <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3" data-question-exits>
+                {onSubmit !== undefined && (
+                  <Button type="submit" weight="primary">
+                    {submitLabel ?? shell.submitLabel}
+                  </Button>
+                )}
 
-            {escape !== undefined && (
-              <Button weight="secondary" data-escape onClick={escape.onEscape}>
-                {escape.label}
-              </Button>
+                {escape !== undefined && (
+                  <Button weight="secondary" data-escape onClick={escape.onEscape}>
+                    {escape.label}
+                  </Button>
+                )}
+
+                {onBack !== undefined && (
+                  // The ink used to be spelled here too — `text-ink-quiet` at this one call
+                  // site, which made `Back` the only place in the tool the tertiary colour was
+                  // written down and every other quiet button an unstated full-ink default
+                  // (B-21). It is `WEIGHT.quiet`'s now, and a button never spells its own colour.
+                  <Button weight="quiet" onClick={onBack}>
+                    Back
+                  </Button>
+                )}
+              </div>
             )}
           </form>
 
           {footer !== undefined && (
             <div className="mt-8 border-t border-rule pt-4 font-sans">{footer}</div>
-          )}
-
-          {onBack !== undefined && (
-            <Button
-              weight="quiet"
-              // The most separate thing on the screen, so it takes the inter-section rung rather
-              // than the intra-form one it used to share with a gap between two fields (B-8).
-              //
-              // Spacing only. The ink used to be spelled here too — `text-ink-quiet` at this one
-              // call site, which made `Back` the only place in the tool the tertiary colour was
-              // written down and every other quiet button an unstated full-ink default (B-21).
-              // It is `WEIGHT.quiet`'s now, and a button never spells its own colour.
-              className={LADDER.betweenSections.className}
-              onClick={onBack}
-            >
-              Back
-            </Button>
           )}
         </section>
       </JudgeContext.Provider>

@@ -603,9 +603,9 @@ describe("the one button", () => {
         .split(/\s+/)
         .filter((one) => one.startsWith("disabled:"))
         .map((one) => one.slice("disabled:".length))
-        // A pointer is not paint, and `disabled:border-rule` is `secondary` saying out loud that
-        // its hairline is the one thing that does *not* step back. Neither is a mark on its own.
-        .filter((one) => one !== "cursor-default" && !worn.has(one));
+        // `disabled:border-rule` is `secondary` saying out loud that its hairline is the one
+        // thing that does *not* step back — not a mark on its own.
+        .filter((one) => !worn.has(one));
       expect(changed, `${name} draws nothing new when it is unavailable`).not.toEqual([]);
     }
   });
@@ -664,9 +664,9 @@ describe("one ink for every small text-only button (B-21)", () => {
       everySource().find(([path]) => path.endsWith("flow/questions/Question.tsx"))?.[1] ?? "";
     const back = buttonElements(question).find((element) => element.includes('weight="quiet"'));
     expect(back, "Question.tsx renders `Back` as a quiet button").toBeDefined();
-    expect(back, "and hands it a rung of the ladder, which is all it hands it").toContain(
-      "LADDER.betweenSections",
-    );
+    // It used to hand the button a rung of the ladder as well, the inter-section one (B-8);
+    // since #370 the exits row spaces all three, so the call site hands nothing but the weight.
+    expect(back, "and hands it nothing but its weight").not.toContain("className");
   });
 
   /**
@@ -1545,7 +1545,11 @@ describe("the one focus treatment", () => {
 
   it("is spelled twice in the whole tool: once as a line, once as a ring", () => {
     expect([...theme.matchAll(/@utility focus-line\b/g)]).toHaveLength(1);
-    expect([...theme.matchAll(/@layer base\b/g)]).toHaveLength(1);
+    // Two base blocks since #370 — the ring's, and the hand's (`cursor: pointer` on every
+    // enabled button: a correction to the reset, not a focus treatment). One speaks of focus.
+    const bases = [...theme.matchAll(/@layer base \{(?:[^{}]|\{[^{}]*\})*\}/g)].map(([b]) => b);
+    expect(bases).toHaveLength(2);
+    expect(bases.filter((block) => block.includes(":focus-visible"))).toHaveLength(1);
   });
 
   /**
@@ -2453,7 +2457,6 @@ describe("one disabled vocabulary", () => {
     expect([...allowed].sort()).toEqual([
       "disabled:bg-rule",
       "disabled:border-rule",
-      "disabled:cursor-default",
       "disabled:no-underline",
       "disabled:text-ink-quiet",
     ]);
@@ -2687,5 +2690,69 @@ describe("one size per role (design change 11)", () => {
     );
     for (const face of ["sans", "serif", "mono"]) weights.delete(face);
     expect([...weights]).toEqual(["medium"]);
+  });
+});
+
+/**
+ * **Every pressable thing says so under the pointer** (`SPEC.md` §7.4; #370, walk moment 8).
+ *
+ * The desktop walk hovered the outlined escape — *We don't need one* — and got nothing: an arrow
+ * for a cursor and no change of paint, so it read as not clickable. Tailwind v4's reset is why
+ * the arrow: it took `cursor: pointer` off `<button>` (v3 had it), and nothing here put it back.
+ *
+ * Two rules, in two places, each guarded here at the source. **The hand is written once**, in
+ * `theme.css`'s base layer, for every enabled button — not per recipe, where it had been written
+ * on one of nine (the bar's header) and forgotten on the rest. **The mark is each recipe's own**,
+ * because each is made of a different thing: a weight changes its fill, its hairline, its ink or
+ * its underline, and only that, and a disabled control changes nothing. `hover.e2e.ts` is where
+ * the rule is *measured* — a browser hovers every button on every screen and reads what changed;
+ * this file can only say the rule is declared, and that it is declared everywhere.
+ */
+describe("every pressable thing says so under the pointer (§7.4, #370)", () => {
+  const hoverIn = (classes: string): string[] =>
+    classes
+      .split(/\s+/)
+      .filter((one) => one.startsWith("enabled:hover:"))
+      .map((one) => one.slice("enabled:hover:".length));
+
+  it("changes something each weight does not already draw, and only while enabled", () => {
+    for (const [name, classes] of Object.entries(WEIGHT)) {
+      const worn = new Set(classes.split(/\s+/).filter((one) => !one.includes(":")));
+      const changed = hoverIn(classes).filter((one) => !worn.has(one));
+      expect(changed, `${name} draws nothing new under the pointer`).not.toEqual([]);
+      expect(
+        classes.split(/\s+/).filter((one) => /^hover:/.test(one)),
+        `${name} must not paint a hover on a disabled control`,
+      ).toEqual([]);
+    }
+  });
+
+  it("is declared on every hand-written button too", () => {
+    // A tag that spells its classes is read as it stands; one that takes them from a shared
+    // recipe is read through the recipe, and the two recipes the builder has are held below.
+    const silent = everySource()
+      .filter(([path]) => !/(^|\/)Button\.tsx$/.test(path))
+      .flatMap(([path, text]) =>
+        hostButtons(text)
+          .filter((tag) => /className="/.test(tag))
+          .filter((tag) => !/\benabled:hover:/.test(tag))
+          .map((tag) => `${path}: ${tag.replace(/\s+/g, " ").slice(0, 80)}`),
+      );
+    expect(silent, "hand-written buttons with no hover mark").toEqual([]);
+    expect(ROW_BUTTON, "a list row tints under the pointer").toMatch(/\benabled:hover:/);
+    expect(REORDER_CLASS, "a reorder arrow's hairline turns to ink").toMatch(/\benabled:hover:/);
+  });
+
+  it("offers the hand from the base layer, and nowhere else", () => {
+    // The second base block — the first is the focus ring's, and `focusRing()` reads that one.
+    const hand = /@layer base \{\s*button:enabled[^{]*\{\s*cursor: pointer;/.test(theme);
+    expect(hand, "`button:enabled { cursor: pointer }` in theme.css's base layer").toBe(true);
+
+    const respelled = everySource().flatMap(([path, text]) =>
+      classLists(text)
+        .filter((classes) => /\bcursor-(pointer|default)\b/.test(classes))
+        .map(() => path),
+    );
+    expect([...new Set(respelled)], "the hand, spelled on a control").toEqual([]);
   });
 });
