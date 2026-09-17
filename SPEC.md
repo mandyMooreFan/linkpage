@@ -1732,8 +1732,11 @@ owner's own answer moved, and it says on screen where it came from.
 
 **Link buttons seed as a pick-list, never as pre-created rows.** One step asks _"which of these do you
 have?"_ over the preset's suggestions plus a free _something else_; tap one and the next screen asks
-for its URL. **A button exists only once it has a URL**, so nothing without a destination reaches the
-list, the file, or the page.
+for its URL. **The screen says what a tick commits to** (#369): its hint opens _"Each one you tick
+becomes a button on your page"_ — _add_ in place of _tick_ under _something else_, which offers no
+ticks — because the cold walk (#359) ticked two suggestions that read as questions about the business
+without knowing they were links. **A button exists only once it has a URL**, so nothing without a
+destination reaches the list, the file, or the page.
 
 **There is no confirmation screen** — each section's own step, with its escape, is the confirmation.
 
