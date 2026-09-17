@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render as mount, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render as mount, screen, within } from "@testing-library/react";
 import { useState, type JSX } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { serializeProject, writeDraft, readDraft, type Draft } from "../project/index.js";
 import { Flow } from "./Flow.js";
+import { TYPING_SETTLE_MS } from "./questions/typing.js";
 import type { FlowEntry } from "./plan.js";
 import { PRESETS, type PresetId } from "./presets.js";
 import {
@@ -795,6 +796,104 @@ describe("the page fills in beside the question (§7.1, §7.6)", () => {
 
     choosePreset("food");
     expect(screen.getByRole("button", { name: "See the page" })).toBeTruthy();
+  });
+});
+
+/**
+ * The page shows what is being typed, before `Continue` (#373; §7.1, §7.2, §7.6).
+ *
+ * Both passes of the beta map met on this screen: the name went into the box, and the page
+ * beside it held still until the next screen — §7.1's "filling in beside them" read as one
+ * screen late. What is held here is the split §7.2 relies on: the page shows the answer in
+ * progress, and **nothing is written** — `onChange` is not called, so storage never sees a
+ * half-typed name — and leaving the screen by any road takes it off the page again.
+ *
+ * The frame is read through its `srcdoc`, which §5.2 makes the export itself; the drawer is
+ * opened by its own control because jsdom has no width and so no room beside the question.
+ */
+describe("the page shows what is being typed, before Continue (#373)", () => {
+  const frame = (): string =>
+    document.querySelector("[data-preview-frame]")?.getAttribute("srcdoc") ?? "";
+  const pause = (): void => {
+    act(() => {
+      vi.advanceTimersByTime(TYPING_SETTLE_MS);
+    });
+  };
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("puts the name on the page once the keys pause, and writes nothing", () => {
+    const { onChange } = harness();
+    choosePreset("food");
+    press("See the page");
+
+    type(/Business name/, "Bakewell Bakers");
+    // Not on the key itself: the frame is a document, and a reload mid-word is a flicker.
+    expect(frame()).not.toContain("Bakewell Bakers");
+    pause();
+    expect(frame()).toContain("Bakewell Bakers");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("shows what Continue answered at once, without waiting for a pause", () => {
+    const { onChange } = harness();
+    choosePreset("food");
+    press("See the page");
+
+    type(/Business name/, "Bakewell Bakers");
+    press("Continue");
+    expect(frame()).toContain("Bakewell Bakers");
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("takes a half-typed answer off the page when Back leaves the screen", () => {
+    const { onChange } = harness();
+    choosePreset("food");
+    press("See the page");
+    type(/Business name/, "Bakewell Bakers");
+    press("Continue");
+
+    type(/Tagline/, "Sourdough since 1902");
+    pause();
+    expect(frame()).toContain("Sourdough since 1902");
+
+    press("Back");
+    expect(frame()).not.toContain("Sourdough since 1902");
+    // The name is written and stays; the tagline never was.
+    expect(frame()).toContain("Bakewell Bakers");
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows nothing from a pause that had not elapsed when the owner left", () => {
+    harness();
+    choosePreset("food");
+    press("See the page");
+    type(/Business name/, "Bakewell Bakers");
+    press("Continue");
+
+    type(/Tagline/, "Sourdough since 1902");
+    press("Back");
+    pause();
+    expect(frame()).not.toContain("Sourdough since 1902");
+  });
+
+  it("reaches a section's answer through the same door as Continue does", () => {
+    const named = readDraft({
+      version: 1,
+      lang: "en-GB",
+      style: { brand: "#c2185b" },
+      header: { name: "Ada's Bakery" },
+      links: [],
+    });
+    const { onChange } = harness({ entry: { kind: "add", topics: ["contact"] }, draft: named });
+    expect(title()).toBe("How do people reach you?");
+    press("See the page");
+
+    type(/Phone/, "01234 567890");
+    pause();
+    expect(frame()).toContain("01234 567890");
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
 

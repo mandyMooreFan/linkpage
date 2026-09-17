@@ -1,6 +1,7 @@
 import { useState, type JSX } from "react";
 import { TextField } from "../../ui/TextField.js";
 import { Question } from "./Question.js";
+import { useTyping } from "./typing.js";
 
 /**
  * The two text questions about the business itself. `SPEC.md` §2.3, §4.6.
@@ -21,11 +22,19 @@ import { Question } from "./Question.js";
 export interface NameQuestionProps {
   readonly initial: string | undefined;
   readonly onAnswer: (name: string) => void;
+  /** The name as it stands while it is typed, for the page beside the question (#373). */
+  readonly onTyping?: (name: string) => void;
   readonly onBack?: () => void;
 }
 
-export function NameQuestion({ initial, onAnswer, onBack }: NameQuestionProps): JSX.Element {
+export function NameQuestion({
+  initial,
+  onAnswer,
+  onTyping,
+  onBack,
+}: NameQuestionProps): JSX.Element {
   const [name, setName] = useState(initial ?? "");
+  useTyping(name, onTyping);
 
   return (
     <Question
@@ -56,6 +65,8 @@ export function NameQuestion({ initial, onAnswer, onBack }: NameQuestionProps): 
 export interface TaglineQuestionProps {
   readonly initial: string | undefined;
   readonly onAnswer: (tagline: string) => void;
+  /** The tagline as it stands while it is typed, for the page beside the question (#373). */
+  readonly onTyping?: (tagline: string) => void;
   readonly onSkip: () => void;
   readonly onBack?: () => void;
 }
@@ -63,10 +74,12 @@ export interface TaglineQuestionProps {
 export function TaglineQuestion({
   initial,
   onAnswer,
+  onTyping,
   onSkip,
   onBack,
 }: TaglineQuestionProps): JSX.Element {
   const [tagline, setTagline] = useState(initial ?? "");
+  useTyping(tagline, onTyping);
 
   return (
     <Question

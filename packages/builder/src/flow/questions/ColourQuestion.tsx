@@ -2,6 +2,7 @@ import { parseHex } from "@linkpage/renderer";
 import { useState, type JSX } from "react";
 import { TextField } from "../../ui/TextField.js";
 import { Question } from "./Question.js";
+import { useTyping } from "./typing.js";
 
 /**
  * The brand colour. `SPEC.md` §3.1, §3.3, §4.6.
@@ -82,10 +83,17 @@ export function colourName(value: string): string {
 export interface ColourQuestionProps {
   readonly initial: string | undefined;
   readonly onAnswer: (brand: string) => void;
+  /** The colour as it stands — swatch or typed hex — for the page beside the question (#373). */
+  readonly onTyping?: (brand: string) => void;
   readonly onBack?: () => void;
 }
 
-export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProps): JSX.Element {
+export function ColourQuestion({
+  initial,
+  onAnswer,
+  onTyping,
+  onBack,
+}: ColourQuestionProps): JSX.Element {
   const [brand, setBrand] = useState(initial ?? "");
   const [typed, setTyped] = useState(
     initial !== undefined && !BRAND_SWATCHES.some((swatch) => swatch.hex === initial)
@@ -95,6 +103,7 @@ export function ColourQuestion({ initial, onAnswer, onBack }: ColourQuestionProp
 
   const typedIsColour = typed.trim() !== "" && parseHex(typed.trim()) !== null;
   const answer = typedIsColour ? typed.trim() : brand;
+  useTyping(answer, onTyping);
 
   return (
     <Question

@@ -5,10 +5,11 @@ import {
   type Contact,
   type SocialLink,
 } from "@linkpage/renderer";
-import { useId, useState, type JSX } from "react";
+import { useId, useMemo, useState, type JSX } from "react";
 import { TextField, UrlField } from "../../ui/TextField.js";
 import { emailJudge, linkJudge } from "../../project/unusable.js";
 import { Field, Question } from "./Question.js";
+import { useTyping } from "./typing.js";
 import { TextArea, TextInput } from "../../ui/TextInput.js";
 import { Button } from "../../ui/Button.js";
 import { LADDER } from "../../ui/ladder.js";
@@ -37,6 +38,8 @@ import { LADDER } from "../../ui/ladder.js";
 export interface ContactQuestionProps {
   readonly initial: Contact | undefined;
   readonly onAnswer: (contact: Contact) => void;
+  /** The answer as it stands while it is typed, for the page beside the question (#373). */
+  readonly onTyping?: (contact: Contact) => void;
   readonly onSkip: () => void;
   readonly onBack?: () => void;
 }
@@ -44,17 +47,20 @@ export interface ContactQuestionProps {
 export function ContactQuestion({
   initial,
   onAnswer,
+  onTyping,
   onSkip,
   onBack,
 }: ContactQuestionProps): JSX.Element {
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
+  const answer = useMemo((): Contact => ({ phone, email }), [phone, email]);
+  useTyping(answer, onTyping);
 
   return (
     <Question
       title="How do people reach you?"
       hint="Either one is plenty. They become a tap-to-call and a tap-to-email link."
-      onSubmit={() => onAnswer({ phone, email })}
+      onSubmit={() => onAnswer(answer)}
       unanswered={
         phone.trim() === "" && email.trim() === ""
           ? "Nothing typed yet — add a phone or an email, or say it's not on your page."
@@ -93,6 +99,8 @@ export function ContactQuestion({
 export interface AddressQuestionProps {
   readonly initial: Address | undefined;
   readonly onAnswer: (address: Address) => void;
+  /** The answer as it stands while it is typed, for the page beside the question (#373). */
+  readonly onTyping?: (address: Address) => void;
   readonly onSkip: () => void;
   readonly onBack?: () => void;
 }
@@ -108,17 +116,23 @@ export interface AddressQuestionProps {
 export function AddressQuestion({
   initial,
   onAnswer,
+  onTyping,
   onSkip,
   onBack,
 }: AddressQuestionProps): JSX.Element {
   const [lines, setLines] = useState((initial?.lines ?? []).join("\n"));
   const [directionsUrl, setDirectionsUrl] = useState(initial?.directionsUrl ?? "");
+  const answer = useMemo(
+    (): Address => ({ lines: lines.split("\n"), directionsUrl }),
+    [lines, directionsUrl],
+  );
+  useTyping(answer, onTyping);
 
   return (
     <Question
       title="Where are you?"
       hint="Write it the way you'd write it on an envelope."
-      onSubmit={() => onAnswer({ lines: lines.split("\n"), directionsUrl })}
+      onSubmit={() => onAnswer(answer)}
       unanswered={
         lines.trim() === "" && directionsUrl.trim() === ""
           ? "Nothing typed yet — add the address, or say there's no place to visit."
@@ -150,6 +164,8 @@ export function AddressQuestion({
 export interface SocialQuestionProps {
   readonly initial: readonly SocialLink[] | undefined;
   readonly onAnswer: (social: SocialLink[]) => void;
+  /** The rows as they stand while they are typed, for the page beside the question (#373). */
+  readonly onTyping?: (social: SocialLink[]) => void;
   readonly onSkip: () => void;
   readonly onBack?: () => void;
 }
@@ -166,6 +182,7 @@ export interface SocialQuestionProps {
 export function SocialQuestion({
   initial,
   onAnswer,
+  onTyping,
   onSkip,
   onBack,
 }: SocialQuestionProps): JSX.Element {
@@ -173,6 +190,8 @@ export function SocialQuestion({
   const [rows, setRows] = useState<readonly SocialLink[]>(() =>
     initial !== undefined && initial.length > 0 ? initial : [{ platform: "", url: "" }],
   );
+  const answer = useMemo((): SocialLink[] => [...rows], [rows]);
+  useTyping(answer, onTyping);
 
   const update = (index: number, next: SocialLink): void =>
     setRows(rows.map((row, at) => (at === index ? next : row)));
@@ -183,7 +202,7 @@ export function SocialQuestion({
     <Question
       title="Where else are you online?"
       hint="Instagram, Facebook, anywhere people already follow you."
-      onSubmit={() => onAnswer([...rows])}
+      onSubmit={() => onAnswer(answer)}
       unanswered={
         said
           ? undefined
