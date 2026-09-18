@@ -12,6 +12,8 @@ import {
 } from "./TextInput.js";
 import { WEIGHT, type ButtonWeight } from "./Button.js";
 import { CHECKBOX_CLASS } from "./Checkbox.js";
+import { RADIO_CLASS } from "./Radio.js";
+import { SLIDER_CLASS } from "./Slider.js";
 import { declaredWidth, widthsIn } from "./fill.testing.js";
 import { LADDER } from "./ladder.js";
 import { PANEL_CLASS, PANEL_EDGE } from "./Panel.js";
@@ -229,6 +231,8 @@ describe("the sources every rule below reads", () => {
     "./TextInput.tsx",
     "./Button.tsx",
     "./Checkbox.tsx",
+    "./Radio.tsx",
+    "./Slider.tsx",
     "./Panel.tsx",
     "./row.ts",
     "./type.ts",
@@ -320,6 +324,17 @@ describe("every shared control reaches a screen", () => {
       "../flow/questions/LinkQuestions.tsx",
       "../list/Advanced.tsx",
     ]);
+  });
+
+  it("renders the radio at the style row's closed sets, and nowhere else yet", () => {
+    // #375: shape, lettering, light or dark, and the two hours preferences — all in one `Choice`.
+    // The hours step's day modes are radios too, but hidden ones (see `Radio.tsx`).
+    expect(callersOf("Radio", "/Radio.tsx")).toEqual(["../list/StyleStep.tsx"]);
+  });
+
+  it("renders the slider at the one slider there is", () => {
+    // §3.1's corner softness. A second slider is a decision, not a diff.
+    expect(callersOf("Slider", "/Slider.tsx")).toEqual(["../list/StyleStep.tsx"]);
   });
 
   it("renders the aside on the surfaces §7.9 speaks from", () => {
@@ -519,7 +534,7 @@ describe("the prefixed web-address field", () => {
  * So the assertion is that the element does not appear raw anywhere: a future tick box or
  * multi-line field has to come through the component that carries the styling.
  */
-describe("the two native controls", () => {
+describe("the native controls, in the tool's ink", () => {
   it("has no raw checkbox left in the markup", () => {
     const offenders = others("./Checkbox.tsx")
       .filter(([, text]) => text.includes('type="checkbox"'))
@@ -548,6 +563,47 @@ describe("the two native controls", () => {
     // Not `resize-y`: Chromium paints the identical grip for it, so the mark stays. See
     // `TextInput.tsx` for the two alternatives the review shots ruled out.
     expect(TEXTAREA_CLASS).toMatch(/\bresize-none\b/);
+  });
+
+  /**
+   * The radio and the slider (#375), the same defect two controls later: the style row's five
+   * closed sets and its one slider were raw, so the browser's blue showed through on the one
+   * screen where the owner is choosing colours. Same fix, same shape of guard.
+   */
+  it("has no raw radio left in the markup that anyone can see", () => {
+    // The hours step's day modes are `sr-only` radios inside a label wearing `picked` (§7.10):
+    // there is no native rendering to put in ink, so a hidden radio may stay raw. Only a hidden
+    // one — the exemption is the class, not the file.
+    const offenders = others("./Radio.tsx").flatMap(([path, text]) =>
+      openingTags(text, "input")
+        .filter((tag) => tag.includes('type="radio"') && !/\bsr-only\b/.test(tag))
+        .map(() => path),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("paints the radio's dot in the tool's own ink, and makes it the tick box's twin", () => {
+    expect(RADIO_CLASS).toContain("accent-ink");
+    expect(RADIO_CLASS).toMatch(/\bsize-[5-9]\b/);
+    expect(RADIO_CLASS).not.toMatch(/\btap\b/);
+    // One family of marks: the advanced panel's switch sits right under the style row's radios,
+    // and a dot one size and a box another would read as two vocabularies on one screen.
+    expect(RADIO_CLASS).toBe(CHECKBOX_CLASS);
+  });
+
+  it("has no raw slider left in the markup", () => {
+    const offenders = others("./Slider.tsx")
+      .filter(([, text]) => text.includes('type="range"'))
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  it("paints the slider's track and thumb in the tool's own ink, on a strip you can press", () => {
+    expect(SLIDER_CLASS).toContain("accent-ink");
+    // Unlike the box and the dot, the slider is as wide as its field, so `tap` makes a taller
+    // strip rather than a stretched mark — and it is the control itself the thumb is dragged in.
+    expect(SLIDER_CLASS).toMatch(/\btap\b/);
+    expect(SLIDER_CLASS).toMatch(/\bw-full\b/);
   });
 });
 
@@ -2092,8 +2148,9 @@ describe("the stray sweep (design change 12)", () => {
     it("is the same step the rest of the tool already used", () => {
       // `rounded-2xl` was 1rem — 8× the radius of everything it sat above, and the only step in
       // the builder that was neither `rounded-sm` nor a circle. So the whole tool is asserted,
-      // rather than the two overlays in isolation: `sm` for a box, `full` for a circle, nothing
-      // else, and a third step arrives here by name with the file that introduced it.
+      // rather than the two overlays in isolation: `sm` for a box, `full` for a circle (and, since
+      // #375, for §7.10's pill of day segments), nothing else, and a third step arrives here by
+      // name with the file that introduced it.
       const steps = [
         ...new Set(everySource().flatMap(([, text]) => classLists(text).flatMap(radiusSteps))),
       ].sort();
