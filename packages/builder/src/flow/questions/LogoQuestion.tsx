@@ -1,8 +1,7 @@
 import type { Logo } from "@linkpage/renderer";
-import { useRef, useState, type JSX } from "react";
+import { useRef, useState, type DragEvent, type JSX } from "react";
 import { browserImageCodec, importLogo, LOGO_ACCEPT, type LogoIntake } from "../../logo/index.js";
 import { Question } from "./Question.js";
-import { Button } from "../../ui/Button.js";
 import { FilePicker } from "../../ui/FilePicker.js";
 import { Panel } from "../../ui/Panel.js";
 import { TYPE } from "../../ui/type.js";
@@ -26,6 +25,24 @@ import { TYPE } from "../../ui/type.js";
  * The chosen logo reaches the draft immediately rather than on _Continue_, because the preview
  * is the feedback and feedback after the screen has gone is not feedback. Declining afterwards
  * takes it back off — which is why the escape is the same control whether or not one is there.
+ *
+ * **The control is a drop zone, and the form says what it took in** (#374, the desktop walk's
+ * moments 9 and 10). *Choose a file* was a small outlined button, and once a file was chosen
+ * the form said nothing about it — the picture reached the page beside it, and that was the
+ * only sign. Now the control is one large dashed region the owner presses or drops a picture
+ * on, the width of the column, and once the picture is on the page the form shows its name
+ * beside a thumbnail of it. **Still one control with one name** (§7.12 commitment 6): the
+ * region is the `<button>` that opens the dialog and its own words are its name, the dropped
+ * file goes through the same `read` as a chosen one, and `FilePicker` is untouched. It wears
+ * the preset tile's paper vocabulary rather than a button weight — a region is as wide as its
+ * column, which is the one thing a weight refuses to be (B-72) — and, like every enabled
+ * button since #370, its hairline turns to ink under the pointer, and under a picture held
+ * over it.
+ *
+ * The file's *name* is the one thing the pipeline does not carry — a `Logo` is bytes and a
+ * size — so it is held here from the pick, only when the pick succeeded (a refusal leaves the
+ * earlier picture and its name in place, §6.6). A screen that opens with a logo already on it
+ * knows no name and says *Your logo* instead.
  */
 
 export interface LogoQuestionProps {
@@ -51,8 +68,29 @@ export function LogoQuestion({
   const picker = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /** The name of the file whose picture is on the page, when this screen was the one to take it. */
+  const [chosen, setChosen] = useState<string | null>(null);
+  /** A picture is being held over the zone. */
+  const [over, setOver] = useState(false);
 
   const read = intake ?? ((file: File) => importLogo(file, browserImageCodec()));
+
+  function take(file: File): void {
+    setBusy(true);
+    setMessage(null);
+    void read(file).then((result) => {
+      setBusy(false);
+      setMessage(result.ok ? result.notice : result.message);
+      if (result.ok) setChosen(file.name);
+      onPick(result);
+    });
+  }
+
+  /** The browser must be told a drop is welcome, or it opens the picture as a page instead. */
+  function welcome(event: DragEvent<HTMLButtonElement>): void {
+    event.preventDefault();
+    setOver(true);
+  }
 
   return (
     <Question
@@ -69,28 +107,67 @@ export function LogoQuestion({
       escape={{ label: "We don't have one", onEscape: onSkip }}
       onBack={onBack}
     >
-      <Button disabled={busy} onClick={() => picker.current?.click()}>
-        {logo === null ? "Choose a file" : "Choose a different file"}
-      </Button>
+      {/*
+       * The chosen-file state, in place above the control that produced it (§7.9's placement
+       * for anything the screen says about what just happened). Not while a picture is still
+       * being read: the sentence is about what is on the page, and nothing is yet.
+       */}
+      {logo !== null && (
+        <p className="m-0 flex items-center gap-3 font-sans" data-chosen>
+          {/*
+           * `alt=""`: decorative beside its own name, exactly as the page's logo is beside the
+           * business name (§6.6). Its box is the page frame's surface with a hairline, so a
+           * light-on-transparent mark still has something to stand on.
+           */}
+          <img
+            src={logo.src}
+            alt=""
+            width={logo.width}
+            height={logo.height}
+            className="h-12 w-auto max-w-32 rounded-sm border border-rule bg-surface object-contain p-1"
+          />
+          <span>
+            <span className="font-medium">{chosen ?? "Your logo"}</span> is on your page.
+          </span>
+        </p>
+      )}
+      {/*
+       * One `<button>` is the control (#254, #374): as wide as the column, dashed where every
+       * other hairline in the tool is solid — the one place a dashed line is the convention for
+       * *something goes here* — and its two lines of words are its accessible name. The
+       * preset tile's vocabulary, not a `Button` weight: see the note at the top of the file.
+       */}
+      <button
+        type="button"
+        className="tap flex w-full flex-col items-start gap-1 rounded-sm border border-dashed border-rule bg-transparent px-4 py-10 text-start font-sans enabled:hover:border-ink data-[over=true]:border-ink disabled:border-rule disabled:text-ink-quiet"
+        disabled={busy}
+        data-drop-zone
+        data-over={over}
+        onClick={() => picker.current?.click()}
+        onDragEnter={welcome}
+        onDragOver={welcome}
+        onDragLeave={() => setOver(false)}
+        onDrop={(event) => {
+          event.preventDefault();
+          setOver(false);
+          const file = event.dataTransfer.files[0];
+          if (file !== undefined && !busy) take(file);
+        }}
+      >
+        <span className="font-medium">
+          {logo === null ? "Choose a file" : "Choose a different file"}
+        </span>{" "}
+        <span className={TYPE.quietLine.className}>
+          {logo === null ? "or drop a picture here" : "or drop one here"}
+        </span>
+      </button>
       {/*
        * `FilePicker`, not a third copy of a clipped `<input type="file">` (#254). The copy that
        * was here was a tab stop and a second button in the accessibility tree, named `Choose a
-       * logo file` beside the visible `Choose a file` — so the button above is now the only thing
+       * logo file` beside the visible `Choose a file` — so the zone above is now the only thing
        * on this screen that offers to open the dialog, and its own words are the name.
        */}
-      <FilePicker
-        ref={picker}
-        accept={LOGO_ACCEPT}
-        onPick={(file) => {
-          setBusy(true);
-          setMessage(null);
-          void read(file).then((result) => {
-            setBusy(false);
-            setMessage(result.ok ? result.notice : result.message);
-            onPick(result);
-          });
-        }}
-      />
+      <FilePicker ref={picker} accept={LOGO_ACCEPT} onPick={take} />
       {/*
        * `Panel`, not a fifth copy of its recipe (B-47). The `mt-2` that came with the copy goes
        * with it: this is a direct child of the question's own `LADDER.betweenFields` column, so
@@ -102,9 +179,6 @@ export function LogoQuestion({
         <Panel tone="notice" data-notice>
           {message}
         </Panel>
-      )}
-      {logo !== null && message === null && (
-        <p className={TYPE.quietLine.className}>Have a look at your page to see it.</p>
       )}
     </Question>
   );
