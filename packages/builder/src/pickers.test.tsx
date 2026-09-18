@@ -134,16 +134,16 @@ const logoScreen = (logo: Logo | null): JSX.Element => (
 );
 
 describe("a file picker is the dialog, never a control (#254)", () => {
-  it("the logo step: the name is `Choose a file`, and the input is not a second button", () => {
+  it("the logo step: the name is the drop zone's own words, and the input is not a second button", () => {
     mount(logoScreen(null));
-    isNotAControl("Choose a file");
+    isNotAControl("Choose a file or drop a picture here");
   });
 
   it("the logo step, once there is a logo: the name follows the control's state", () => {
     // The invented name never did. `Choose a logo file` said the same thing on both halves of a
     // step whose visible button changes its offer, which is the ordinary cost of a second name.
     mount(logoScreen(LOGO));
-    isNotAControl("Choose a different file");
+    isNotAControl("Choose a different file or drop one here");
   });
 
   it("step one's quiet line: the name is `Open it.`", () => {

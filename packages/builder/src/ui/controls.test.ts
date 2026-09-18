@@ -976,6 +976,8 @@ describe("no button is drawn by hand (B-3)", () => {
     expect(raw, "a raw <button> that is not a weight is a decision, not a diff").toEqual([
       "../flow/ProgressBar.tsx",
       "../flow/questions/ColourQuestion.tsx",
+      // The logo drop zone (#374): a region as wide as its column, which no weight is (B-72).
+      "../flow/questions/LogoQuestion.tsx",
       "../flow/questions/PresetQuestion.tsx",
       "../list/LinkButtons.tsx",
       "../list/List.tsx",

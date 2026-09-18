@@ -1446,6 +1446,18 @@ someone uploaded a photograph, so the message is not about compression:
 In the common case there is **no message at all** — the logo appears in the preview, and that is the
 feedback. **No numbers anywhere:** no KB, no percentages, and the word "compression" never appears.
 
+**The control, and what the form says once a picture is on the page** (#374). The control is one large
+dashed region the width of the column — _Choose a file, or drop a picture here_ — pressed to open the
+dialog or dropped on; a dropped file goes through the same pipeline as a chosen one, and the region is
+still the one control with the one name §7.12 commitment 6 counts. The dashed line is the one place a
+hairline in the tool is not solid: it is the convention for _something goes here_, and it turns to ink
+under the pointer and under a picture held over it, as every hairline does under the pointer. Once the
+picture is on the page, **the form says so beside a thumbnail of it** — the file's name when this
+screen took it in, _Your logo_ when the screen opened with one already there — because the beta walk
+found a form that said nothing after a file was chosen, with the page beside it the only sign. That
+line is a fact, not a message: a message is still reserved for a refusal or a soft result, and a
+refusal leaves the earlier picture and its name where they were.
+
 **Alt text: `alt=""`, unconditionally.** `header.name` is required and always rendered as text beside
 the logo, which makes the logo decorative in W3C's sense — everything it conveys is already available
 as text. An `alt` field the owner fills is the worst option: _"describe your logo for screen readers"_
