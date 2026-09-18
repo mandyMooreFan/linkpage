@@ -23,6 +23,8 @@ import {
   WEEK_START_LABELS,
 } from "./labels.js";
 import { TextInput } from "../ui/TextInput.js";
+import { Radio } from "../ui/Radio.js";
+import { Slider } from "../ui/Slider.js";
 import { Button } from "../ui/Button.js";
 
 /**
@@ -120,9 +122,7 @@ export function StyleStep({ draft, onChange }: StyleStepProps): JSX.Element {
       />
 
       <Field label="Corner softness" hint="Sharp on the left, rounded on the right.">
-        <input
-          type="range"
-          className="tap w-full"
+        <Slider
           min={0}
           max={1}
           step={0.05}
@@ -272,9 +272,8 @@ function Choice<T extends string>({
       <legend className="block text-base font-medium">{legend}</legend>
       <div className="flex flex-wrap gap-3">
         {options.map(([option, label]) => (
-          <label key={option} className="tap flex items-center gap-1.5">
-            <input
-              type="radio"
+          <label key={option} className="tap flex items-center gap-2">
+            <Radio
               name={name}
               value={option}
               checked={value === option}

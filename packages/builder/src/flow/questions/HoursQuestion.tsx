@@ -251,10 +251,23 @@ export function HoursQuestion({
                */}
               <div className="flex items-center justify-between gap-3">
                 <span className="text-base">{DAY_NAMES[day]}</span>
+                {/*
+                 * **A pill, with hairlines between its three segments** (#375). The walk read the
+                 * old group — three words in a `rounded-sm` box, no dividers — as unstyled: the
+                 * chosen segment's `picked` ring sat as a heavy black rectangle around one word,
+                 * with nothing to say the other two were segments at all. The ring is drawn with
+                 * `border-radius: inherit`, so what shape the mark takes is decided *here*, by
+                 * the segment's own radius: on a `rounded-full` segment inside a `rounded-full`
+                 * group it is a pill inside a pill, which is what a chosen segment looks like —
+                 * the same way a swatch's ring is a circle because the swatch is. `full` is one
+                 * of the tool's two radius steps (B-38), so no third step arrives with this.
+                 * The rounded box was built and photographed too (on #375's PR): softer corners, but
+                 * still a rectangle drawn around a word, still read as focus rather than choice.
+                 */}
                 <div
                   role="radiogroup"
                   aria-label={DAY_NAMES[day]}
-                  className="flex shrink-0 rounded-sm border border-rule"
+                  className="flex shrink-0 divide-x divide-rule rounded-full border border-rule"
                 >
                   {MODES.map(({ mode, label }) => (
                     <label
@@ -284,7 +297,7 @@ export function HoursQuestion({
                        * forwards the ring to the label that hides its own control, so the ring is
                        * still spelled once and a future segmented control gets it for free.
                        */
-                      className="tap flex items-center px-3 text-sm has-checked:picked"
+                      className="tap flex items-center rounded-full px-3 text-sm has-checked:picked"
                     >
                       <input
                         type="radio"

@@ -1903,6 +1903,18 @@ when a long escape needs it; each keeps its own weight, so the fill still marks 
 thing on the screen. `Back` had stood a whole section below as _the most separate thing on the
 screen_; it is now the last thing in the row, still the quiet weight, still never a submit.
 
+**The browser's own controls wear the tool's ink** (#193, #375). A raw tick box, radio or slider
+paints itself in the browser's accent colour — a saturated blue that belongs to no ramp, and on the
+style row the one place a colour of ours sat beside the owner's. Each keeps its native rendering,
+because a box or a circle redrawn from a border and a fill is a container and paper builds
+structure from space; each takes `accent-color` from the one ink instead, so the tick, the dot and
+the slider's thumb are the same ink as the words beside them and cannot drift from it. The tick
+box and the radio are one size, 1.25rem, so a screen holding both shows one family of marks. Each
+is written once in the shared control layer, and a source guard holds that no raw one is left in
+the markup — the hours step's day modes excepted, which are hidden radios whose whole look is the
+label around them (§7.10). _Guarded at the source_, since jsdom paints nothing and an unstyled
+element has an empty class list, which looks deliberate in a diff.
+
 **Paper carries one deliberate exception: §7.2's progress bar** (#139). The bar uses the standard
 pattern's own vocabulary — a rounded grey track with a coloured fill — which is progress _chrome_, and
 a second colour the tool shows beside `notice`. The exception was chosen with the collision in view,
@@ -2229,7 +2241,11 @@ question with seven parts, not seven questions (§7.2).
 
 - **Each day is one line**: the day, then a segmented control showing all three of §2.3's states at once —
   **`Open · Closed · Not shown`**. There is no `<select>`. Three states that need no opening is what makes
-  a closed or an unshown day cost a line rather than a block.
+  a closed or an unshown day cost a line rather than a block. **The control is a pill with a hairline
+  between its segments, and the chosen segment wears §7.4's one `picked` ring** (#375): the ring follows
+  the segment's own radius, so it is a pill inside the pill — the way a chosen swatch's ring is a circle
+  — rather than the rectangle around one word that the desktop walk read as unstyled. The radios
+  underneath are hidden; the segment the owner presses is the label.
 - **`Not shown` names the consequence rather than our vocabulary**, because the consequence is a deletion.
   An unspecified day gets no row on the exported page at all, so a customer cannot tell it from a closed
   one. §2.3 leaves the page's silence alone — there it is §7.3 working correctly — but the control has to
