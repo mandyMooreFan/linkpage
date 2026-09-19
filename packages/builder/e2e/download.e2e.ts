@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import type { Project } from "@linkpage/renderer";
+import { SCHEMA_VERSION, type Project } from "@linkpage/renderer";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -68,12 +68,14 @@ const LINK_LABEL = "See the menu";
  * they are what makes "byte for byte" a claim about a string that could plausibly be mangled by
  * an escape, a re-encode or a normalisation somewhere between the iframe and the disk.
  *
- * `version` is the literal `1` rather than the renderer's `SCHEMA_VERSION` because this is a
- * *file*, and §4.3 requires that a v1 file keeps loading after the schema bumps. Pinning it means
- * this test keeps asserting what it says it asserts on the day that happens.
+ * `version` was the literal `1`, pinned so that this test would keep loading a v1 file on the day
+ * the schema bumped. That day was #386: the address became five boxes and the file version `2`,
+ * so a v1 file's `lines` no longer describe what this fixture types, and what §4.3 promises a
+ * v1 file — that it opens, its lines landing in the street box — is asserted where the conversion
+ * lives (`document.test.ts`, `roundtrip.test.ts`). This is the file as the builder writes it today.
  */
 const PROJECT: Project = {
-  version: 1,
+  version: SCHEMA_VERSION,
   lang: "en-GB",
   style: {
     brand: "#c2185b",
