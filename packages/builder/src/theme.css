@@ -428,3 +428,21 @@
     cursor: pointer;
   }
 }
+
+/**
+ * Room under whatever the browser scrolls into view (`SPEC.md` §7.4; #383).
+ *
+ * The ways off a question stand in a row that stays at the foot of the viewport while the form
+ * runs on below it (`Question.tsx`), drawn over a band of ground 16px past the row on every
+ * side. A control the browser scrolls into view on its own — a Tab landing on the hours note,
+ * a `scrollIntoView` — is scrolled to the viewport's edge, which is under that band. Scroll
+ * padding is how a document says where its edge really is: 6rem covers the row at one line
+ * (a 44px button, 16px of band above and below, 16px off the foot). A row wrapped to two lines
+ * on a phone is taller than that, and a stop under it is a scroll away; the phone pass reads
+ * it. The list has no such row and loses nothing to the padding but a little air.
+ */
+@layer base {
+  html {
+    scroll-padding-bottom: 6rem;
+  }
+}

@@ -1630,10 +1630,12 @@ describe("the one focus treatment", () => {
 
   it("is spelled twice in the whole tool: once as a line, once as a ring", () => {
     expect([...theme.matchAll(/@utility focus-line\b/g)]).toHaveLength(1);
-    // Two base blocks since #370 — the ring's, and the hand's (`cursor: pointer` on every
-    // enabled button: a correction to the reset, not a focus treatment). One speaks of focus.
+    // Three base blocks — the ring's; the hand's since #370 (`cursor: pointer` on every
+    // enabled button: a correction to the reset, not a focus treatment); and the document's
+    // scroll padding since #383 (room under the exits row for what the keyboard scrolls into
+    // view). One speaks of focus.
     const bases = [...theme.matchAll(/@layer base \{(?:[^{}]|\{[^{}]*\})*\}/g)].map(([b]) => b);
-    expect(bases).toHaveLength(2);
+    expect(bases).toHaveLength(3);
     expect(bases.filter((block) => block.includes(":focus-visible"))).toHaveLength(1);
   });
 

@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render as mount, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Field, Question } from "./Question.js";
+import { Field, Question, QuestionShellProvider } from "./Question.js";
 import { LADDER } from "../../ui/ladder.js";
 import { TextField } from "../../ui/TextField.js";
 import { TextArea } from "../../ui/TextInput.js";
@@ -470,6 +470,43 @@ describe("the three ways off a screen stand in one row (#370)", () => {
     expect(row.className).toMatch(/\bflex\b/);
     expect(row.className).toMatch(/\bflex-wrap\b/);
     expect(row.closest("form"), "the row is the form's").not.toBeNull();
+  });
+
+  it("stays in view while the form runs on below it, on a screen of its own (#383)", () => {
+    mount(
+      <Question title="Q" onSubmit={vi.fn()} onBack={vi.fn()}>
+        <input type="text" />
+      </Question>,
+    );
+    const row = document.querySelector("[data-question-exits]") as HTMLElement;
+    // jsdom lays nothing out; the position is measured in `layout.e2e.ts`. What is guarded here
+    // is that the row is stuck 16px off the foot, and that the ground behind it and the fade
+    // above it are pseudo-elements — a box of the row's own would move every rung measured
+    // from it.
+    expect(row.className).toMatch(/\bsticky\b/);
+    expect(row.className).toMatch(/\bbottom-4\b/);
+    expect(row.className).toMatch(/\bbefore:bg-ground\b/);
+    expect(row.className).toMatch(/\bafter:from-ground\b/);
+    expect(row.className, "the row's own box is unchanged").toMatch(/\bmt-6\b/);
+    expect(row.className).not.toMatch(/\bp[by]-\d/);
+  });
+
+  it("keeps a review-list row's Save at the row's end", () => {
+    mount(
+      <QuestionShellProvider shell={{ level: 2, submitLabel: "Save" }}>
+        <Question
+          title="Q"
+          onSubmit={vi.fn()}
+          escape={{ label: "We don't need one", onEscape: vi.fn() }}
+        >
+          <input type="text" />
+        </Question>
+      </QuestionShellProvider>,
+    );
+    const row = document.querySelector("[data-question-exits]") as HTMLElement;
+    expect(row.className).not.toMatch(/\bsticky\b/);
+    expect(row.className, "and no band either").not.toMatch(/\bbefore:|\bafter:/);
+    expect(row.className).toMatch(/\bmt-6\b/);
   });
 
   it("keeps Back a button that never submits", () => {

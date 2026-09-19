@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { POPULATED } from "../src/fixtures.js";
-import { WIDTHS } from "./walk.js";
+import { walkScreens, WIDTHS } from "./walk.js";
 
 /**
  * **What stands where on screen one** (`SPEC.md` §7.6, §7.8; #371, walk moments 1 and 2).
@@ -295,4 +295,103 @@ test("the growth measurement goes red when the line is held to one row", async (
   await page.addStyleTag({ content: `[data-wraps] { field-sizing: fixed !important; }` });
   const line = await taglineLine(page);
   expect(line.words, "the mutant scrolls the end out of sight").toBeGreaterThan(line.inside);
+});
+
+/**
+ * **And where the ways off a tall screen stand** (§7.4, §7.10; #383, spec-pass finding 10).
+ *
+ * The hours screen is seven day rows, a note and the exits, and at either width the exits
+ * arrived a screenful below the fold: nothing an owner saw on landing said the step could be
+ * skipped, or where to go on. The row now stays in view — stuck to the foot of the viewport while
+ * the form runs on below it, back in its own place once the form's end scrolls up to meet it —
+ * and whether a box *is* in view is a rendered position against a viewport, which only a browser
+ * has. A screen that fits is not measured here: its row was never stuck, and the ritual's
+ * byte-stable frames hold that it did not move.
+ */
+class Reached extends Error {}
+
+/** The flow's hours screen on arrival, by the walk the tap-target gate takes (#375's pattern). */
+async function hoursScreen(page: Page): Promise<void> {
+  try {
+    await walkScreens(page, async (screen) => {
+      if (screen.id === "flow/09-when-are-you-open") throw new Reached();
+    });
+  } catch (error) {
+    if (!(error instanceof Reached)) throw error;
+  }
+  await page.getByRole("heading", { name: "When are you open?" }).waitFor();
+  await page.waitForTimeout(400); // §7.11's arrival fade
+}
+
+const exitsRow = (page: Page): Box | Promise<Box> => boxOf(page, "[data-question-exits]");
+
+for (const width of WIDTHS) {
+  test(`Continue and the escape are on the hours screen's first screenful at ${width.label}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(width.viewport);
+    await hoursScreen(page);
+
+    const scrolled = await page.evaluate(() => window.scrollY);
+    expect(scrolled, "nothing has scrolled yet").toBe(0);
+    const form = await boxOf(page, "form");
+    expect(bottom(form), "the form itself still runs past the fold").toBeGreaterThan(
+      width.viewport.height,
+    );
+
+    for (const name of ["Continue", "We don't have set hours", "Back"]) {
+      const button = await page.getByRole("button", { name, exact: true }).boundingBox();
+      if (button === null) throw new Error(`${name} has no box on screen`);
+      expect(bottom(button), `${name} is inside the viewport`).toBeLessThanOrEqual(
+        width.viewport.height,
+      );
+      expect(button.y, `${name} is inside the viewport`).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  test(`and the row stands in its own place once the screen is scrolled to its end at ${width.label}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(width.viewport);
+    await hoursScreen(page);
+
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.waitForTimeout(100);
+    const note = await boxOf(page, 'input[type="text"]');
+    const row = await exitsRow(page);
+    expect(row.y, "the row is below the note's box, not over it").toBeGreaterThanOrEqual(
+      bottom(note),
+    );
+    expect(bottom(row), "and inside the viewport").toBeLessThanOrEqual(width.viewport.height);
+  });
+
+  test(`a keyboard reaching the note lands it clear of the row at ${width.label}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(width.viewport);
+    await hoursScreen(page);
+
+    // Straight to the last control above the row, the way a Tab would land there.
+    await page.locator('input[type="text"]').focus();
+    await page.waitForTimeout(100);
+    const note = await boxOf(page, 'input[type="text"]');
+    const row = await exitsRow(page);
+    expect(bottom(note), "the note's box is above the row").toBeLessThanOrEqual(row.y);
+    expect(note.y, "and inside the viewport").toBeGreaterThanOrEqual(0);
+  });
+}
+
+test("the fold measurement goes red when the row is left to scroll with the form", async ({
+  page,
+}) => {
+  await page.setViewportSize(NARROW.viewport);
+  await hoursScreen(page);
+  await page.addStyleTag({ content: "[data-question-exits] { position: static }" });
+  await page.waitForTimeout(50);
+
+  const button = await page.getByRole("button", { name: "Continue", exact: true }).boundingBox();
+  if (button === null) throw new Error("Continue has no box on screen");
+  expect(bottom(button), "the mutant's Continue is below the fold").toBeGreaterThan(
+    NARROW.viewport.height,
+  );
 });

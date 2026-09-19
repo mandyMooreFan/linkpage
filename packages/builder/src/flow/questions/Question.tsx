@@ -58,6 +58,28 @@ export interface QuestionShell {
   readonly submitLabel: string;
 }
 
+/**
+ * The row of exits' hold on the foot of the viewport (§7.4; #383, spec-pass finding 10).
+ *
+ * The hours screen is seven day rows and a note, and its exits landed a screenful below the
+ * fold at both widths: nothing an owner saw on arrival said the step could be skipped, or where
+ * to go on. `sticky bottom-4` holds the row 16px off the foot of the viewport for as long as
+ * the form runs on below it, and lets it go back to its own place — its rung under the last
+ * control — once the form's end scrolls up to meet it; on a screen that fits, sticky never
+ * engages and nothing moves. What scrolls under the row is masked rather than seen through the
+ * gaps between buttons: `before:` is the ground drawn over the row's box and 16px below it,
+ * and `after:` is 16px of the ground fading out above it, so a day row passing under the exits
+ * dims into them rather than being cut at a hard edge. Both are pseudo-elements, so the row's
+ * own box — and every rung measured from it — is unchanged, and a run of the ritual on a screen
+ * that fits is byte-identical. The document's `scroll-padding-bottom` (`theme.css`) is the
+ * height of the row and its band at one line, so a control the keyboard scrolls into view lands
+ * above the row, not under it.
+ */
+const STICKY_EXITS =
+  "sticky bottom-4 " +
+  "before:absolute before:inset-x-0 before:top-0 before:-bottom-4 before:-z-10 before:bg-ground " +
+  "after:pointer-events-none after:absolute after:inset-x-0 after:bottom-full after:h-4 after:-z-10 after:bg-linear-to-t after:from-ground after:to-transparent";
+
 /** The flow: a question is the screen, and answering it moves on. */
 const FLOW_SHELL: QuestionShell = { level: 1, submitLabel: "Continue" };
 
@@ -258,9 +280,24 @@ export function Question({
              *
              * The escape and `Back` keep their own ink and shape — the fill still marks the one
              * primary thing on the screen (§4). What changed is only where they stand.
+             *
+             * **And on a screen of its own, the row stays in view when the screen is taller
+             * than the viewport** — `STICKY_EXITS` above (#383, spec-pass finding 10). Not in
+             * a review-list row: there the form is one row among others with the list's own
+             * footer under them, and a `Save` held at the foot of the viewport reads as the
+             * list's rather than the row's, so it stays at the row's end, where the row it
+             * closes is.
              */}
             {(onSubmit !== undefined || escape !== undefined || onBack !== undefined) && (
-              <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3" data-question-exits>
+              <div
+                className={[
+                  "mt-6 flex flex-wrap items-center gap-x-4 gap-y-3",
+                  shell.level === 1 ? STICKY_EXITS : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                data-question-exits
+              >
                 {onSubmit !== undefined && (
                   <Button type="submit" weight="primary">
                     {submitLabel ?? shell.submitLabel}
