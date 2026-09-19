@@ -275,7 +275,9 @@ for (const width of [NARROW, WIDE]) {
     expect(line.box, "so the box stands taller than the floor").toBeGreaterThan(TAP_FLOOR);
   });
 
-  test(`and a tagline that fits leaves the box on the floor at ${width.label}`, async ({ page }) => {
+  test(`and a tagline that fits leaves the box on the floor at ${width.label}`, async ({
+    page,
+  }) => {
     await page.setViewportSize(width.viewport);
     await taglineRowOpen(page, SHORT_TAGLINE);
 
