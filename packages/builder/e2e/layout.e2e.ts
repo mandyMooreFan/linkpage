@@ -395,3 +395,138 @@ test("the fold measurement goes red when the row is left to scroll with the form
     NARROW.viewport.height,
   );
 });
+
+/**
+ * **Where the ways off a screen stand, and what each is made of** (§7.4; #409, the owner's word
+ * after the tag).
+ *
+ * The button clean-up (#370) put `Continue`, the escape and `Back` in one row, and the owner read
+ * the row on a laptop and said it was still not right: three shapes bunched at the left of the
+ * column, `Back` an underlined word among boxes. What they asked for is a row *spread across the
+ * column* — `Back` on the left edge, the escape and `Continue` together on the right, `Continue`
+ * last — with all three the same box and `Continue` in the tool's own accent. Where a box's edge
+ * landed, how tall it is and what colour it painted are rendered facts, so they are measured here
+ * rather than read off a class string; and the order the keyboard meets them in is the order the
+ * eye does, which is a fact about focus.
+ */
+async function taglineScreen(page: Page): Promise<void> {
+  try {
+    await walkScreens(page, async (screen) => {
+      if (screen.id === "flow/03-one-line-about-what-you-do") throw new Reached();
+    });
+  } catch (error) {
+    if (!(error instanceof Reached)) throw error;
+  }
+  await page.getByRole("heading", { name: "One line about what you do?" }).waitFor();
+  await page.waitForTimeout(400); // §7.11's arrival fade
+}
+
+const GAP = 16; // the row's `gap-x-4`
+
+/** The tool's accent as Chromium reports it: `--color-accent` in `theme.css`, `#3730a3`. */
+const ACCENT = "rgb(55, 48, 163)";
+
+async function paintOf(page: Page, name: string): Promise<{ fill: string; border: string }> {
+  // Park the mouse first: the walk arrives by pressing Continue, and leaves the pointer over
+  // the next screen's Continue, whose fill would then read as its hover shade (`hover.e2e.ts`
+  // parks for the same reason).
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(50);
+  return page.getByRole("button", { name, exact: true }).evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { fill: style.backgroundColor, border: style.borderTopWidth };
+  });
+}
+
+test(`Back stands on the column's left edge and Continue on its right at ${WIDE.label}`, async ({
+  page,
+}) => {
+  await page.setViewportSize(WIDE.viewport);
+  await taglineScreen(page);
+  const row = await exitsRow(page);
+  const back = await boxOf(page, "[data-question-exits] button:has-text('Back')");
+  const escape = await boxOf(page, "[data-question-exits] [data-escape]");
+  const go = await boxOf(page, "[data-question-exits] button[type='submit']");
+
+  expect(back.x, "Back on the left edge").toBeCloseTo(row.x, 0);
+  expect(go.x + go.width, "Continue on the right edge").toBeCloseTo(row.x + row.width, 0);
+  expect(escape.x + escape.width + GAP, "the escape beside Continue").toBeCloseTo(go.x, 0);
+  expect(back.x + back.width, "and air between Back and the pair").toBeLessThan(escape.x - GAP);
+});
+
+test(`the three exits are one box, and Continue wears the accent at ${WIDE.label}`, async ({
+  page,
+}) => {
+  await page.setViewportSize(WIDE.viewport);
+  await taglineScreen(page);
+  const back = await boxOf(page, "[data-question-exits] button:has-text('Back')");
+  const escape = await boxOf(page, "[data-question-exits] [data-escape]");
+  const go = await boxOf(page, "[data-question-exits] button[type='submit']");
+
+  expect(back.height, "Back is as tall as the escape").toBe(escape.height);
+  expect(go.height, "and so is Continue").toBe(escape.height);
+  expect(
+    back.height,
+    "taller than the tap floor: a proper button, not a tag",
+  ).toBeGreaterThanOrEqual(48);
+
+  const backPaint = await paintOf(page, "Back");
+  const escapePaint = await paintOf(page, "We don't need one");
+  const goPaint = await paintOf(page, "Continue");
+  expect(backPaint.border, "Back has the escape's hairline").toBe(escapePaint.border);
+  expect(backPaint.border).not.toBe("0px");
+  expect(goPaint.fill, "Continue is the tool's accent, not the ink").toBe(ACCENT);
+});
+
+test(`the Tab key follows the eye across the row: Back, the escape, then Continue at ${WIDE.label}`, async ({
+  page,
+}) => {
+  await page.setViewportSize(WIDE.viewport);
+  await taglineScreen(page);
+  await page.getByLabel("Tagline").focus();
+  const names: string[] = [];
+  for (let stop = 0; stop < 3; stop += 1) {
+    await page.keyboard.press("Tab");
+    names.push(await page.evaluate(() => document.activeElement?.textContent?.trim() ?? ""));
+  }
+  expect(names).toEqual(["Back", "We don't need one", "Continue"]);
+});
+
+test(`the row keeps inside the phone's column at ${NARROW.label}`, async ({ page }) => {
+  await page.setViewportSize(NARROW.viewport);
+  await taglineScreen(page);
+  const row = await exitsRow(page);
+  for (const selector of [
+    "[data-question-exits] button:has-text('Back')",
+    "[data-question-exits] [data-escape]",
+    "[data-question-exits] button[type='submit']",
+  ]) {
+    const box = await boxOf(page, selector);
+    expect(box.x, `${selector} starts inside the column`).toBeGreaterThanOrEqual(row.x);
+    expect(box.x + box.width, `${selector} ends inside the column`).toBeLessThanOrEqual(
+      row.x + row.width + 0.5,
+    );
+  }
+  // Back still on the left edge, Continue still on the right, whatever line each wrapped to.
+  const back = await boxOf(page, "[data-question-exits] button:has-text('Back')");
+  const go = await boxOf(page, "[data-question-exits] button[type='submit']");
+  expect(back.x).toBeCloseTo(row.x, 0);
+  expect(go.x + go.width).toBeCloseTo(row.x + row.width, 0);
+});
+
+test("the edge measurement goes red when the row packs to the left again", async ({ page }) => {
+  await page.setViewportSize(WIDE.viewport);
+  await taglineScreen(page);
+  // After the walk, not before: the walk navigates, and a style tag does not survive a `goto`.
+  await page.addStyleTag({
+    content:
+      "[data-question-exits] { justify-content: flex-start } " +
+      "[data-question-exits] > button { margin-right: 0 }",
+  });
+  await page.waitForTimeout(50);
+  const row = await exitsRow(page);
+  const go = await boxOf(page, "[data-question-exits] button[type='submit']");
+  expect(go.x + go.width, "the control: Continue is off the right edge").toBeLessThan(
+    row.x + row.width - GAP,
+  );
+});

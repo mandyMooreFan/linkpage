@@ -18,7 +18,7 @@ import { WEIGHT, type ButtonWeight } from "./Button.js";
  * a filled button's class attribute contains that whole string verbatim; matching on it means the
  * day someone renames the fill this helper follows rather than silently finding nothing. A
  * hand-written fill that never went through `Button` would slip past it, which is the half
- * `controls.test.ts` holds: `bg-ink` is written in `Button.tsx` and nowhere else.
+ * `controls.test.ts` holds: `bg-accent` is written in `Button.tsx` and nowhere else.
  */
 export function filledButtons(root: ParentNode = document): HTMLButtonElement[] {
   return [...root.querySelectorAll("button")].filter((button) =>
@@ -63,7 +63,7 @@ export function textClasses(element: Element): string[] {
  *
  * Matched on `WEIGHT[name]` verbatim, the way `filledButtons` and `quietButtons` are and for the
  * same reason: a rename follows the record rather than quietly matching nothing. Nothing in
- * `WEIGHT` is a substring of anything else in it — the boxes are `py-2` and `inline` is `p-0` —
+ * `WEIGHT` is a substring of anything else in it — the boxes are `py-3` and `inline` is `p-0` —
  * so the first name that matches is the one, and this is checked in `controls.test.ts`.
  */
 export function weightOf(element: Element): ButtonWeight | undefined {

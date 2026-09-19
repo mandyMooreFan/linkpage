@@ -18,7 +18,25 @@ import type { ButtonHTMLAttributes, JSX, Ref } from "react";
  * radius, a type size and a tap floor, so a primary and a secondary standing next to each other
  * are the same box. Two of those agreements are new: `primary` was `px-5` against everyone else's
  * `px-4`, and it declared no type size at all, inheriting one from whatever serif chain it
- * happened to sit in.
+ * happened to sit in. **The box is `px-6 py-3` since #409** — 48px tall on the body size, a step
+ * over the tap floor and a step wider — because the owner read the `px-4 py-2` box on a laptop
+ * as a tag rather than a button. The step is taken once, here, by every box at once.
+ *
+ * **The fill is the tool's accent, not the ink** (#409; `--color-accent` in `theme.css`, which
+ * is the progress bar's indigo under a second name). The owner's words: `Continue` in *the
+ * tool's own accent*, fixed, never the colour the owner picked for their page. Ground-coloured
+ * words stand on it at 9.30:1. It carries a transparent hairline too, so that it is the *same
+ * height* as the outlined box beside it — without one the fill stood 48px to the outline's 50,
+ * which `layout.e2e.ts` caught the first time the three were measured together. Everything else
+ * about the weight is as it was: one fill, spent once per screen, stepping toward the ground
+ * under the pointer.
+ *
+ * **`Back` is not a weight of its own, and since #409 it is not the quiet one either.** The
+ * owner read an underlined word among boxes as a link rather than a button, so the ways off a
+ * screen — `Back`, the escape, the replace fork's `Cancel` — are all `secondary`, the same box,
+ * and it is the row (`Question.tsx`) that tells them apart by where they stand. `quiet` stays
+ * for the sentences that sit beside an owner's own content: `Remove`, `Advanced`, *Or type a
+ * code*.
  *
  * **Every weight says when it is unavailable**, and each says it with the instrument it has. Only
  * `primary` used to. A disabled `secondary` looked exactly like an enabled one, which mattered
@@ -58,8 +76,8 @@ import type { ButtonHTMLAttributes, JSX, Ref } from "react";
  * and `theme.css`'s base layer puts it back once, on every enabled button in the tool, so no
  * recipe spells a cursor (the `disabled:cursor-default` each weight used to carry restated the
  * browser's own default, B-1's declaration that draws nothing). The mark *is* the weight's:
- * `primary` steps its fill toward the ground (`bg-ink/85` — a shade of the same ink, the way
- * the renderer's hover is a step along a ramp and never a second colour), `secondary` turns its
+ * `primary` steps its fill toward the ground (`bg-accent/85` — a shade of the same accent, the
+ * way the renderer's hover is a step along a ramp and never a second colour), `secondary` turns its
  * hairline to ink, `quiet` takes the full ink it rests a step below, and `inline`, which has
  * only its sentence's ink, thickens its line — the move a text field makes when it is reached.
  * Each is `enabled:hover:` rather than `hover:`, so an unavailable control changes nothing under
@@ -75,10 +93,10 @@ export type ButtonWeight = "primary" | "secondary" | "quiet" | "inline";
  */
 export const WEIGHT: Record<ButtonWeight, string> = {
   primary:
-    "tap w-fit rounded-sm bg-ink px-4 py-2 font-sans text-base text-ground " +
-    "enabled:hover:bg-ink/85 disabled:bg-rule disabled:text-ink-quiet",
+    "tap w-fit rounded-sm border border-transparent bg-accent px-6 py-3 font-sans text-base text-ground " +
+    "enabled:hover:bg-accent/85 disabled:bg-rule disabled:text-ink-quiet",
   secondary:
-    "tap w-fit rounded-sm border border-rule bg-transparent px-4 py-2 font-sans text-base " +
+    "tap w-fit rounded-sm border border-rule bg-transparent px-6 py-3 font-sans text-base " +
     "enabled:hover:border-ink disabled:border-rule disabled:text-ink-quiet",
   /**
    * A sentence you can press — `Back`, `Remove`, `Cancel`, "Or type a code" (§4's tertiary).
@@ -106,7 +124,7 @@ export const WEIGHT: Record<ButtonWeight, string> = {
    * grey line of type that no longer offers to be pressed, at no cost in contrast.
    */
   quiet:
-    "tap w-fit bg-transparent py-2 font-sans text-base text-ink-quiet underline " +
+    "tap w-fit bg-transparent py-3 font-sans text-base text-ink-quiet underline " +
     "underline-offset-4 enabled:hover:text-ink disabled:no-underline",
   /**
    * A link inside a sentence — "Already have a project file? **Open it.**"

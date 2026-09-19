@@ -1988,7 +1988,8 @@ placeholder, so it stops being instruction, and **the hint names who the field i
 designer or a brand guide."_ An owner handed a code by their designer needs that code to be the least
 ambiguous thing on the screen, and it still is.
 
-**The builder's visual language is _paper_** — a warm off-white ground, one ink, hairline rules, and
+**The builder's visual language is _paper_** — a warm off-white ground, one ink, hairline rules, one
+accent (the bar's indigo, spent on the one filled button; #409), and
 **structure from space rather than from containers**. Nothing is elevated, nothing is carded, and type is
 the only decoration. It was judged on two screens rather than one, because a design vocabulary is only
 judged where it repeats: of three directions drawn, it was the only one that does not look like software,
@@ -2006,18 +2007,33 @@ So: **the cursor is a hand on every enabled button**, written once in the base s
 than per recipe (Tailwind v4's reset had taken it off `<button>`, and it had been put back by hand
 on one recipe of nine), and on a `<summary>` and on a label that forwards a press to a checkbox or
 a radio. **Under the pointer each recipe changes the one thing it is made of, and only while it
-can be pressed**: the filled button's fill steps toward the ground — a shade of the same ink, as
+can be pressed**: the filled button's fill steps toward the ground — a shade of the same accent, as
 the renderer's hover is a step along a ramp and never a second colour — a hairline turns to ink, a
 quiet sentence takes the full ink, a word inside a sentence thickens its line, a full-width row
 takes a faint tint of the rule colour, and the bar's header underlines its words. A disabled
 control does neither. _Measured_ — a browser walk hovers every enabled button on every screen the
 ritual reaches at 1440 and reads what changed (`hover.e2e.ts`); a phone has no hover, so 390 is not
 read, and a source guard holds that every recipe declares a mark and none spells a cursor. **And
-`Continue`, the escape and `Back` stand in one row, in that order** — the order the keyboard has
-always met them in, so §7.12's counts do not move — on one baseline, wrapping onto a second line
-when a long escape needs it; each keeps its own weight, so the fill still marks the one primary
-thing on the screen. `Back` had stood a whole section below as _the most separate thing on the
-screen_; it is now the last thing in the row, still the quiet weight, still never a submit.
+the ways off a screen stand in one row, spread across the column** ([#409](../../issues/409), the
+owner's word the day the beta was tagged): `Back` on the column's left edge, the escape and
+`Continue` together on the right edge with `Continue` last, on one baseline, wrapping onto a second
+line when a long escape needs it. The keyboard meets them in that order too — `Back`, the escape,
+`Continue` — so Tab crosses the row the way the eye does; §7.12's stop _count_ does not move, only
+the order inside the row, and `Enter` in a field still submits. **All three are one box.** `Back` is
+the escape's outlined weight now, not an underlined sentence — the owner read a word among boxes as
+a link rather than a button — and the row is what tells the two outlines apart. The box is a step
+taller and wider than #370's (`px-6 py-3`, 48 px on the body size; the smaller box read on a laptop
+as a tag), and every button in the tool takes the step at once. The quiet sentence stays for
+`Remove`, `Advanced` and _Or type a code_, which sit beside an owner's own content; the replace
+fork's `Cancel`, a way off a screen, is a box like `Back`. **And the one filled button on a screen
+wears the tool's accent** — the progress bar's indigo, `--color-accent`, fixed, never the colour the
+owner picked for their page — rather than the ink; ground-coloured words stand on it at 9.30:1, and
+`controls.test.ts` holds the accent equal to the bar's colour so the tool cannot grow a second one.
+`Back` had stood a whole section below as _the most separate thing on the screen_ (B-8), then last
+in the row (#370); it is first now, still never a submit. A review-list row has no `Back`, so its
+`Save` and escape stand at the right edge. _Measured_ on the tagline screen (`layout.e2e.ts`): the
+three edges at 1440, the three heights and `Back`'s hairline, the fill's colour, the Tab order, and
+at 390 that the row stays inside the column.
 **And on a screen of its own, the row stays in view when the screen is taller than the viewport**
 (#383, spec-pass finding 10). It holds at the foot of the viewport, 16 px off the edge, over the
 ground with 16 px of fade above it so what scrolls under dims into the row rather than being cut,
@@ -2977,7 +2993,10 @@ closed issue. Where this spec says "was rejected", the argument is there.
   §6.4, §7.9 and §9 now say the country is the United States until a pull request adds another —
   written on [#384](../../issues/384) ahead of the two builds that answer to it — the phone's clause 5
   and its mend built on [#385](../../issues/385), where the owner picked the area-code check over a
-  count alone — and the US address form on [#386](../../issues/386). `v1.1.0-beta` tags the lot
+  count alone — and the US address form on [#386](../../issues/386). And, the day the tag was cut,
+  the owner's word to finish the desktop before the phone pass: §7.4's row of exits spread across
+  the column, one box for all three and the accent on the filled one, on [#409](../../issues/409).
+  `v1.1.0-beta` tags the lot
   ([#362](../../issues/362)), ahead of the phone checks §11 items 6 and 7 wait on.
 
 This document is the destination of those efforts. **Implementation of the second was its own, and it

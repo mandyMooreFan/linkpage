@@ -931,19 +931,22 @@ function LangRow({
         </Button>
       )}
 
-      <Button
-        weight="primary"
-        onClick={() => {
-          if (value.trim() === "") {
-            setPressedEmpty(true);
-            return;
-          }
-          onChange(setLang(draft, value));
-          onDone();
-        }}
-      >
-        Save
-      </Button>
+      {/* On the right edge, where every row's Save stands (§7.4, #409); the sentence above stays left. */}
+      <div className="flex justify-end">
+        <Button
+          weight="primary"
+          onClick={() => {
+            if (value.trim() === "") {
+              setPressedEmpty(true);
+              return;
+            }
+            onChange(setLang(draft, value));
+            onDone();
+          }}
+        >
+          Save
+        </Button>
+      </div>
     </div>
   );
 }

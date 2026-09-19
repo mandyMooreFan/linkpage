@@ -272,15 +272,24 @@ export function Question({
              * saw `Continue`, the escape and `Back` as three shapes scattered down the column —
              * a fill, an outline, then a sentence a whole section further down (B-8 had given
              * `Back` the inter-section rung as "the most separate thing on the screen"). They
-             * are one set of choices, so they stand together: the same three weights, the same
-             * order the keyboard has always met them in (§7.12's counts do not move), on one
-             * baseline, wrapping onto a second line when a long escape needs it rather than
-             * pushing the column wider. `Back` comes inside the form to do it; it is still
-             * `type="button"`, so the form never sees it. The row takes the rung `Continue`
-             * used to take on its own, and a screen with no way off it draws no row.
+             * are one set of choices, so they stand together, on one baseline, wrapping onto a
+             * second line when a long escape needs it rather than pushing the column wider.
+             * `Back` comes inside the form to do it; it is still `type="button"`, so the form
+             * never sees it. The row takes the rung `Continue` used to take on its own, and a
+             * screen with no way off it draws no row.
              *
-             * The escape and `Back` keep their own ink and shape — the fill still marks the one
-             * primary thing on the screen (§4). What changed is only where they stand.
+             * **Spread across the column, `Back` first** (#409, the owner's word after the tag).
+             * #370 had left the three bunched at the left in the keyboard's old order — fill,
+             * outline, sentence — and the owner read them on a laptop as still not right. So:
+             * `Back` stands on the column's left edge and takes the slack (`mr-auto`), the
+             * escape and `Continue` stand together on the right edge with `Continue` last, and
+             * the DOM is that order too, so Tab crosses the row the way the eye does — `Back`,
+             * the escape, `Continue`. §7.12's stop *count* does not move; only the order inside
+             * this row. `Enter` in a field still submits, because `Continue` is still the one
+             * submit. And `Back` is the escape's box now — outlined, not an underlined sentence
+             * — so the fill still marks the one primary thing on the screen and the row is what
+             * tells the two outlines apart. `layout.e2e.ts` measures the edges, the heights and
+             * the order.
              *
              * **And on a screen of its own, the row stays in view when the screen is taller
              * than the viewport** — `STICKY_EXITS` above (#383, spec-pass finding 10). Not in
@@ -292,16 +301,20 @@ export function Question({
             {(onSubmit !== undefined || escape !== undefined || onBack !== undefined) && (
               <div
                 className={[
-                  "mt-6 flex flex-wrap items-center gap-x-4 gap-y-3",
+                  "mt-6 flex flex-wrap items-center justify-end gap-x-4 gap-y-3",
                   shell.level === 1 ? STICKY_EXITS : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
                 data-question-exits
               >
-                {onSubmit !== undefined && (
-                  <Button type="submit" weight="primary">
-                    {submitLabel ?? shell.submitLabel}
+                {onBack !== undefined && (
+                  // `mr-auto` is the whole of what this call site hands the button: the row is
+                  // `justify-end`, and the one thing that stands apart from the pack is the way
+                  // *back*. No ink — a button never spells its own colour (B-21) — and no width
+                  // (B-72); the box is the weight's.
+                  <Button weight="secondary" className="mr-auto" onClick={onBack}>
+                    Back
                   </Button>
                 )}
 
@@ -311,13 +324,9 @@ export function Question({
                   </Button>
                 )}
 
-                {onBack !== undefined && (
-                  // The ink used to be spelled here too — `text-ink-quiet` at this one call
-                  // site, which made `Back` the only place in the tool the tertiary colour was
-                  // written down and every other quiet button an unstated full-ink default
-                  // (B-21). It is `WEIGHT.quiet`'s now, and a button never spells its own colour.
-                  <Button weight="quiet" onClick={onBack}>
-                    Back
+                {onSubmit !== undefined && (
+                  <Button type="submit" weight="primary">
+                    {submitLabel ?? shell.submitLabel}
                   </Button>
                 )}
               </div>
