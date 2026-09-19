@@ -6,9 +6,12 @@ reasoning is given — not as history, but because the reasoning is usually the 
 implementer from "improving" it into something that breaks a guarantee elsewhere.
 
 **Status:** built and released as `v1.0.0`. Every decision here is settled and every one of them is
-implemented — the build order that did it is indexed in §12 alongside the efforts that decided it. The
-[deferred](#10-deferred-past-v1) and [to verify](#11-to-verify-during-implementation) sections at the
-end are the only places where anything is open, and both are explicit about it.
+implemented — the build order that did it is indexed in §12 alongside the efforts that decided it —
+**except two, which are written ahead of their build and say so where they stand**: the ten-digit
+phone format and the US address form in §2.3, decided on [#364](../../issues/364) and built by
+[#385](../../issues/385) and [#386](../../issues/386). The [deferred](#10-deferred-past-v1) and
+[to verify](#11-to-verify-during-implementation) sections at the end are the only other places where
+anything is open, and both are explicit about it.
 
 **§11 is the one to read before trusting this number.** A tag says the work is done, not that every
 assumption under it has been checked, and §11 lists what has not: most of it needs a real phone, which
@@ -32,6 +35,14 @@ flyer, or behind a QR code on a counter.
 
 **Who it is for:** the owner of a small business — a café, a salon, a plumber, a shop. Not a
 developer, not a designer, and not someone who wants to learn what a "deploy" is.
+
+**A business in the United States, first** ([#364](../../issues/364)). The owner who built this is one,
+and so is everyone it was built for. Where a rule depends on a country — the shape of a phone number,
+the boxes of an address form — **the country is the United States until a pull request adds another.**
+Another country arrives the way anything arrives in an open-source project: by request and by pull
+request, in writing, never by guessing from the browser's settings (§2.3 says why guessing was the one
+thing refused all along). Until #364 this document was country-agnostic on purpose; the sections that
+reversed that say so in place.
 
 ### 1.1 Constraints that are not negotiable
 
@@ -140,11 +151,34 @@ link — and they are written in the page's own language, see §2.5.
 **Contact.** Phone and email, rendered as `tel:` and `mailto:` links — see _Derived targets_ below for
 what reaches the link and what happens when nothing can.
 
-**Address.** **Free-text lines plus an optional directions URL** — not structured street/city/region/
-postcode. Structured fields are what a developer reaches for and they are a localisation trap: a UK
-florist filling in "state", a Japanese owner facing "street address". The owner types their address
-the way they would write it on an envelope. Nothing in this project reads the address as data, so
-structure buys nothing and costs comprehensibility.
+**Address.** **A US address form — street, an optional second line, city, a state picker, ZIP — plus an
+optional directions URL** ([#364](../../issues/364); built by [#386](../../issues/386)). The page prints
+it as the two lines of an envelope, `12 Main St` / `Austin, TX 78701`, and nothing else: no labels, no
+country line, and no word of the renderer's own — §2.5's ten strings are untouched, because a comma
+and a state's abbreviation are the owner's data, not our prose. **Nothing in this project reads the
+address as data**, still: the boxes are there because a US owner facing one blank area asked where the
+state goes (#359, moment 16), not because the page wants fields. A ZIP is not checked, a street is not
+parsed, and the state picker's only job is to spell the abbreviation the envelope line prints. The
+section is optional as before, and once the owner is on the screen `Continue` wants **any one box
+filled** — presence, never shape, like every other screen (§7.9). The keys are `street`, `street2`,
+`city`, `state` (the two-letter postal abbreviation, which is what the page prints) and `zip`, each a
+string.
+
+**This reverses a decision that was written on purpose, and the old reason is kept because it was
+sound.** Until #364 the address was free-text lines, and structured fields were refused as _a
+localisation trap_ — a UK florist filling in "state", a Japanese owner facing "street address". That
+was the right rule for a country-agnostic product, and §1 no longer describes one. With the country
+declared, the trap has no jaws: the form is the one a US owner expects, and an owner elsewhere is the
+pull request §1 invites, which brings its own form with it rather than bending this one.
+
+**What happens to the files that exist.** `address.lines` goes and the boxes come, which is a removal
+under §4.2's rule, so `version` becomes `2`. An older file still opens (§4.3): its lines land in the
+street box, joined the way the review row has always shown them — a comma and a space — for the owner
+to sort into the right boxes, and the address row shows what landed as it shows any field defaulted on
+load. **The file gains no `country` field** (#364, point 5): with one country in the product the field
+would carry one value, and the version number already says which shape the file has. The first pull
+request that adds a second country adds the field, and decides what the picker and the printed lines
+do with it.
 
 The `directionsUrl` matters because an embedded map is forbidden by the no-external-subresources
 invariant (§5.3) — a link out is the only remaining answer to "where are you". It is one of the three
@@ -161,10 +195,19 @@ renderer already worked this way for one of them — `0161 496 0000` renders ins
 inconsistency rather than adding a capability.
 
 **Where the mend lives split in two at §7.9 decision 4 (#142).** For **phone**, the original position
-holds in full: the text is the owner's and is never rewritten, the target is mended silently at render
-time, nothing derived is ever stored, and a later builder that gets cleverer re-derives from the
-owner's original. A number is written the way a local reader expects to see it, and showing our
-normalisation would be showing our results rather than the owner's intent. For **the four URL and
+holds for every number but one shape: the text is the owner's and is never rewritten, the target is
+mended silently at render time, nothing derived is ever stored, and a later builder that gets cleverer
+re-derives from the owner's original. A number is written the way a local reader expects to see it, and
+showing our normalisation would be showing our results rather than the owner's intent. **The one shape
+is ten plain digits** ([#364](../../issues/364); built by [#385](../../issues/385)): a number typed as
+`5551234567`, `555-123-4567` or `555.123.4567` — ten digits, no leading `+`, nothing but the allowed
+separators below between them — is shown and stored as `(555) 123-4567` on `Continue`, exactly as a
+bare domain is shown and stored with its `https://`, and dials as `tel:+15551234567` (clause 5 below).
+That is a mend by §7.9 decision 4's rule — shown, not said, in the field on submit and on the review row
+after it — so for that shape and no other the phone joins the fields whose mend is stored. **Anything
+else is left exactly as typed**: a leading `+`, an extension, a vanity number, two numbers in one box,
+eleven digits or nine. Nothing formats as you type; a live mask rewrites the owner's text under their
+fingers, and §7.9 decision 2 speaks on `Continue` and not before. For **the four URL and
 email fields**, the builder now stores the _mended_ value — `mysite.com` commits as
 `https://mysite.com`, an email's spaces are stripped — because §7.9's amended decision 4 requires the
 correction to be visible where the owner typed it rather than met for the first time on the exported
@@ -172,7 +215,7 @@ page. The mend functions live in the renderer beside their href siblings so the 
 cannot disagree; what cannot be mended stores as typed, and §7.9's mark still points at it. **§4 gains
 no field for any of this** — the stored string is still the only string, mended or not — and §4.4's
 _preserve anything the owner typed_ now reads _preserve, or mend visibly and store the mend_ for
-exactly these four fields and no others.
+exactly these four fields and the ten-digit phone, and no others.
 
 **Where no target can be derived there is no link — and what happens next differs by field, because
 the fields are not the same kind of thing.**
@@ -193,21 +236,30 @@ every _visitor_ who taps it. **The owner can be told; the visitor cannot.**
 
 What the owner is told, and where, is §7.9.
 
-**The phone rule is four clauses, and no country is ever learned, inferred or asked for.**
+**The phone rule is four clauses and one country, and the country is the United States until a pull
+request adds another** ([#364](../../issues/364)). No country is ever learned or inferred; §1 declares
+one.
 
 1. Allowed characters are digits, space, `(`, `)`, `-`, `.`, and `+` **leading only**.
 2. Any other character → no target.
 3. A parenthesised `(0)` directly after a leading `+CC` is dropped. That is reading the owner's own
    notation rather than guessing at a trunk prefix — they supplied the country themselves.
 4. Fewer than 4 or more than 15 digits → no target.
+5. **Exactly ten digits and no leading `+` → the target is `+1` followed by the digits** (#364; built by
+   [#385](../../issues/385)), so `(555) 123-4567` dials `tel:+15551234567`. This is the one clause the
+   declared country buys: a number with a `+` supplied its own country, and every other length dials as
+   typed, digits only, as it always has.
 
-> **Why no country.** `lang` does carry a region, and §4.1 establishes that a wrong region is _harmless_
-> today — so making the phone depend on it would make a wrong region **harmful**. A Manchester baker on a
-> US-configured laptop is tagged `en-US`, never chose it, cannot see it, and would be read as `+1`.
-> Asking outright spends a screen (§7.2) on §2.3's structured-address trap in another costume. A
-> phone-metadata library is ruled out by the same decision rather than by its size: its useful entry
-> points need a default region, so without one it says nothing at all about `020 7123 4567` — and it
-> would be this project's first non-React runtime dependency.
+> **Why one country, and why it is declared rather than found.** The rule used to learn no country at
+> all, and the reason was real: `lang` carries a region that §4.1 keeps _harmless_ by never acting on it,
+> and reading `+1` off `en-US` would have dialled a Manchester baker's number — tagged `en-US` by a
+> laptop they never configured — into the wrong continent. That danger came from _inferring_ a country.
+> #364 infers nothing: it declares one, in §1, for the whole product, and a ten-digit number typed by a
+> US business owner is a US number. An owner elsewhere is told so in writing (§1) rather than guessed
+> at, and the pull request §1 invites is where a second country's clause lands — with the `country`
+> field the file does not yet carry (_Address_, above). **A phone-metadata library is still out**, now
+> on cost alone: a ten-digit test needs none, and it would be this project's first non-React runtime
+> dependency.
 >
 > **Four of the six notations businesses actually print were broken without these clauses**, which is why
 > a rule this small earns its place: `+44 (0)161 496 0000` produced a dead target (the trunk `0` kept
@@ -215,9 +267,12 @@ What the owner is told, and where, is §7.9.
 > numbers, and `0800 CHICKEN` became `tel:0800` — a dialable wrong number rather than a visibly dead one.
 > The caution against guessing at trunk prefixes produced exactly the outcome it was avoiding.
 >
-> **The limit, stated rather than buried: nothing merely mistyped is caught.** `07700 90012`, a digit
-> short, still links. Catching that needs the country we have just declined. Extensions, vanity numbers
-> and second numbers survive on the page untouched; they simply do not dial.
+> **The limit, stated rather than buried: nothing merely mistyped is caught, and clause 5 reads by
+> count alone.** `555 123 456`, a digit short, still links as `tel:555123456` and is never a US number.
+> `07700 90012` — a UK mobile a digit short — _is_ ten digits, and is therefore read as one: stored as
+> `(077) 009-0012` and dialled as `+1`. Catching either needs a rule per country, and this product has
+> one country by decision, not by detection. Extensions, vanity numbers and second numbers survive on
+> the page untouched; they simply do not dial.
 
 **The URL rule is one rule for all three URL fields**, written once here rather than left to three call
 sites. A value that already carries a scheme is untouched. For a value with **no** scheme: take
@@ -378,8 +433,9 @@ must be in the language the page declares, or the declaration is not true — a 
 abbreviations with Welsh phonetics, and the declaration is what we asked assistive technology to
 trust.
 
-**Ten strings is the whole translatable surface, by design rather than by luck.** §2.3 made the
-address free text, and the contact rows are identified by a glyph rather than by the word "Phone" —
+**Ten strings is the whole translatable surface, by design rather than by luck.** §2.3 prints the
+address in the owner's own words — envelope lines from their boxes, with no label on any of them — and
+the contact rows are identified by a glyph rather than by the word "Phone" —
 a phone number and an email address say what they are. Nothing else on the exported page is our
 prose, and a change that adds an eleventh string is a change to this section.
 
@@ -705,10 +761,17 @@ reversible** override layer.
 }
 ```
 
+**`address` is the one block above that is about to change** ([#364](../../issues/364); built by
+[#386](../../issues/386)): `street`, `street2`, `city`, `state` and `zip` replace `lines`, `version`
+becomes `2`, and an older file's lines land in the street box. §2.3, _Address_, holds the rule and its
+reasons; #386 rewrites this block and §4.2's `version: 1` line when it lands, and not before, so that
+this block describes the file every builder writes today.
+
 **`lang`** defaults to the browser's language at first run. WCAG 2.2 success criterion 3.1.1 requires
 `<html lang>`, and hardcoding `"en"` would mislead screen readers and translation tools about a page
-whose content is the owner's own words. It is consistent with the free-text decisions elsewhere: the
-address is written the way the owner would write it, and the language declares what language that is.
+whose content is the owner's own words. It is consistent with the decisions elsewhere that keep the
+page in the owner's words: the address is printed the way they would write it on an envelope, and the
+language declares what language that is.
 
 The tag is shape-checked on the way out, and anything that is not tag-shaped renders as `"en"` (§4.7).
 **`lang` decides three things and is resolved once**, so they cannot disagree: the `lang` attribute,
@@ -742,8 +805,8 @@ right in order to fix the ones where it was wrong.
 **A wrong region costs less than it looks, and that is what rules out inferring one.** `en-US` and
 `en-GB` render **byte-identically**, because the vocabulary lookup truncates on a miss — so the only real
 cost of a wrong region is the single thing this attribute is for: a screen reader switching voice.
-Reading the region off the owner's address would therefore spend §2.3's address-as-data line in order to
-change a subtag that alters nothing rendered.
+Reading the region off the owner's address — possible now that §2.3 has a state box, and pointless
+while §1 has one country — would change a subtag that alters nothing rendered.
 
 > A loose end recorded rather than fixed: the renderer falls back to `24h` when `clock` is absent, while
 > the builder has always written `12h`. Nothing this tool produces reaches that path, but a hand-authored
@@ -1311,8 +1374,10 @@ accepting that glyphs differ across platforms.
 ### 6.4 Structured data
 
 **`LocalBusiness` ships as microdata attributes**, not JSON-LD. JSON-LD requires a `<script>` tag,
-which invariant 1 forbids. schema.org accepts the free-text address as plain text, so §2.3's decision
-costs nothing here.
+which invariant 1 forbids. schema.org accepts an address as plain text, so §2.3's decision costs
+nothing here — and that holds after #364's boxes: the page keeps printing the envelope lines inside the
+one `itemprop="address"`, because typed `PostalAddress` properties would be a page capability, and the
+boxes exist for the owner's typing, not for the page's data (§2.3).
 
 **`og:image` is structurally impossible** for any single-file tool: scrapers need a fetchable image
 URL and there is no second file to point at. **Shared links preview as text, permanently.** This must
@@ -2184,9 +2249,10 @@ is that our rules go stale and the owner's phone number does not.** A number we 
 would, if it held the screen, lock an owner out of publishing their own page — a failure with no
 recovery inside the product, because the contact screen's escape drops the email with it. So **the
 phone is never judged on screen**: a vanity number, an extension, a second number goes through and stays
-on the page as text (§2.3), and the review row's mark (decision 5) is its notice. **Email and the three
-web-address fields are judged on `Continue`** (#368; the owner's decision on #361, superseding the
-earlier position that only the review row spoke for them). The floors are the renderer's own —
+on the page as text (§2.3), and the review row's mark (decision 5) is its notice. Decision 4's ten-digit
+mend is not a judgement — it fires on a shape that is already usable and refuses nothing. **Email and
+the three web-address fields are judged on `Continue`** (#368; the owner's decision on #361, superseding
+the earlier position that only the review row spoke for them). The floors are the renderer's own —
 `mailtoHref` over the mended address, `linkHref` — never a second opinion, and what they refuse holds the
 screen with decision 6's sentence until it is fixed, cleared, or the escape taken, the way the hours
 screen's time has held since #142. What separates these four from the phone is the cost of being wrong
@@ -2223,14 +2289,18 @@ that is where the eye already is; the hint stays, because a hint is frequently _
 at the moment of complaint is the worst possible timing. One optional line per field, with no layout
 reserved when it is absent. That is the component §7.4's component layer is built around.
 
-**4. A mend is shown, not said** (#142, superseding the silent mend). When the tool fixes a web address
-or an email — a scheme added to a bare domain, spaces stripped — **the fixed value appears in the field
-itself on submit, and on the review row after it**: type `mysite.com`, continue, and what stands where
-you typed is `https://mysite.com`. No message narrates it — a sentence about something the owner can now
-see would fire constantly on input that was fine, which is the rarity argument this decision keeps. What
-it retires is the invisible correction: a mend the owner never sees is one they cannot trust or undo,
-and one they would otherwise meet for the first time on the exported page. It is trustworthy because it
-is visible and undoable because it is just text where they typed. **The message stays reserved for input
+**4. A mend is shown, not said** (#142, superseding the silent mend). When the tool fixes a web address,
+an email, or a ten-digit phone number — a scheme added to a bare domain, spaces stripped, ten plain
+digits set out as `(555) 123-4567` ([#364](../../issues/364); built by [#385](../../issues/385)) — **the
+fixed value appears in the field itself on submit, and on the review row after it**: type `mysite.com`,
+continue, and what stands where you typed is `https://mysite.com`; type `5551234567`, continue, and
+what stands is `(555) 123-4567`. The phone's mend fires on that one shape and no other (§2.3), which is
+why it is a mend and not a mask: it never touches a number it cannot read whole. No message narrates it —
+a sentence about something the owner can now see would fire constantly on input that was fine, which is
+the rarity argument this decision keeps. What it retires is the invisible correction: a mend the owner
+never sees is one they cannot trust or undo, and one they would otherwise meet for the first time on the
+exported page. It is trustworthy because it is visible and undoable because it is just text where they
+typed. **The message stays reserved for input
 we genuinely cannot make a target from.**
 
 **5. What cannot be used is marked in two places that outlive the screen** — the review-list row (§7.4)
@@ -2656,8 +2726,6 @@ Ruled out on purpose. The first contributor to ask "why not?" has a written answ
 | **A progress indicator in the flow**                   | §7.2 — no honest global count exists; the page is the progress display.                                                                                 |
 | **Blocking `Continue` on the shape of a phone number** | §7.9 — our rules go stale and the owner's number does not. Email and web addresses are judged on `Continue` since #368, with the renderer's own floors. |
 | **A greyed `Continue`**                                | §7.9 — a grey button says something is wrong and nothing about what, and it leaves the tab order; pressing it is answered instead (#368).               |
-| **Learning, inferring or asking the owner's country**  | §2.3 — it would make a wrong `lang` region harmful, where §4.1 keeps it harmless.                                                                       |
-| **A phone-number mask, or a phone-metadata library**   | §2.3 — the mask rewrites the owner's text; the library needs the country we declined.                                                                   |
 | **Turning a social handle into a URL**                 | §2.3 — _handle_ is not one concept, and a template table goes stale silently.                                                                           |
 | **Computing a name for the owner's colour**            | §3.1 — naming their brand is a claim we cannot check.                                                                                                   |
 | **Asking the owner for the page's language**           | §4.1 — a screen spent on a consequence the owner cannot predict.                                                                                        |
@@ -2874,6 +2942,12 @@ closed issue. Where this spec says "was rejected", the argument is there.
 - **[Map: the checks check, or say what they miss](../../issues/322)** — §5.3's rule about what a check
   owes and the four ways one is held honest, and §7.12's line on the hand-run tier now that CI reads
   whether it worked.
+- **[Map: screen by screen to v1.1.0-beta](../../issues/357)** — the two review passes and the fixes
+  they sorted in front of the tag: §4.6, §5.3, §6.6, §7.1–§7.4, §7.6, §7.8–§7.10, §7.12 and §9. And
+  **the reversal of the country-agnostic rule** on [#364](../../issues/364): §1, §2.3, §2.5, §4.1,
+  §6.4, §7.9 and §9 now say the country is the United States until a pull request adds another —
+  written on [#384](../../issues/384) ahead of the two builds that answer to it, and the status line at
+  the top says which two.
 
 This document is the destination of those efforts. **Implementation of the second was its own, and it
 is finished:** [After the beta: build order](../../issues/116) turned the amended document into
