@@ -5,11 +5,14 @@ seen the project can implement it without asking a question. Where a decision lo
 reasoning is given — not as history, but because the reasoning is usually the thing that stops an
 implementer from "improving" it into something that breaks a guarantee elsewhere.
 
-**Status:** built and released as `v1.0.0`. Every decision here is settled and every one of them is
-implemented — the build order that did it is indexed in §12 alongside the efforts that decided it.
-The two decisions that were written ahead of their code, both from [#364](../../issues/364) — the
-ten-digit phone format and the US address form in §2.3 — were built by [#385](../../issues/385) and
-[#386](../../issues/386), so nothing here stands ahead of the product. The [deferred](#10-deferred-past-v1) and
+**Status:** built and released as `v1.1.0-beta`, a pre-release of everything that landed on `main`
+after `v1.0.0` — six wayfinder efforts' worth, indexed in §12. Every decision here is settled and every
+one of them is implemented: the two that were written ahead of their code, both from
+[#364](../../issues/364) — the ten-digit phone format and the US address form in §2.3 — were built by
+[#385](../../issues/385) and [#386](../../issues/386), so nothing here stands ahead of the product. **It
+is a pre-release because of §11, not because anything is unbuilt:** the real-phone checks it lists
+(items 4, 6 and 7) run against this tagged build on [#363](../../issues/363) and their findings are not
+written yet, and item 1 still has no iOS device. The [deferred](#10-deferred-past-v1) and
 [to verify](#11-to-verify-during-implementation) sections at the end are the only places where
 anything is open, and both are explicit about it.
 
@@ -2779,6 +2782,11 @@ Ruled out on purpose. The first contributor to ask "why not?" has a written answ
 These are facts the design depends on that were reasoned about but not measured. None of them changes
 a decision above; each could change a constant or a code path.
 
+**`v1.1.0-beta` was tagged with items 1, 4, 6 and 7 still open.** Items 4, 6 and 7 run against that
+tagged build on an Android phone ([#363](../../issues/363)) and their findings land here, under
+each item, in the register below; item 1 waits for an iOS device. That is why the tag is a
+pre-release.
+
 **Four of them were taken up when the logo pipeline was built (#31), and the findings are recorded
 under each.** They are labelled **measured** or **reasoned**, and the labels are load-bearing: the
 work was done headless, with no browser and no device, so nothing that needs one was run. A finding
@@ -2969,7 +2977,8 @@ closed issue. Where this spec says "was rejected", the argument is there.
   §6.4, §7.9 and §9 now say the country is the United States until a pull request adds another —
   written on [#384](../../issues/384) ahead of the two builds that answer to it — the phone's clause 5
   and its mend built on [#385](../../issues/385), where the owner picked the area-code check over a
-  count alone — and the status line at the top says which one is still ahead.
+  count alone — and the US address form on [#386](../../issues/386). `v1.1.0-beta` tags the lot
+  ([#362](../../issues/362)), ahead of the phone checks §11 items 6 and 7 wait on.
 
 This document is the destination of those efforts. **Implementation of the second was its own, and it
 is finished:** [After the beta: build order](../../issues/116) turned the amended document into
