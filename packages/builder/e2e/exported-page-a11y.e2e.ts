@@ -1,5 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
-import { MODES, SHAPES, render, type Mode, type Project, type Shape } from "@linkpage/renderer";
+import {
+  MODES,
+  SCHEMA_VERSION,
+  SHAPES,
+  render,
+  type Mode,
+  type Project,
+  type Shape,
+} from "@linkpage/renderer";
 import type { AxeResults } from "axe-core";
 import { TAGS, WCAG_TAGS, audit as run, droppedBy, failed } from "../scripts/axe.mjs";
 
@@ -80,7 +88,7 @@ const LOGO_PNG =
  */
 function project(shape: Shape, mode: Mode): Project {
   return {
-    version: 1,
+    version: SCHEMA_VERSION,
     lang: "en-GB",
     style: {
       brand: "#c2185b",
