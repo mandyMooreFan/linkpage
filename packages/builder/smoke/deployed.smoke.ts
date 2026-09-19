@@ -77,22 +77,43 @@ async function heading(page: Page): Promise<string> {
  * ("We don't need one", "We don't have one", "No buttons for now", "Not on my page"), and a smoke
  * test that matched on those would go red the day someone improved a sentence. Class over copy
  * also rules out clicking a repeatable sub-form's `Add`, which is how a walker loops forever.
+ *
+ * **Press `Continue` only on a screen this walk answered; take the escape on every other** (#406).
+ *
+ * This used to press `Continue` whenever it was enabled and fall back to the escape only when
+ * there was none. That was the rule above stated backwards, and it held only while an unanswered
+ * screen greyed `Continue`. Since #368 `Continue` is never greyed (§7.9 decision 1): pressed with
+ * nothing typed it says one sentence and holds the screen — so on the first optional screen the
+ * old walk pressed it, the heading never changed, and the wait below ran out. The deployed smoke
+ * was red on every deploy for two days over a walk that had stopped walking the way an owner does.
+ * `scripts/wizard.mjs` decides the same way — Continue where it answered, else the escape.
  */
 async function advance(page: Page): Promise<"moved" | "arrived" | "stuck"> {
   if (await page.getByRole("button", { name: /^Download$/ }).count()) return "arrived";
 
+  let answered = false;
+
   const swatch = page.locator("button[data-swatch]").first();
-  if (await swatch.count()) await swatch.click();
+  if (await swatch.count()) {
+    await swatch.click();
+    answered = true;
+  }
 
   const name = page.getByLabel(/business name/i).first();
-  if (await name.count()) await name.fill(BUSINESS);
+  if (await name.count()) {
+    await name.fill(BUSINESS);
+    answered = true;
+  }
 
   const forward = page.locator('button[type="submit"]').first();
   const escape = page.locator("button[data-escape]").first();
 
   const before = await heading(page);
 
-  if ((await forward.count()) && (await forward.isEnabled())) await forward.click();
+  // A screen the walk answered goes forward on Continue. Any other goes past on its escape — never
+  // on Continue, which since #368 answers an empty screen with a sentence rather than a move. A
+  // screen with neither is a step an owner cannot get past, and "stuck" names it.
+  if (answered && (await forward.count())) await forward.click();
   else if (await escape.count()) await escape.click();
   else return "stuck";
 
