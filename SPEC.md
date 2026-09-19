@@ -7,9 +7,9 @@ implementer from "improving" it into something that breaks a guarantee elsewhere
 
 **Status:** built and released as `v1.0.0`. Every decision here is settled and every one of them is
 implemented — the build order that did it is indexed in §12 alongside the efforts that decided it —
-**except two, which are written ahead of their build and say so where they stand**: the ten-digit
-phone format and the US address form in §2.3, decided on [#364](../../issues/364) and built by
-[#385](../../issues/385) and [#386](../../issues/386). The [deferred](#10-deferred-past-v1) and
+**except one, which is written ahead of its build and says so where it stands**: the US address
+form in §2.3, decided on [#364](../../issues/364) and built by [#386](../../issues/386); the ten-digit
+phone format decided beside it was built by [#385](../../issues/385). The [deferred](#10-deferred-past-v1) and
 [to verify](#11-to-verify-during-implementation) sections at the end are the only other places where
 anything is open, and both are explicit about it.
 
@@ -199,10 +199,11 @@ holds for every number but one shape: the text is the owner's and is never rewri
 mended silently at render time, nothing derived is ever stored, and a later builder that gets cleverer
 re-derives from the owner's original. A number is written the way a local reader expects to see it, and
 showing our normalisation would be showing our results rather than the owner's intent. **The one shape
-is ten plain digits** ([#364](../../issues/364); built by [#385](../../issues/385)): a number typed as
-`5551234567`, `555-123-4567` or `555.123.4567` — ten digits, no leading `+`, nothing but the allowed
-separators below between them — is shown and stored as `(555) 123-4567` on `Continue`, exactly as a
-bare domain is shown and stored with its `https://`, and dials as `tel:+15551234567` (clause 5 below).
+is ten plain digits shaped like a US number** ([#364](../../issues/364); built by
+[#385](../../issues/385)): a number typed as `5551234567`, `555-123-4567` or `555.123.4567` — ten
+digits, the first of them 2–9, no leading `+`, nothing but the allowed separators below between them —
+is shown and stored as `(555) 123-4567` on `Continue`, exactly as a bare domain is shown and stored
+with its `https://`, and dials as `tel:+15551234567` (clause 5 below).
 That is a mend by §7.9 decision 4's rule — shown, not said, in the field on submit and on the review row
 after it — so for that shape and no other the phone joins the fields whose mend is stored. **Anything
 else is left exactly as typed**: a leading `+`, an extension, a vanity number, two numbers in one box,
@@ -245,10 +246,16 @@ one.
 3. A parenthesised `(0)` directly after a leading `+CC` is dropped. That is reading the owner's own
    notation rather than guessing at a trunk prefix — they supplied the country themselves.
 4. Fewer than 4 or more than 15 digits → no target.
-5. **Exactly ten digits and no leading `+` → the target is `+1` followed by the digits** (#364; built by
-   [#385](../../issues/385)), so `(555) 123-4567` dials `tel:+15551234567`. This is the one clause the
-   declared country buys: a number with a `+` supplied its own country, and every other length dials as
-   typed, digits only, as it always has.
+5. **Exactly ten digits, the first of them 2–9, and no leading `+` → the target is `+1` followed by
+   the digits** (#364; built by [#385](../../issues/385)), so `(555) 123-4567` dials `tel:+15551234567`.
+   This is the one clause the declared country buys: a number with a `+` supplied its own country, and
+   every other length dials as typed, digits only, as it always has. **The first-digit check is the
+   declared country's own numbering plan, not detection of a country** — no North American area code
+   starts with 0 or 1 — and it is one line with no library; the owner chose it on #385 over a count
+   alone so that a foreign number a digit short, which starts with its trunk `0`, is left exactly as
+   typed. The exchange is not checked, though the plan fixes it the same way: `(555) 123-4567` — the
+   number every US reader knows, and this document's own example — has an exchange starting with 1,
+   and a check that refused it would refuse the sentence it answers to.
 
 > **Why one country, and why it is declared rather than found.** The rule used to learn no country at
 > all, and the reason was real: `lang` carries a region that §4.1 keeps _harmless_ by never acting on it,
@@ -268,11 +275,12 @@ one.
 > The caution against guessing at trunk prefixes produced exactly the outcome it was avoiding.
 >
 > **The limit, stated rather than buried: nothing merely mistyped is caught, and clause 5 reads by
-> count alone.** `555 123 456`, a digit short, still links as `tel:555123456` and is never a US number.
-> `07700 90012` — a UK mobile a digit short — _is_ ten digits, and is therefore read as one: stored as
-> `(077) 009-0012` and dialled as `+1`. Catching either needs a rule per country, and this product has
-> one country by decision, not by detection. Extensions, vanity numbers and second numbers survive on
-> the page untouched; they simply do not dial.
+> count and one leading digit.** `555 123 456`, a digit short, still links as `tel:555123456` and is
+> never a US number. `07700 90012` — a UK mobile a digit short — _is_ ten digits, and is left exactly
+> as typed only because it starts with a `0`; a ten-digit foreign number that happens to start 2–9 is
+> read as a US one, stored set out and dialled as `+1`, and nothing available to us can tell. Catching
+> either needs a rule per country, and this product has one country by decision, not by detection.
+> Extensions, vanity numbers and second numbers survive on the page untouched; they simply do not dial.
 
 **The URL rule is one rule for all three URL fields**, written once here rather than left to three call
 sites. A value that already carries a scheme is untouched. For a value with **no** scheme: take
@@ -2946,8 +2954,9 @@ closed issue. Where this spec says "was rejected", the argument is there.
   they sorted in front of the tag: §4.6, §5.3, §6.6, §7.1–§7.4, §7.6, §7.8–§7.10, §7.12 and §9. And
   **the reversal of the country-agnostic rule** on [#364](../../issues/364): §1, §2.3, §2.5, §4.1,
   §6.4, §7.9 and §9 now say the country is the United States until a pull request adds another —
-  written on [#384](../../issues/384) ahead of the two builds that answer to it, and the status line at
-  the top says which two.
+  written on [#384](../../issues/384) ahead of the two builds that answer to it — the phone's clause 5
+  and its mend built on [#385](../../issues/385), where the owner picked the area-code check over a
+  count alone — and the status line at the top says which one is still ahead.
 
 This document is the destination of those efforts. **Implementation of the second was its own, and it
 is finished:** [After the beta: build order](../../issues/116) turned the amended document into

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { escapeHtml, mendEmail, mendUrl, render, safeUrl } from "./render.js";
+import { escapeHtml, mendEmail, mendPhone, mendUrl, render, safeUrl } from "./render.js";
 import { MINIMAL as base, POPULATED as full, POPULATED_DARK as dark } from "./fixtures.js";
 import { SHAPES } from "./chrome.js";
 import { VOCABULARIES, vocabulary } from "./locale.js";
@@ -464,6 +464,22 @@ describe("contact", () => {
       expect(tel("1234")).toContain('href="tel:1234"');
       expect(tel("123456789012345")).toContain("tel:123456789012345");
       expect(tel("1234567890123456")).not.toContain("tel:");
+    });
+
+    it("dials a ten-digit US number as +1, and a shaped one as typed (clause 5, #385)", () => {
+      // §1 declares the country, so ten digits with no `+` are a US number — but only when
+      // they are shaped like one: an area code never starts with 0 or 1.
+      expect(tel("5551234567")).toContain('href="tel:+15551234567"');
+      expect(tel("(555) 123-4567")).toContain('href="tel:+15551234567"');
+      expect(tel("555.123.4567")).toContain('href="tel:+15551234567"');
+      // A UK mobile a digit short is ten digits and is not read as a US number.
+      expect(tel("0770090012")).toContain('href="tel:0770090012"');
+      expect(tel("1770090012")).toContain('href="tel:1770090012"');
+      // The exchange is not checked — the spec's own example has one starting with 1.
+      expect(tel("555 023 4567")).toContain('href="tel:+15550234567"');
+      // A `+` supplied its own country; eleven digits are not clause 5's shape.
+      expect(tel("+5551234567")).toContain('href="tel:+5551234567"');
+      expect(tel("15551234567")).toContain('href="tel:15551234567"');
     });
 
     it("permits a `+` only at the front", () => {
@@ -1047,5 +1063,36 @@ describe("the mend the builder stores and shows (§7.9 decision 4, #142)", () =>
 
   it("keeps an email it cannot mend as typed, trimmed", () => {
     expect(mendEmail(" not-an-email ")).toBe("not-an-email");
+  });
+
+  it("sets ten plain US digits out as (555) 123-4567, and nothing else (#364, #385)", () => {
+    expect(mendPhone("5551234567")).toBe("(555) 123-4567");
+    expect(mendPhone(" 555-123-4567 ")).toBe("(555) 123-4567");
+    expect(mendPhone("555.123.4567")).toBe("(555) 123-4567");
+    expect(mendPhone("(555) 123-4567")).toBe("(555) 123-4567");
+  });
+
+  it("leaves every other number exactly as typed, trimmed", () => {
+    // A `+` supplied its own country; nine, eleven and fifteen digits are not the shape.
+    expect(mendPhone("+5551234567")).toBe("+5551234567");
+    expect(mendPhone("555123456")).toBe("555123456");
+    expect(mendPhone("15551234567")).toBe("15551234567");
+    expect(mendPhone(" 020 7123 4567 ")).toBe("020 7123 4567");
+    // Ten digits that are not shaped like a US number: a UK mobile a digit short, and a
+    // trunk-style 1 in front.
+    expect(mendPhone("0770090012")).toBe("0770090012");
+    expect(mendPhone("1770090012")).toBe("1770090012");
+    // Out of charset, or with an extension, is not ten plain digits either.
+    expect(mendPhone("5551234567 ext 12")).toBe("5551234567 ext 12");
+    expect(mendPhone("555-CHICKEN")).toBe("555-CHICKEN");
+    expect(mendPhone("")).toBe("");
+  });
+
+  it("mends exactly the numbers clause 5 dials as +1", () => {
+    for (const phone of ["5551234567", "0770090012", "1770090012", "15551234567", "+5551234567"]) {
+      const mended = mendPhone(phone) !== phone;
+      const dialsUs = page({ ...base, contact: { phone } }).includes('href="tel:+1');
+      expect([phone, mended]).toEqual([phone, dialsUs]);
+    }
   });
 });

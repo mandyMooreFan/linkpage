@@ -4,6 +4,7 @@ export {
   linkHref,
   mailtoHref,
   mendEmail,
+  mendPhone,
   mendUrl,
   safeUrl,
   telHref,

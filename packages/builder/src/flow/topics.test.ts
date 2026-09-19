@@ -234,11 +234,18 @@ describe("a mend is shown, not said (§7.9 decision 4, #142)", () => {
     expect(withSocial.social?.[0]?.url).toBe("https://instagram.com/ada");
   });
 
-  it("never touches a phone number — its normalisation stays in the href alone", () => {
+  it("stores ten plain US digits set out as (555) 123-4567 (#364, #385)", () => {
     const draft = answerSection(DRAFT, {
       section: "contact",
-      value: { phone: " 0161 496 0000 ", email: "" },
+      value: { phone: " 555-123-4567 ", email: "" },
     });
-    expect(draft.contact?.phone).toBe("0161 496 0000");
+    expect(draft.contact?.phone).toBe("(555) 123-4567");
+  });
+
+  it("touches no other phone number — its normalisation stays in the href alone", () => {
+    for (const phone of [" 0161 496 0000 ", "+1 555 123 4567", "0770090012"]) {
+      const draft = answerSection(DRAFT, { section: "contact", value: { phone, email: "" } });
+      expect(draft.contact?.phone).toBe(phone.trim());
+    }
   });
 });
