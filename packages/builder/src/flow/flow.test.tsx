@@ -13,6 +13,7 @@ import {
   filledButtons,
   quietButtons,
   textClasses,
+  weightOf,
   widthDisagreements,
 } from "../ui/fill.testing.js";
 
@@ -801,24 +802,37 @@ describe("the preset is re-choosable while still in the flow (§7.3)", () => {
 });
 
 /**
- * One ink for every small text-only button (finding B-21, #234).
+ * `Back` is the escape's box, and stands first in the row (§7.4; #409).
  *
- * The walk above sweeps every screen, and a sweep passes when it finds nothing. `Back` is the
- * site that makes it worth naming: until #234 it was the *only* place in the tool where the
- * tertiary ink was written down at all, as a `text-ink-quiet` on its own call site, with every
- * other quiet button left on whatever ink its screen happened to set. The rule lives on the
- * weight now, so this asserts `Back` still arrives at that ink — by inheritance from the
- * component rather than by an instruction beside it.
+ * Until #409 this asserted the opposite — that `Back` was a quiet sentence at B-21's ink, the
+ * one site that ink had been written at by hand (#234). The owner read the sentence on a laptop
+ * as a link rather than a button, so `Back` is the outlined weight now, the same box as the
+ * escape, with nothing but its place in the row to tell them apart: first, so the keyboard meets
+ * it where the eye does, on the column's left edge (`layout.e2e.ts` measures the edge). The ink
+ * rule still holds — it is just no longer `Back` that carries it, and the walk above still reads
+ * every quiet button on every screen.
  */
-describe("one ink for every small text-only button (B-21)", () => {
-  it("gives Back the quiet ink from the weight, with nothing laid over it", () => {
+describe("Back is the escape's box, first in the row (#409)", () => {
+  it("gives Back the outlined weight, with nothing laid over its ink", () => {
     harness();
     choosePreset("food");
     expect(title()).toBe(NAME);
 
     const back = screen.getByRole("button", { name: "Back" });
-    expect(quietButtons(), "Back is a quiet button").toContain(back);
-    expect(textClasses(back)).toEqual(["text-base", "text-ink-quiet"]);
+    expect(weightOf(back), "Back is an outlined button").toBe("secondary");
+    expect(quietButtons(), "and not a quiet one").not.toContain(back);
+    expect(textClasses(back), "taking the screen's ink").toEqual(["text-base"]);
+  });
+
+  it("stands before the escape and Continue in the order the keyboard meets them", () => {
+    harness();
+    choosePreset("food");
+    expect(title()).toBe(NAME);
+
+    const row = document.querySelector("[data-question-exits]") as HTMLElement;
+    const names = [...row.querySelectorAll("button")].map((button) => button.textContent?.trim());
+    expect(names.at(0)).toBe("Back");
+    expect(names.at(-1)).toBe("Continue");
   });
 });
 

@@ -437,17 +437,22 @@ describe("Continue with no answer yet (§7.9 decision 1, #368)", () => {
  *
  * The desktop walk saw `Continue`, the escape and `Back` as three shapes scattered down the
  * column — a fill, an outline, then a sentence a section further down. They are one set of
- * choices, so they share one row, in the order the keyboard has always met them; a long escape
- * wraps the row rather than overflowing it. `Back` moves inside the form to do it, which changes
- * nothing about what it does — it was never a submit.
+ * choices, so they share one row; a long escape wraps the row rather than overflowing it. `Back`
+ * moves inside the form to do it, which changes nothing about what it does — it was never a
+ * submit.
+ *
+ * **And since #409 the row reads `Back`, the escape, `Continue`** — spread across the column,
+ * `Back` on the left edge and the pair on the right, in the DOM in that order so the keyboard
+ * crosses the row the way the eye does. Where each lands is `layout.e2e.ts`'s to measure; what
+ * this holds is the order and that it is still one row.
  */
-describe("the three ways off a screen stand in one row (#370)", () => {
+describe("the three ways off a screen stand in one row (#370, #409)", () => {
   const exits = (): HTMLButtonElement[] =>
     [...document.querySelectorAll("button")].filter((button) =>
       /^(Continue|We don't need one|Back)$/.test(button.textContent ?? ""),
     ) as HTMLButtonElement[];
 
-  it("puts Continue, the escape and Back in one wrapping row, in that order", () => {
+  it("puts Back, the escape and Continue in one wrapping row, in that order", () => {
     mount(
       <Question
         title="Q"
@@ -460,9 +465,9 @@ describe("the three ways off a screen stand in one row (#370)", () => {
     );
     const three = exits();
     expect(three.map((button) => button.textContent)).toEqual([
-      "Continue",
-      "We don't need one",
       "Back",
+      "We don't need one",
+      "Continue",
     ]);
     const rows = new Set(three.map((button) => button.parentElement));
     expect(rows.size, "one row").toBe(1);

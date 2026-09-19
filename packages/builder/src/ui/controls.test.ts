@@ -633,9 +633,9 @@ describe("the native controls, in the tool's ink", () => {
 
 describe("the one button", () => {
   it("is the only place a weight's class string is written", () => {
-    // `rounded-sm border border-rule bg-transparent px-4 py-2` is the secondary recipe, and the
+    // `rounded-sm border border-rule bg-transparent px-6 py-3` is the secondary recipe, and the
     // shape most often copied by hand.
-    const recipe = "rounded-sm border border-rule bg-transparent px-4 py-2";
+    const recipe = "rounded-sm border border-rule bg-transparent px-6 py-3";
     const offenders = others("./Button.tsx")
       .filter(([, text]) => text.includes(recipe))
       .map(([path]) => path);
@@ -653,11 +653,13 @@ describe("the one button", () => {
     for (const [name, classes] of Object.entries(WEIGHT)) {
       if (name === "inline") continue;
       expect(classes, `${name} must declare its type size`).toContain("text-base");
-      expect(classes, `${name} must not invent its own padding`).toMatch(/\bpy-2\b/);
+      expect(classes, `${name} must not invent its own padding`).toMatch(/\bpy-3\b/);
     }
-    // Primary and secondary sit side by side in a row, so their boxes have to agree.
-    expect(WEIGHT.primary).toContain("px-4");
-    expect(WEIGHT.secondary).toContain("px-4");
+    // Primary and secondary sit side by side in a row, so their boxes have to agree. `px-6 py-3`
+    // since #409: the owner read the `px-4 py-2` box on a laptop as a tag rather than a button,
+    // so every box is taller and wider by the same step, and none may take a step of its own.
+    expect(WEIGHT.primary).toContain("px-6");
+    expect(WEIGHT.secondary).toContain("px-6");
   });
 
   it("tells you when it is unavailable, whatever the weight", () => {
@@ -740,13 +742,24 @@ describe("one ink for every small text-only button (B-21)", () => {
    * the override lived at, so the rule cannot go green by failing to see a `<Button>` at all.
    */
   it("still reaches the call site the override was written at", () => {
+    // `Back` was that site — and since #409 `Back` is a box in the escape's weight, not a quiet
+    // sentence, so the pin moves to the quiet button that stands nearest an owner's own content:
+    // `Remove` beside each link, which is the sentence B-21's ink was decided for.
+    const links = everySource().find(([path]) => path.endsWith("list/LinkButtons.tsx"))?.[1] ?? "";
+    const remove = buttonElements(links).find((element) => element.includes('weight="quiet"'));
+    expect(remove, "LinkButtons.tsx renders `Remove` as a quiet button").toBeDefined();
+    expect(remove, "and hands it no colour of its own").not.toMatch(/text-ink/);
+
+    // And the site the override lived at is read too, so a `text-ink-quiet` put back on `Back`
+    // cannot hide behind the pin having moved.
     const question =
       everySource().find(([path]) => path.endsWith("flow/questions/Question.tsx"))?.[1] ?? "";
-    const back = buttonElements(question).find((element) => element.includes('weight="quiet"'));
-    expect(back, "Question.tsx renders `Back` as a quiet button").toBeDefined();
-    // It used to hand the button a rung of the ladder as well, the inter-section one (B-8);
-    // since #370 the exits row spaces all three, so the call site hands nothing but the weight.
-    expect(back, "and hands it nothing but its weight").not.toContain("className");
+    const back = buttonElements(question).find((element) => element.includes("onClick={onBack}"));
+    expect(back, "Question.tsx renders `Back` through Button").toBeDefined();
+    expect(back, "as the outlined weight (#409)").toContain('weight="secondary"');
+    expect(classLists(back ?? "").flatMap(restingColours), "with no colour laid over it").toEqual(
+      [],
+    );
   });
 
   /**
@@ -1002,7 +1015,7 @@ describe("no button is drawn by hand (B-3)", () => {
   it("knows a copied recipe from a recipe of its own", () => {
     // What was live on `Advanced.tsx` from #183 until #240 — `WEIGHT.quiet` frozen at the moment
     // it was copied, missing the size #198 gave it and the ink #234 gave it.
-    const wasLive = "tap bg-transparent py-2 font-sans underline underline-offset-4";
+    const wasLive = "tap bg-transparent py-3 font-sans underline underline-offset-4";
     expect(handCopiedWeights(wasLive)).toEqual(["quiet"]);
     for (const name of Object.keys(WEIGHT) as ButtonWeight[]) {
       expect(handCopiedWeights(WEIGHT[name]), `a whole ${name}`).toContain(name);
@@ -1100,13 +1113,16 @@ describe("no button is drawn by hand (B-3)", () => {
  */
 describe("one solid fill, spent once (design change 3)", () => {
   /**
-   * `bg-ink` as a whole class, so `bg-ink/40` is not caught by it.
+   * `bg-accent` as a whole class, so a wash like `bg-accent/85` — the fill's own hover step — is
+   * not caught by it. (The fill was `bg-ink` until #409; the owner asked for `Continue` in the
+   * tool's own accent, the progress bar's indigo, and `--color-accent` is that colour named for
+   * the job. The scrim is still `bg-ink/40`, and is not a fill either way.)
    *
    * The distinction is the point rather than an escape hatch: a 40% wash over a screen is a scrim
    * and not a fill, and #199 is about to spend exactly that on the sheet's `bg-black/40`, which
    * is the one colour in the tool that is not a paper token.
    */
-  const FILL = /\bbg-ink(?![\w-])(?!\/)/;
+  const FILL = /\bbg-accent(?![\w-])(?!\/)/;
 
   it("is written in the one button component and nowhere else", () => {
     const offenders = others("./Button.tsx")
@@ -1126,6 +1142,24 @@ describe("one solid fill, spent once (design change 3)", () => {
     // floor, so nothing moves on the screen when the fill travels.
     expect(FILL.test(WEIGHT.secondary)).toBe(false);
     expect(WEIGHT.secondary).toContain("bg-transparent");
+  });
+
+  /**
+   * **The fill is the tool's accent, and the accent is the progress bar's indigo** (#409). The
+   * owner asked for `Continue` in "the tool's own accent" rather than the ink, and the tool has
+   * exactly one: `--color-progress`, chosen in #273 for the bar. Naming it twice is deliberate —
+   * `accent` says what the fill is *for* where `progress` says where it came from — and the two
+   * are held equal here so they cannot drift into a second colour. Ground-coloured words stand
+   * on it, so it is §3.3's 4.5 for text and not SC 1.4.11's 3:1; both backdrops, as ever.
+   */
+  it("is the tool's one accent, legible as text on it", () => {
+    expect(token("accent"), "the accent is the progress bar's colour").toEqual(token("progress"));
+    expect(between("accent", "ground"), "ground words on the accent").toBeGreaterThanOrEqual(4.5);
+    for (const backdrop of BACKDROPS) {
+      expect(between("accent", backdrop), `the fill's edge on ${backdrop}`).toBeGreaterThanOrEqual(
+        3,
+      );
+    }
   });
 });
 
@@ -1296,21 +1330,31 @@ describe("the escape", () => {
     expect(escapeTags().length).toBeGreaterThanOrEqual(3);
   });
 
-  it("is not the same object as Back, which is the defect that started this", () => {
-    // The two differ in the way §4 says they should: the branch has a boundary, the navigation
-    // control has none. Same size, same type — the weight is carried by the outline and the fill.
+  it("is the same box as Back, and the row tells them apart", () => {
+    // Until #409 the two differed on purpose — the branch had a boundary, the navigation control
+    // was a quiet sentence — and the owner read the sentence as a link, not a button. So `Back`
+    // is the outlined weight now, the same box as the escape, and what tells them apart is where
+    // they stand: `Back` on the column's left edge, the escape beside `Continue` on the right
+    // (`Question.tsx`, measured in `layout.e2e.ts`). The quiet weight is still a sentence — for
+    // `Remove`, `Advanced` and *Or type a code*, which sit beside an owner's own content.
     expect(WEIGHT.secondary).toContain("border");
     expect(WEIGHT.quiet).not.toContain("border");
-    expect(WEIGHT.secondary).not.toBe(WEIGHT.quiet);
+    const question =
+      everySource().find(([path]) => path.endsWith("flow/questions/Question.tsx"))?.[1] ?? "";
+    const back = buttonElements(question).find((element) => element.includes("onClick={onBack}"));
+    expect(back, "Question.tsx renders `Back` through Button").toBeDefined();
+    expect(back, "Back wears the outlined weight").toContain('weight="secondary"');
   });
 
   it("differs from Continue only in fill", () => {
-    expect(WEIGHT.primary).toContain("bg-ink");
+    expect(WEIGHT.primary).toContain("bg-accent");
     expect(WEIGHT.secondary).toContain("bg-transparent");
     // `w-fit` is in this list because of B-72 (#230): before it, Continue stretched the flow's
     // column while the escape one line below it fit its words, so "differs only in fill" was a
     // sentence this file asserted and the screen contradicted.
-    for (const shared of ["rounded-sm", "px-4", "py-2", "text-base", "tap", "w-fit"]) {
+    // `border` is shared too (#409): the fill wears a transparent hairline so the two boxes are
+    // the same height to the pixel, not the same height but for the outline's 2px.
+    for (const shared of ["rounded-sm", "border", "px-6", "py-3", "text-base", "tap", "w-fit"]) {
       expect(WEIGHT.secondary, `secondary must share ${shared} with primary`).toContain(shared);
       expect(WEIGHT.primary, `primary must share ${shared} with secondary`).toContain(shared);
     }
@@ -2017,14 +2061,22 @@ describe("the motion language collapses under reduced motion (§7.11)", () => {
  * one panel that cannot grow to fit its contents has been given a size that can.
  */
 describe("one alignment on every screen (B-54)", () => {
-  it("right-aligns nothing — the shared left margin is the only alignment", () => {
+  it("right-aligns nothing but the ways off a screen — the shared left margin is the alignment", () => {
     // "See the page" was the single `justify-end` in the builder, on a screen where the
     // heading, the fields, Continue, the escape and Back all start at the same left margin.
     // The two-ended bar is a different device and keeps its own class (`justify-between`).
+    //
+    // **The one exception is the row of exits, and it is the owner's** (#409, §7.4): `Back` on
+    // the column's left edge, the escape and `Continue` on the right, so the way *on* is the
+    // rightmost thing on the screen — the place it already held in the list's bar. A review
+    // row's `Save` stands at the same edge, and the language row, which draws its own `Save`
+    // outside the shell, puts it there too. Named by file rather than counted, so a third
+    // right-aligned thing is a decision and not a diff.
     const offenders = everySource()
       .filter(([, text]) => text.includes("justify-end"))
-      .map(([path]) => path);
-    expect(offenders).toEqual([]);
+      .map(([path]) => path)
+      .sort();
+    expect(offenders).toEqual(["../flow/questions/Question.tsx", "../list/List.tsx"]);
   });
 
   it("centres nothing down the length of a screen (B-70)", () => {

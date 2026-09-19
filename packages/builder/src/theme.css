@@ -96,6 +96,16 @@
   --color-progress-track: #938d83;
 
   /**
+   * The same indigo, named for its second job (#409). The owner asked for the one filled button
+   * on a screen — `Continue`, a row's `Save`, the sheet's `Download`, the fork's `Open the file`
+   * — in "the tool's own accent" rather than the ink, and the tool has exactly one colour of its
+   * own: the bar's. `accent` says what the fill is *for*; `progress` says where the colour came
+   * from; `controls.test.ts` holds the two equal so the tool cannot grow a second accent by
+   * drift, and holds ground-coloured words legible on it (**9.30:1**, §3.3's 4.5 for text).
+   */
+  --color-accent: #3730a3;
+
+  /**
    * §7.6's single width, which `flow.css` and `preview.css` used to agree on by hand. One token
    * now generates the `wide:` variant, so the two cannot drift apart — there is only one of it.
    */
@@ -436,13 +446,13 @@
  * runs on below it (`Question.tsx`), drawn over a band of ground 16px past the row on every
  * side. A control the browser scrolls into view on its own — a Tab landing on the hours note,
  * a `scrollIntoView` — is scrolled to the viewport's edge, which is under that band. Scroll
- * padding is how a document says where its edge really is: 6rem covers the row at one line
- * (a 44px button, 16px of band above and below, 16px off the foot). A row wrapped to two lines
- * on a phone is taller than that, and a stop under it is a scroll away; the phone pass reads
- * it. The list has no such row and loses nothing to the padding but a little air.
+ * padding is how a document says where its edge really is: 6.5rem covers the row at one line
+ * (a 48px button since #409, 16px of band above and below, 16px off the foot). A row wrapped to
+ * two lines on a phone is taller than that, and a stop under it is a scroll away; the phone pass
+ * reads it. The list has no such row and loses nothing to the padding but a little air.
  */
 @layer base {
   html {
-    scroll-padding-bottom: 6rem;
+    scroll-padding-bottom: 6.5rem;
   }
 }

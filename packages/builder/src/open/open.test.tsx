@@ -93,8 +93,9 @@ describe("naming what would go (§7.8)", () => {
     expect(button("Open the file").className).toBe(WEIGHT.primary);
     // The escape is a real branch of the fork, not a footnote — a hairline outline, same box.
     expect(button("Download my work first").className).toBe(WEIGHT.secondary);
-    // And the third choice routes through a named weight rather than a hand-written string.
-    expect(button("Cancel").className).toBe(WEIGHT.quiet);
+    // And the third choice routes through a named weight rather than a hand-written string —
+    // the escape's box since #409, because a way off a screen is a button and not a sentence.
+    expect(button("Cancel").className).toBe(WEIGHT.secondary);
 
     // Independent of all of that: an unaimed press still cannot be the one that replaces.
     expect(document.activeElement).toBe(button("Download my work first"));

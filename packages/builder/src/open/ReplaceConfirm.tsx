@@ -121,7 +121,8 @@ export function ReplaceConfirm({
         <Button type="button" weight="primary" onClick={onOpen}>
           Open the file
         </Button>
-        <Button type="button" weight="quiet" onClick={onCancel}>
+        {/* A way off the screen, so the escape's box rather than a quiet sentence (#409). */}
+        <Button type="button" weight="secondary" onClick={onCancel}>
           Cancel
         </Button>
       </div>
