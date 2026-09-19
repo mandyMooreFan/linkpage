@@ -89,11 +89,17 @@ export function TaglineQuestion({
       escape={{ label: "We don't need one", onEscape: onSkip }}
       onBack={onBack}
     >
+      {/*
+       * One line on the page, and longer than a phone's box: the line wraps rather than
+       * scrolling the end out of sight (#382). The name's box above is left as it is — the
+       * finding named the tagline.
+       */}
       <TextField
         label="Tagline"
         value={tagline}
         onValueChange={setTagline}
         name="tagline"
+        wraps
         validate={(value) =>
           value.trim() === "" ? "Nothing typed yet — add a line, or say you don't need one." : true
         }

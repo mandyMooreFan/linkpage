@@ -1,6 +1,6 @@
 import type { JSX, ReactNode } from "react";
 import { Field, useJudged } from "../flow/questions/Question.js";
-import { TextInput, UrlInput } from "./TextInput.js";
+import { TextArea, TextInput, UrlInput, WRAP_CLASS } from "./TextInput.js";
 import { splitWebAddress, typedWebAddress } from "./webAddress.js";
 
 /**
@@ -36,6 +36,13 @@ export interface TextFieldProps {
   readonly inputMode?: JSX.IntrinsicElements["input"]["inputMode"];
   readonly spellCheck?: boolean;
   readonly autoCapitalize?: string;
+  /**
+   * The line wraps instead of scrolling (#382): one row that grows to its words, for an answer
+   * that is one line on the page and still longer than a phone's box. `Enter` goes on exactly
+   * as it does on the one-line box, and a line break never becomes part of the answer. See
+   * `WRAP_CLASS` for why this is the right shape here and the wrong one for the address.
+   */
+  readonly wraps?: boolean;
 }
 
 export function TextField(props: TextFieldProps): JSX.Element {
@@ -137,6 +144,7 @@ function urlInput({ value, onValueChange, onCommit }: UrlFieldProps): JSX.Elemen
 }
 
 function plainInput(props: TextFieldProps): JSX.Element {
+  if (props.wraps === true) return wrappingInput(props);
   return (
     <TextInput
       type={props.type ?? "text"}
@@ -147,6 +155,38 @@ function plainInput(props: TextFieldProps): JSX.Element {
       spellCheck={props.spellCheck}
       autoCapitalize={props.autoCapitalize}
       onChange={(event) => props.onValueChange(event.target.value)}
+    />
+  );
+}
+
+/** A line break, however a platform spells one. Pasted in, it becomes a space (#382). */
+const LINE_BREAKS = /[\r\n]+/g;
+
+/**
+ * The line that wraps — `WRAP_CLASS` says why it is a `<textarea>`; this is what keeps it
+ * behaving like the `<input>` it replaces. A textarea's `Enter` inserts a line, and its value
+ * may hold one from a paste; the answer is one line, so `Enter` submits the question's form
+ * the way the one-line box did — not while an input method is still composing a character —
+ * and any break that arrives by another route is a space before the question sees it.
+ */
+function wrappingInput(props: TextFieldProps): JSX.Element {
+  return (
+    <TextArea
+      rows={1}
+      className={WRAP_CLASS}
+      data-wraps
+      value={props.value}
+      placeholder={props.placeholder}
+      autoComplete={props.autoComplete}
+      inputMode={props.inputMode}
+      spellCheck={props.spellCheck}
+      autoCapitalize={props.autoCapitalize}
+      onChange={(event) => props.onValueChange(event.target.value.replace(LINE_BREAKS, " "))}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+        event.preventDefault();
+        event.currentTarget.form?.requestSubmit();
+      }}
     />
   );
 }
