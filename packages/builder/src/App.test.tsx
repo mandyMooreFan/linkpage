@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render as mount, screen, within } from "@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App.js";
 import { installDownloads, type FakeDownloads } from "./download/downloads.testing.js";
+import { languageLabel } from "./list/languages.js";
 import { PROJECT_STORAGE_KEY, type StorageLike } from "./project/index.js";
 import { WEIGHT } from "./ui/Button.js";
 import { filledLabels } from "./ui/fill.testing.js";
@@ -311,7 +312,9 @@ describe("which screen the owner gets", () => {
     expect(screen.getByRole("button", { name: /^How it looks/ }).textContent).toContain("Centred");
 
     const language = screen.getByRole("button", { name: /^Page language/ });
-    expect(language.textContent).toContain(navigator.language);
+    // By its name (#379): jsdom's browser says `en-US`, and the row says *English*.
+    expect(language.textContent).toContain(languageLabel(navigator.language));
+    expect(language.textContent).not.toContain(navigator.language);
     // Silently, and permanently the moment the file opens — which is safe because the upgrade
     // only ever adds defaults for things that were absent.
     expect(JSON.parse(storage.getItem(PROJECT_STORAGE_KEY) ?? "{}")).toMatchObject({

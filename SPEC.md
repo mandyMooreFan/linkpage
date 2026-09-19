@@ -1813,7 +1813,14 @@ content is an acknowledgement that has to be dismissed.
   a bakery owner for a BCP 47 tag, on a product whose standing tiebreaker is that the owner is not a
   developer. **A quiet "or type a code" escape stays**, and not as a nicety: §4.5 preserves unknown values,
   so a hand-edited file declaring `sw` — English words, correct tag, a perfectly sensible state — must be
-  displayable without the control silently rewriting it to `en`.
+  displayable without the control silently rewriting it to `en`. **The collapsed row says the language
+  by its name** — _English_, not `en-US` — because what is there is a language and the owner is not the
+  one who knows the tag; the open picker marks the same row the name came from, so the two cannot
+  disagree, and a tag the page cannot write (`sw`) is shown as typed in both places rather than dressed as
+  the English it falls back to. **The picker opens at the chosen language**, with the row before it above
+  so it reads as a place in the list rather than its start, and **its box is a whole number of rows** —
+  four, and the three hairlines between them — so the box's edge is a row's edge and never a second rule
+  a few pixels from a divider (#379).
   **A collapsed row says what is there, not what it says. Every row is one short line.**
 
 A row whose answer is a **list of things** reports how many of them — _12 link buttons_, _Open 7 days_,

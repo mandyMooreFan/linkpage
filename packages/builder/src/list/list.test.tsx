@@ -221,6 +221,30 @@ describe("every answer is a row (§7.4)", () => {
     expect(latest()?.lang).toBe("fr-CA");
   });
 
+  it("opens the picker on the row the collapsed summary named, with the escape folded (#379)", () => {
+    editing({ ...POPULATED, lang: "en-US" });
+    expect(
+      screen.getByRole("button", { name: /^Page language/, expanded: false }).textContent,
+    ).toContain("English");
+    openRow(/^Page language/);
+    const pressed = [...document.querySelectorAll('[data-languages] [aria-pressed="true"]')];
+    expect(pressed.map((b) => b.getAttribute("lang"))).toEqual(["en"]);
+    expect(screen.getByRole("button", { name: "Or type a code" })).toBeTruthy();
+    expect(screen.queryByLabelText("Or type a code")).toBeNull();
+  });
+
+  it("shows a tag the page cannot write as typed, and marks no row for it (§4.5; #379)", () => {
+    editing({ ...POPULATED, lang: "sw" });
+    expect(
+      screen.getByRole("button", { name: /^Page language/, expanded: false }).textContent,
+    ).toContain("sw");
+    openRow(/^Page language/);
+    // The page falls back to English words for `sw`; the control must not say English was
+    // chosen, and must show the value it is preserving.
+    expect(document.querySelectorAll('[data-languages] [aria-pressed="true"]')).toHaveLength(0);
+    expect((screen.getByLabelText("Or type a code") as HTMLInputElement).value).toBe("sw");
+  });
+
   it("saves an edited answer through the flow's own door", () => {
     const { latest } = editing();
     openRow(/^A line about what you do/);

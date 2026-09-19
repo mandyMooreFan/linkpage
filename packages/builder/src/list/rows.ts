@@ -5,6 +5,7 @@ import { TOPIC_LABELS, TOPICS, type Topic } from "../flow/topics.js";
 import type { Draft } from "../project/index.js";
 import { rowMark } from "../project/unusable.js";
 import { MODE_LABELS, SHAPE_LABELS } from "./labels.js";
+import { languageLabel } from "./languages.js";
 
 /**
  * What the review list is a list *of*. `SPEC.md` §7.4, §7.1, §4.3.
@@ -103,7 +104,9 @@ export function listRows(draft: Draft): ListRows {
       };
     }),
     { id: "style", label: STYLE_LABEL, summary: styleSummary(draft), swatch: draft.style.brand },
-    { id: "lang", label: LANG_LABEL, summary: draft.lang ?? "" },
+    // By name, not tag (#379): the row says what is there, and what is there is *English*, not
+    // `en-US`. A tag the page cannot write stays as typed, which is §4.5's promise kept in view.
+    { id: "lang", label: LANG_LABEL, summary: languageLabel(draft.lang) },
   ];
 
   return { rows, uncovered };

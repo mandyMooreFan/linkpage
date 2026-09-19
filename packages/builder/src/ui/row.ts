@@ -77,6 +77,32 @@ export const ROW_STACK_PADDING = { className: "py-5", px: 20 } as const;
 export const ROW_BUTTON = `tap flex w-full flex-col gap-0.5 bg-transparent ${ROW_PADDING.className} text-start font-sans enabled:hover:bg-rule/40`;
 
 /**
+ * A scrolling list that shows **whole rows** — the language picker, and nothing else today (#379).
+ *
+ * The picker wore `max-h-80`, which is 320px: four two-line rows, the hairline under the fourth,
+ * and two pixels of the fifth — so the box's own bottom rule (`ROW_LIST`'s `border-y`) sat a few
+ * pixels under a divider and the two read as one doubled line. **The height is the rows' own
+ * sum instead**, so the foot of the box is the foot of a row, at any scroll position that starts
+ * on a row. A two-line row is deterministic: `ROW_PADDING` twice, `text-base`'s line (1.5rem),
+ * `ROW_BUTTON`'s `gap-0.5` (0.125rem) and `text-sm`'s line (1.25rem) — 4.875rem, and nothing in
+ * the picker wraps at any width the builder lays out. Between four rows sit three hairlines, and
+ * `border-box` puts the box's own two inside the height, hence the `+5px`; `controls.test.ts`
+ * holds the arithmetic against the constants it is made of.
+ *
+ * **Where the box opens is the picker's own doing**, not this constant's: it scrolls to the row
+ * before the chosen one so the chosen language is second in view — inside the list, not at its
+ * start — and lands on a row's edge so the sum above stays true on arrival.
+ */
+export const ROW_SCROLL_BOX = {
+  className: "max-h-[calc(4*4.875rem+5px)]",
+  rows: 4,
+  /** One two-line row at the browser's default 16px. */
+  rowPx: 78,
+  /** The box outside its borders: 4 × 78 + 3 hairlines + 2 edges. */
+  px: 317,
+} as const;
+
+/**
  * What an open row is delimited by (B-41, B-42).
  *
  * **Space, not a heavier line.** The hairline above an open row is the *same* hairline that

@@ -1,5 +1,13 @@
 import { direction, vocabulary } from "@linkpage/renderer";
-import { useEffect, useId, useState, type JSX, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type JSX,
+  type ReactNode,
+} from "react";
 import { applyIntake, type LogoIntake } from "../logo/index.js";
 import { NameQuestion, TaglineQuestion } from "../flow/questions/HeaderQuestions.js";
 import { HoursQuestion } from "../flow/questions/HoursQuestion.js";
@@ -23,13 +31,13 @@ import { LADDER } from "../ui/ladder.js";
 import { HEADING, TYPE } from "../ui/type.js";
 import type { Draft } from "../project/index.js";
 import { removeTopic, setLang } from "./edits.js";
-import { LANGUAGE_NAMES } from "./languages.js";
+import { LANGUAGE_NAMES, listedKey } from "./languages.js";
 import { LinkButtons } from "./LinkButtons.js";
 import { listRows, type Row, type RowId } from "./rows.js";
 import { StyleStep } from "./StyleStep.js";
 import { Button } from "../ui/Button.js";
 import { Panel } from "../ui/Panel.js";
-import { ROW_BUTTON, ROW_LIST, ROW_OPEN } from "../ui/row.js";
+import { ROW_BUTTON, ROW_LIST, ROW_OPEN, ROW_SCROLL_BOX } from "../ui/row.js";
 import { TextInput } from "../ui/TextInput.js";
 
 /**
@@ -783,12 +791,38 @@ function LangRow({
   readonly onDone: () => void;
 }): JSX.Element {
   const [value, setValue] = useState(draft.lang ?? "");
-  const [typing, setTyping] = useState(!isListed(value));
+  const [typing, setTyping] = useState(listedKey(value) === undefined);
   // §7.9 decision 1 (#368): Save is never greyed. Pressed with no code, it says so under the
   // box — this editor has no `Question` shell, so it holds the one sentence itself.
   const [pressedEmpty, setPressedEmpty] = useState(false);
   const fieldId = useId();
   const listId = useId();
+  const listRef = useRef<HTMLUListElement>(null);
+
+  /*
+   * **The box opens at the chosen language, not at Bahasa Indonesia** (#379). Forty-two rows in
+   * a four-row box, and the mark that says which one is picked was below the fold for every
+   * language after Eesti — nothing on screen said what was chosen until the owner scrolled. The
+   * row *before* the chosen one is put at the top, so the chosen row is second in view and reads
+   * as a place in the list rather than its start; the first row has nothing before it and stays
+   * at the top. **It lands on the row's words, not on a hairline** — `clientTop` is the row's
+   * own divider when `divide-y` draws it on top, and 0 when it draws it on the bottom, as
+   * Tailwind v4 does — so a divider never sits under `ROW_LIST`'s own rule as a 2px line, and
+   * starting on a row's edge is what keeps `ROW_SCROLL_BOX`'s whole-rows sum true on arrival.
+   *
+   * Once, before paint, on open — `useLayoutEffect` so the owner never sees the top of the list
+   * first. Set as a plain `scrollTop`, so it is instant whatever `prefers-reduced-motion` says,
+   * and the page around the box does not move (`scrollIntoView` scrolls every ancestor too).
+   * Re-pressing a row does not re-scroll: the owner is already looking at it.
+   */
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const chosen = list?.querySelector<HTMLElement>('[aria-pressed="true"]')?.closest("li");
+    if (!list || !chosen) return;
+    const first = chosen.previousElementSibling ?? chosen;
+    const top = first.getBoundingClientRect().top - list.getBoundingClientRect().top;
+    list.scrollTop = top - list.clientTop + first.clientTop;
+  }, []);
 
   return (
     // A picker and a field stacked, which is a field-to-field relationship whatever the two are
@@ -816,7 +850,12 @@ function LangRow({
          * pressable summary (B-43). It used to be that shape at half the padding, with its own
          * `border-b` on every item.
          */}
-        <ul className={`mt-2 max-h-80 overflow-y-auto ${ROW_LIST}`} id={listId} data-languages>
+        <ul
+          ref={listRef}
+          className={`mt-2 ${ROW_SCROLL_BOX.className} overflow-y-auto ${ROW_LIST}`}
+          id={listId}
+          data-languages
+        >
           {LANGUAGE_CHOICES.map((choice) => (
             <li key={choice.tag}>
               <button
@@ -837,7 +876,7 @@ function LangRow({
                  */
                 className={`${ROW_BUTTON} px-3 aria-pressed:picked`}
                 lang={choice.tag}
-                aria-pressed={vocabularyKeyOf(value) === choice.tag}
+                aria-pressed={listedKey(value) === choice.tag}
                 onClick={() => {
                   setTyping(false);
                   setValue(choice.tag);
@@ -926,14 +965,6 @@ const LANGUAGE_CHOICES = Object.entries(LANGUAGE_NAMES)
     };
   })
   .sort((a, b) => a.name.localeCompare(b.name, "en"));
-
-/** Which vocabulary a tag resolves to, so `en-GB` shows English as the pressed row. */
-function vocabularyKeyOf(tag: string): string | undefined {
-  const words = vocabulary(tag);
-  return LANGUAGE_CHOICES.find((choice) => vocabulary(choice.tag) === words)?.tag;
-}
-
-const isListed = (tag: string): boolean => tag !== "" && vocabularyKeyOf(tag) !== undefined;
 
 /**
  * The menu panel's width, with the px each class buys written beside it (#196, B-53, B-67).
