@@ -1867,6 +1867,18 @@ hold, which the tool's own words never are, so no screen the review ritual photo
 **A row whose value we cannot use is marked** — a quiet note that this one will not work, in §7.9's words.
 Editing the row opens the same question, with the same message.
 
+**An open row says it is being edited** (#377, from the desktop walk's moment 19). Opening a row put the
+question and its form on the screen and nothing said _you are editing this now_ — the label above had not
+changed, only the summary under it had gone, and the owner could not tell they had entered edit mode; they
+had expected a row to take them back into that step of the wizard. The row is the list's designed editing
+surface and stays one (§7.1, §7.11: an open row _is_ the flow's own question), so the smaller move is
+made: **the slot the summary leaves says so** — _You're editing this. Save keeps the change, or press here
+to leave it as it was._ — one quiet line in the row's own header, the thing the owner just pressed. It
+says how to leave as well as that they are in, and both halves are true by construction: _Save_ is the
+only thing that writes, and pressing the header closes the question and drops what was typed, so the page
+goes back to what is written (#373). It is the tool's own words, so it takes the quiet line's size and
+colour rather than the answer's ink, and sits outside the break-anywhere rule the summary is under.
+
 **The exact-colour field stops teaching notation.** Its example moves out of the hint and into the
 placeholder, so it stops being instruction, and **the hint names who the field is for** — _"From a
 designer or a brand guide."_ An owner handed a code by their designer needs that code to be the least

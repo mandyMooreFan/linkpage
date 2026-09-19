@@ -696,7 +696,24 @@ function RowItem({
         <span className={`${TYPE.quietLine.className} font-medium`} data-row-label>
           {row.label}
         </span>
-        {!open && (
+        {open ? (
+          /*
+           * **An open row says it is being edited** (#377, desktop walk moment 19). The question
+           * and its form came up and nothing said *you are editing this now*: the label above
+           * had not changed, only the summary had gone, and the owner could not tell they had
+           * entered edit mode. So the slot the summary leaves says so, in the row they pressed —
+           * the same button that closes it, which is why the line can also say how to leave.
+           * Both halves are true by construction: `Save` is the only thing that writes (§7.2,
+           * §7.4), and this button's press unmounts the question and drops what was typed, so
+           * the page goes back to what is written.
+           *
+           * The tool's own words, so it is the quiet line and not the answer's ink (B-62), and
+           * it is outside the break-anywhere rule the summary is under (#244).
+           */
+          <span className={TYPE.quietLine.className} data-row-editing>
+            You&rsquo;re editing this. Save keeps the change, or press here to leave it as it was.
+          </span>
+        ) : (
           // The other one, and the site #244 was raised about: whatever `rows.ts` decided a row
           // says, three of the nine still carry the owner's raw text and any of them can be one
           // unbreakable token. See the rule at the top of this file.

@@ -9,6 +9,7 @@ import type { Topic } from "../flow/topics.js";
 import { ReplaceConfirm } from "../open/index.js";
 import type { Draft } from "../project/index.js";
 import { ROW_OPEN } from "../ui/row.js";
+import { TYPE } from "../ui/type.js";
 import { WEIGHT } from "../ui/Button.js";
 import { filledLabels, quietButtons, textClasses, widthDisagreements } from "../ui/fill.testing.js";
 import { List, MENU_PANEL } from "./List.js";
@@ -439,6 +440,57 @@ describe("the list's ladder and emphasis (§1, §2)", () => {
     // Once, and in the field that can change it.
     expect(screen.getByLabelText("Tagline")).toHaveProperty("value", tagline);
     expect(row("tagline").textContent).not.toContain(tagline);
+  });
+
+  /**
+   * #377 (desktop walk, moment 19): opening a row put the question and its form on the screen
+   * and nothing said *you are editing this now* — the owner could not tell they had entered
+   * edit mode. The row they pressed answers in the slot its summary left: one quiet line that
+   * says so, and says how to leave without writing anything.
+   */
+  describe("an open row says it is being edited (#377)", () => {
+    const EDITING =
+      "You’re editing this. Save keeps the change, or press here to leave it as it was.";
+
+    it("says so in the row that is open, where its summary was, and in no other row", () => {
+      editing();
+      expect(document.querySelector("[data-row-editing]")).toBeNull();
+
+      openRow(/^Opening hours/);
+
+      const lines = [...document.querySelectorAll("[data-row-editing]")];
+      expect(lines.map((line) => line.textContent)).toEqual([EDITING]);
+      // In the header the owner pressed — the same button that closes it — not in the form.
+      const header = row("hours").querySelector("button[aria-expanded]") as HTMLElement;
+      expect(header.getAttribute("aria-expanded")).toBe("true");
+      expect(header.contains(lines[0] as Node)).toBe(true);
+      expect(row("hours").querySelector("[data-row-summary]")).toBeNull();
+    });
+
+    it("is the tool's own quiet line, not the owner's answer", () => {
+      editing();
+      openRow(/^Opening hours/);
+      const line = document.querySelector("[data-row-editing]") as HTMLElement;
+      expect(line.className).toContain(TYPE.quietLine.className);
+      expect(line.className).not.toContain("[overflow-wrap:anywhere]");
+    });
+
+    it("goes when the row closes, and what it promised is true: nothing was written", () => {
+      const { seen } = editing();
+      openRow(/^A line about what you do/);
+      fireEvent.change(screen.getByLabelText("Tagline"), { target: { value: "Half typed" } });
+
+      // Pressing the header it describes.
+      fireEvent.click(
+        screen.getByRole("button", { name: /^A line about what you do/, expanded: true }),
+      );
+
+      expect(document.querySelector("[data-row-editing]")).toBeNull();
+      expect(row("tagline").querySelector("[data-row-summary]")?.textContent).toBe(
+        POPULATED.header.tagline,
+      );
+      expect(seen).toEqual([]);
+    });
   });
 });
 
