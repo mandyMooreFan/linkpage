@@ -115,7 +115,7 @@ describe("every answer is a row, saying what is there (§7.4)", () => {
       'Sourdough, pastries, and "the best" cheese scone in town',
     );
     expect(summary(POPULATED, "contact")).toBe("+44 20 7946 0100 · hello@adasbakery.example");
-    expect(summary(POPULATED, "address")).toBe("12 Mill Lane, Hebden Bridge, HX7 8AA");
+    expect(summary(POPULATED, "address")).toBe("12 Mill Lane, Austin, TX 78701");
   });
 
   it("reports how many, on a row holding a list", () => {
@@ -262,12 +262,18 @@ describe("every answer is a row, saying what is there (§7.4)", () => {
   describe("the address row", () => {
     const withDirections = (directionsUrl: string): Draft => ({
       ...POPULATED,
-      address: { lines: ["12 Bridge Street", "Hebden Bridge", "HX7 8AA"], directionsUrl },
+      address: {
+        street: "12 Bridge Street",
+        city: "Austin",
+        state: "TX",
+        zip: "78701",
+        directionsUrl,
+      },
     });
 
     it("says the address, then that a link is there", () => {
       expect(summary(withDirections("https://maps.example/?q=12+Bridge+Street"), "address")).toBe(
-        "12 Bridge Street, Hebden Bridge, HX7 8AA · directions link",
+        "12 Bridge Street, Austin, TX 78701 · directions link",
       );
     });
 
@@ -291,7 +297,7 @@ describe("every answer is a row, saying what is there (§7.4)", () => {
     it("says nothing about a link when there is none", () => {
       // `POPULATED`'s address has no directions link, and the row is the address alone.
       expect(POPULATED.address?.directionsUrl).toBeUndefined();
-      expect(summary(POPULATED, "address")).toBe("12 Mill Lane, Hebden Bridge, HX7 8AA");
+      expect(summary(POPULATED, "address")).toBe("12 Mill Lane, Austin, TX 78701");
       expect(summary(POPULATED, "address")).not.toContain("directions link");
     });
 
@@ -300,7 +306,7 @@ describe("every answer is a row, saying what is there (§7.4)", () => {
       // §7.4's "never empty on a row that is showing" has to survive that.
       const draft: Draft = {
         ...POPULATED,
-        address: { lines: [], directionsUrl: "https://maps.example/?q=here" },
+        address: { directionsUrl: "https://maps.example/?q=here" },
       };
       expect(summary(draft, "address")).toBe("directions link");
     });
@@ -373,7 +379,7 @@ describe("a row whose value the page cannot use (§7.9)", () => {
     // One pattern, one noun of variation (§7.9 decision 6) — not a second voice.
     const directions = {
       ...POPULATED,
-      address: { lines: ["12 Bridge Street"], directionsUrl: "@mybakery" },
+      address: { street: "12 Bridge Street", directionsUrl: "@mybakery" },
     } as Draft;
     expect(mark(directions, "address")).toBe(
       "This link won't work — paste the address from your browser.",

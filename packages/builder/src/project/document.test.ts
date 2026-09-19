@@ -6,6 +6,7 @@ import {
   readVersion,
   REFUSAL_MESSAGES,
   serializeProject,
+  upgradeDocument,
 } from "./document.js";
 
 /**
@@ -133,6 +134,73 @@ describe("reading the version", () => {
       expect(refusalFor(text)?.reason, text).toBe("damaged");
       expect(Object.values(REFUSAL_MESSAGES), text).toContain(refusalFor(text)?.message);
     }
+  });
+});
+
+/**
+ * The one conversion so far (§2.3, §4.3; #364, built by #386): a `version: 1` file's free-text
+ * address lines become the street box, and the file is renumbered to ours. Silent, permanent the
+ * moment the file opens, and non-destructive: nothing the owner typed is lost, it is only in one
+ * box rather than three lines, for them to sort.
+ */
+describe("an older file, upgraded on the way in", () => {
+  const opened = (document: unknown): Record<string, unknown> => {
+    const result = readProjectFile(JSON.stringify(document));
+    if (!result.ok) throw new Error(result.refusal.detail);
+    return result.document;
+  };
+
+  it("lands a version-1 file's address lines in the street box, joined as the row showed them", () => {
+    const document = opened({
+      version: 1,
+      address: {
+        lines: ["12 Bridge Street", " Hebden Bridge", "HX7 8AA"],
+        directionsUrl: "https://maps.example",
+      },
+    });
+    expect(document["address"]).toEqual({
+      street: "12 Bridge Street, Hebden Bridge, HX7 8AA",
+      directionsUrl: "https://maps.example",
+    });
+    expect(document["version"]).toBe(SCHEMA_VERSION);
+  });
+
+  it("treats a missing version as 1, and converts", () => {
+    expect(opened({ address: { lines: ["12 Main St"] } })["address"]).toEqual({
+      street: "12 Main St",
+    });
+  });
+
+  it("drops the blank lines and the wrong-typed ones, and leaves no street when none survive", () => {
+    expect(
+      opened({ version: 1, address: { lines: ["", 7, "  "], directionsUrl: "x" } })["address"],
+    ).toEqual({
+      directionsUrl: "x",
+    });
+  });
+
+  it("renumbers an older file whether or not it had an address, keeping the key where it was", () => {
+    // §4.3, forwards: a file that now holds our shape must say so, or an older builder would read
+    // its street box as no address rather than refuse the file.
+    expect(Object.entries(opened({ lang: "en", version: 0, header: {} }))).toEqual([
+      ["lang", "en"],
+      ["version", SCHEMA_VERSION],
+      ["header", {}],
+    ]);
+    // Absent stays absent here; `writeDraft` adds it at the end, as it always has.
+    expect("version" in opened({ lang: "en" })).toBe(false);
+  });
+
+  it("leaves a lines that was never a list where it is — §4.5's permanent junk, not an address", () => {
+    expect(opened({ version: 1, address: { lines: "12 Main St" } })["address"]).toEqual({
+      lines: "12 Main St",
+    });
+  });
+
+  it("returns a file already at our version exactly as it came", () => {
+    const current = { version: SCHEMA_VERSION, address: { street: "12 Main St", lines: ["junk"] } };
+    expect(upgradeDocument(current, SCHEMA_VERSION)).toBe(current);
+    expect(opened(current)).toEqual(current);
   });
 });
 

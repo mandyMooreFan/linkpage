@@ -194,7 +194,44 @@ export function readProjectFile(text: string): ReadResult {
     );
   }
 
-  return { ok: true, document: parsed };
+  return { ok: true, document: upgradeDocument(parsed, version) };
+}
+
+/**
+ * An older file, brought to the shape every builder writes today (§4.3) — silently, with no
+ * notice and no dialog, and permanently the moment it opens, since autosave writes what this
+ * returns.
+ *
+ * **One conversion so far**, from `1` to `2` (§2.3, #364, built by #386): the address's free-text
+ * `lines` became five boxes. The lines land in the **street** box, joined the way the review row
+ * has always shown them — a comma and a space — for the owner to sort into the right boxes, and
+ * the address row shows what landed as it shows any field defaulted on load (§4.3). `lines`
+ * itself goes, because under version 2 it would be a second address the file could never print;
+ * a `lines` that was not a list is not converted and not removed, which is §4.5's permanent junk.
+ * Then the file is **renumbered to ours**, whether or not it had an address: it now holds our
+ * shape, and an older builder handed a `version: 1` file with a `street` box in it would read the
+ * address as empty rather than refuse (§4.3, forwards). A file already saying our version is
+ * returned as it came.
+ *
+ * `version` keeps its place in the file when it was there and is not added when it was absent —
+ * `writeDraft` adds it, at the end, as it always has — so key order survives either way (§4.5).
+ */
+export function upgradeDocument(document: JsonRecord, version: number): JsonRecord {
+  if (version >= SCHEMA_VERSION) return document;
+  const out: JsonRecord = { ...document };
+  const address = out["address"];
+  if (isRecord(address) && Array.isArray(address["lines"])) {
+    const { lines, ...rest } = address;
+    const street = (lines as unknown[])
+      .filter((line): line is string => typeof line === "string")
+      .map((line) => line.trim())
+      .filter((line) => line !== "")
+      .join(", ");
+    // The street box first, where the owner will look for what landed; the rest keep their order.
+    out["address"] = street === "" ? rest : { street, ...rest };
+  }
+  if ("version" in out) out["version"] = SCHEMA_VERSION;
+  return out;
 }
 
 /**

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { SCHEMA_VERSION } from "@linkpage/renderer";
 import { act, cleanup, fireEvent, render as mount, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App.js";
@@ -587,7 +588,7 @@ describe("opening a project you already have (§7.8, §7.9)", () => {
   const projectJson = (project: object): string => `${JSON.stringify(project, null, 2)}\n`;
 
   const ADAS = {
-    version: 1,
+    version: SCHEMA_VERSION,
     lang: "en-GB",
     style: { brand: "#c2185b" },
     header: { name: "Ada's Bakery" },
@@ -595,7 +596,7 @@ describe("opening a project you already have (§7.8, §7.9)", () => {
   };
 
   const BOS = {
-    version: 1,
+    version: SCHEMA_VERSION,
     lang: "en-GB",
     style: { brand: "#1a3ea8" },
     header: { name: "Bo's Books" },

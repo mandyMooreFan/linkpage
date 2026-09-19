@@ -55,7 +55,11 @@ const complete: Project = {
   },
   contact: { phone: "+44 1422 000000", email: "hello@example.com" },
   address: {
-    lines: ["12 Bridge Street", "Hebden Bridge", "HX7 8AA"],
+    street: "12 Bridge Street",
+    street2: "Unit 4",
+    city: "Austin",
+    state: "TX",
+    zip: "78701",
     directionsUrl: "https://maps.example.com/ada",
   },
   social: [{ platform: "instagram", url: "https://instagram.example.com/ada" }],

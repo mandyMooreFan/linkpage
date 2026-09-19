@@ -22,8 +22,14 @@
 
 import type { IconName, SocialPlatform } from "./icons.js";
 
-/** The only `version` v1 writes. A bump means a breaking change — see `SPEC.md` §4.2. */
-export const SCHEMA_VERSION = 1;
+/**
+ * The `version` every builder writes today. A bump means a breaking change — see `SPEC.md` §4.2.
+ *
+ * `2` since #386: the address's free-text `lines` became five boxes (§2.3), which is a removal
+ * under §4.2's rule. A file saying `1` (or nothing) still opens — the builder's `document.ts`
+ * converts it on the way in — and says `2` once it is saved.
+ */
+export const SCHEMA_VERSION = 2;
 
 /** Layout and emphasis. Carries structure only, never a palette (§3.2). */
 export type Shape = "centred" | "colourBlock" | "floatingCard" | "ruledLeft";
@@ -158,17 +164,27 @@ export interface Contact {
 }
 
 /**
- * Free-text lines, written the way the owner would write them on an envelope (§2.3).
+ * A US address, in the boxes a US owner expects (§2.3, #364, built by #386): a street, an
+ * optional second line, a city, a state's two-letter postal abbreviation, and a ZIP. Each is a
+ * string, each is optional, and the page prints whichever are there as the lines of an envelope
+ * — `12 Main St` / `Austin, TX 78701` — through `envelopeLines`.
  *
- * Not structured street/city/region/postcode: that is what a developer reaches for and it is
- * a localisation trap — a UK florist filling in "state", a Japanese owner facing "street
- * address". Nothing in this project reads the address as data, so structure buys nothing.
+ * **Nothing in this project reads the address as data**, still. The boxes exist because an owner
+ * facing one blank area asked where the state goes, not because the page wants fields: a ZIP is
+ * not checked, a street is not parsed, and the state box's only job is to spell the abbreviation
+ * the envelope line prints. Until #364 this was `lines: string[]`, and structured fields were
+ * refused as a localisation trap; §1 now names one country, so the trap has no jaws. There is no
+ * `country` field: the first pull request that adds a second country adds it (§2.3).
  *
  * `directionsUrl` matters because an embedded map is a subresource and invariant 2 forbids
  * it — a link out is the only remaining answer to "where are you".
  */
 export interface Address {
-  lines: string[];
+  street?: string;
+  street2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
   directionsUrl?: string;
 }
 

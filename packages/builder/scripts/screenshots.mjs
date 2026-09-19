@@ -80,7 +80,10 @@ const PROJECT = {
   },
   contact: { phone: "+44 1422 000000", email: "hello@adasbakery.example" },
   address: {
-    lines: ["12 Bridge Street", "Hebden Bridge", "HX7 8AA"],
+    street: "12 Bridge Street",
+    city: "Austin",
+    state: "TX",
+    zip: "78701",
     directionsUrl: "https://adasbakery.example/directions",
   },
   social: [

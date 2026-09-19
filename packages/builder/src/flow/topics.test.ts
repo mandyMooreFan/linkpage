@@ -36,9 +36,9 @@ const NOTHING: SectionAnswer[] = [
   { section: "contact", value: {} },
   { section: "contact", value: { phone: "", email: "" } },
   { section: "contact", value: { phone: "  ", email: "\t" } },
-  { section: "address", value: { lines: [] } },
-  { section: "address", value: { lines: ["", "  "] } },
-  { section: "address", value: { lines: [""], directionsUrl: " " } },
+  { section: "address", value: {} },
+  { section: "address", value: { street: "", city: "  ", state: "" } },
+  { section: "address", value: { zip: "\t", directionsUrl: " " } },
   { section: "social", value: [] },
   { section: "social", value: [{ platform: "instagram", url: "" }] },
   { section: "social", value: [{ platform: "", url: "https://example.com" }] },
@@ -183,7 +183,7 @@ describe("hasContent is the one definition of covered", () => {
     for (const answer of [
       { section: "hours", value: { clock: "12h", weekStart: "mon", days: { mon: [] } } },
       { section: "contact", value: { phone: "+44" } },
-      { section: "address", value: { lines: ["12 Mill Lane"] } },
+      { section: "address", value: { street: "12 Mill Lane" } },
       { section: "social", value: [{ platform: "x", url: "https://x.example" }] },
     ] satisfies SectionAnswer[]) {
       draft = answerSection(draft, answer);
@@ -192,6 +192,28 @@ describe("hasContent is the one definition of covered", () => {
     for (const topic of TOPICS) {
       // `logo` is the only one no answer above reaches — #31's pipeline owns it.
       expect([topic, hasContent(draft, topic)]).toEqual([topic, topic !== "logo"]);
+    }
+  });
+});
+
+describe("the address boxes (§2.3, #386)", () => {
+  it("trims each box and drops the blank ones, so the file holds only what was typed", () => {
+    const draft = answerSection(DRAFT, {
+      section: "address",
+      value: { street: " 12 Main St ", street2: "  ", city: "Austin", state: "", zip: "78701\t" },
+    });
+    expect(draft.address).toEqual({ street: "12 Main St", city: "Austin", zip: "78701" });
+  });
+
+  it("counts any one box as content — presence, never shape", () => {
+    for (const value of [
+      { street2: "Suite 400" },
+      { state: "TX" },
+      { zip: "not a zip" },
+      { directionsUrl: "maps.example/here" },
+    ]) {
+      const draft = answerSection(DRAFT, { section: "address", value });
+      expect([value, hasContent(draft, "address")]).toEqual([value, true]);
     }
   });
 });
@@ -223,7 +245,7 @@ describe("a mend is shown, not said (§7.9 decision 4, #142)", () => {
   it("mends the directions link and the social links through the same door", () => {
     const withAddress = answerSection(DRAFT, {
       section: "address",
-      value: { lines: ["12 Mill Lane"], directionsUrl: "maps.example/ada" },
+      value: { street: "12 Mill Lane", directionsUrl: "maps.example/ada" },
     });
     expect(withAddress.address?.directionsUrl).toBe("https://maps.example/ada");
 

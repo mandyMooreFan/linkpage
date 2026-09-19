@@ -34,7 +34,7 @@ import type { Draft } from "../project/index.js";
  *   One definition of "covered" means the flow cannot both skip a section and leave it empty.
  *
  * Normalising is part of the door rather than a step before it. A day the owner opened and
- * left blank, a social row with a platform and no URL, an address of empty lines — each is
+ * left blank, a social row with a platform and no URL, an address of empty boxes — each is
  * stripped here, so "has content" is asked of what would actually be written rather than of
  * what the form happened to be holding.
  */
@@ -150,10 +150,27 @@ function cleanContact(value: Contact): Contact {
   return { ...(blank(phone) ? {} : { phone }), ...(blank(email) ? {} : { email }) };
 }
 
+/**
+ * Each box trimmed, a blank box dropped (§2.3): a street with a trailing space is the street,
+ * and a city box the owner never touched is no city rather than an empty one. Nothing is judged
+ * — a ZIP is not checked and a state is whatever the picker spelt — because the boxes exist for
+ * the owner's typing, not for the page's data.
+ */
 function cleanAddress(value: Address): Address {
   const url = mendUrl(value.directionsUrl ?? "");
+  const box = (raw: string | undefined): string | undefined => {
+    const trimmed = (raw ?? "").trim();
+    return trimmed === "" ? undefined : trimmed;
+  };
+  const boxes = {
+    street: box(value.street),
+    street2: box(value.street2),
+    city: box(value.city),
+    state: box(value.state),
+    zip: box(value.zip),
+  };
   return {
-    lines: value.lines.map((line) => line.trim()).filter((line) => line !== ""),
+    ...Object.fromEntries(Object.entries(boxes).filter(([, text]) => text !== undefined)),
     ...(blank(url) ? {} : { directionsUrl: url }),
   };
 }
@@ -184,7 +201,8 @@ function contactHasContent(value: Contact | undefined): boolean {
 function addressHasContent(value: Address | undefined): boolean {
   if (value === undefined) return false;
   const cleaned = cleanAddress(value);
-  return cleaned.lines.length > 0 || !blank(cleaned.directionsUrl);
+  // Any one box filled — presence, never shape (§2.3, §7.9) — or the directions link alone.
+  return Object.values(cleaned).some((text) => text !== undefined);
 }
 
 function socialHasContent(value: readonly SocialLink[] | undefined): boolean {

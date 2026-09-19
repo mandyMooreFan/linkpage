@@ -379,11 +379,17 @@ describe("the list's ladder and emphasis (§1, §2)", () => {
     const url = "https://maps.example/?q=12+Bridge+Street";
     editing({
       ...POPULATED,
-      address: { lines: ["12 Bridge Street", "Hebden Bridge", "HX7 8AA"], directionsUrl: url },
+      address: {
+        street: "12 Bridge Street",
+        city: "Austin",
+        state: "TX",
+        zip: "78701",
+        directionsUrl: url,
+      },
     });
 
     expect(row("address").querySelector("[data-row-summary]")?.textContent).toBe(
-      "12 Bridge Street, Hebden Bridge, HX7 8AA · directions link",
+      "12 Bridge Street, Austin, TX 78701 · directions link",
     );
     expect(row("address").textContent).not.toContain("maps.example");
 

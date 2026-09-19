@@ -9,8 +9,10 @@ import { useId, useMemo, useState, type JSX } from "react";
 import { TextField, UrlField } from "../../ui/TextField.js";
 import { emailJudge, linkJudge } from "../../project/unusable.js";
 import { Field, Question } from "./Question.js";
+import { STATES } from "./states.js";
 import { useTyping } from "./typing.js";
-import { TextArea, TextInput } from "../../ui/TextInput.js";
+import { TextInput } from "../../ui/TextInput.js";
+import { Select } from "../../ui/Select.js";
 import { Button } from "../../ui/Button.js";
 import { LADDER } from "../../ui/ladder.js";
 
@@ -108,13 +110,23 @@ export interface AddressQuestionProps {
   readonly onBack?: () => void;
 }
 
+/** The five boxes, in the order an envelope reads them; `directionsUrl` is the sixth field. */
+const BOXES = ["street", "street2", "city", "state", "zip"] as const;
+
 /**
- * Free-text lines, written the way the owner would write them on an envelope (§2.3).
+ * A US address form (§2.3, #364, built by #386): a street, an optional second line, a city, a
+ * state picker and a ZIP — then the directions link, as before.
  *
- * Not street/city/region/postcode: structured fields are what a developer reaches for and they
- * are a localisation trap — a UK florist filling in "state", a Japanese owner facing "street
- * address". Nothing in this project reads the address as data, so structure buys nothing and
- * costs comprehensibility. One textarea, and the newlines are the lines.
+ * **Until #364 this was one four-row box**, and structured fields were refused as a localisation
+ * trap — a UK florist filling in "state", a Japanese owner facing "street address". §1 now names
+ * one country, and the boxes are here because a US owner facing that one blank area asked where
+ * the state goes (#359, moment 16), not because the page wants fields: a ZIP is not checked, a
+ * street is not parsed, and the state picker's only job is to spell the abbreviation the envelope
+ * line prints. `Continue` wants **any one box filled** — presence, never shape (§7.9) — and
+ * the directions link on its own still counts, as it always has.
+ *
+ * The `autoComplete` tokens are the browser's own names for these boxes, so a phone that knows
+ * the owner's address offers it in one press rather than five.
  */
 export function AddressQuestion({
   initial,
@@ -123,30 +135,79 @@ export function AddressQuestion({
   onSkip,
   onBack,
 }: AddressQuestionProps): JSX.Element {
-  const [lines, setLines] = useState((initial?.lines ?? []).join("\n"));
+  const [boxes, setBoxes] = useState<Record<(typeof BOXES)[number], string>>(() => ({
+    street: initial?.street ?? "",
+    street2: initial?.street2 ?? "",
+    city: initial?.city ?? "",
+    state: initial?.state ?? "",
+    zip: initial?.zip ?? "",
+  }));
   const [directionsUrl, setDirectionsUrl] = useState(initial?.directionsUrl ?? "");
-  const answer = useMemo(
-    (): Address => ({ lines: lines.split("\n"), directionsUrl }),
-    [lines, directionsUrl],
-  );
+  const answer = useMemo((): Address => ({ ...boxes, directionsUrl }), [boxes, directionsUrl]);
   useTyping(answer, onTyping);
+  const set = (box: (typeof BOXES)[number]) => (next: string) =>
+    setBoxes((current) => ({ ...current, [box]: next }));
+  const nothingTyped =
+    BOXES.every((box) => boxes[box].trim() === "") && directionsUrl.trim() === "";
 
   return (
     <Question
       title="Where are you?"
-      hint="Write it the way you'd write it on an envelope."
+      hint="Your page prints it the way you'd write it on an envelope."
       onSubmit={() => onAnswer(answer)}
       unanswered={
-        lines.trim() === "" && directionsUrl.trim() === ""
+        nothingTyped
           ? "Nothing typed yet — add the address, or say there's no place to visit."
           : undefined
       }
       escape={{ label: "We don't have a place to visit", onEscape: onSkip }}
       onBack={onBack}
     >
-      <Field label="Address">
-        <TextArea rows={4} value={lines} onChange={(event) => setLines(event.target.value)} />
+      <TextField
+        label="Street address"
+        value={boxes.street}
+        onValueChange={set("street")}
+        name="street"
+        autoComplete="address-line1"
+      />
+      <TextField
+        label="Apartment, suite, or unit"
+        hint="Optional."
+        value={boxes.street2}
+        onValueChange={set("street2")}
+        name="street2"
+        autoComplete="address-line2"
+      />
+      <TextField
+        label="City"
+        value={boxes.city}
+        onValueChange={set("city")}
+        name="city"
+        autoComplete="address-level2"
+      />
+      <Field label="State">
+        <Select
+          name="state"
+          autoComplete="address-level1"
+          value={boxes.state}
+          onChange={(event) => set("state")(event.target.value)}
+        >
+          {/* Blank first, so a state is never chosen for the owner — see `Select.tsx`. */}
+          <option value=""></option>
+          {STATES.map(([abbreviation, name]) => (
+            <option key={abbreviation} value={abbreviation}>
+              {name}
+            </option>
+          ))}
+        </Select>
       </Field>
+      <TextField
+        label="ZIP code"
+        value={boxes.zip}
+        onValueChange={set("zip")}
+        name="zip"
+        autoComplete="postal-code"
+      />
       {/*
        * A link out rather than an embedded map: the export may reference nothing outside itself
        * (§5.3, invariant 2), so a map is impossible and this is the only answer left to "where

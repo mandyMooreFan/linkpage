@@ -6,11 +6,11 @@ reasoning is given — not as history, but because the reasoning is usually the 
 implementer from "improving" it into something that breaks a guarantee elsewhere.
 
 **Status:** built and released as `v1.0.0`. Every decision here is settled and every one of them is
-implemented — the build order that did it is indexed in §12 alongside the efforts that decided it —
-**except one, which is written ahead of its build and says so where it stands**: the US address
-form in §2.3, decided on [#364](../../issues/364) and built by [#386](../../issues/386); the ten-digit
-phone format decided beside it was built by [#385](../../issues/385). The [deferred](#10-deferred-past-v1) and
-[to verify](#11-to-verify-during-implementation) sections at the end are the only other places where
+implemented — the build order that did it is indexed in §12 alongside the efforts that decided it.
+The two decisions that were written ahead of their code, both from [#364](../../issues/364) — the
+ten-digit phone format and the US address form in §2.3 — were built by [#385](../../issues/385) and
+[#386](../../issues/386), so nothing here stands ahead of the product. The [deferred](#10-deferred-past-v1) and
+[to verify](#11-to-verify-during-implementation) sections at the end are the only places where
 anything is open, and both are explicit about it.
 
 **§11 is the one to read before trusting this number.** A tag says the work is done, not that every
@@ -721,7 +721,7 @@ reversible** override layer.
 
 ```jsonc
 {
-  "version": 1, // see §4.2
+  "version": 2, // see §4.2
   "lang": "en", // BCP 47; renders as <html lang="en">
   "style": {
     "brand": "#c2185b", // required — the one thing the owner must give
@@ -762,18 +762,22 @@ reversible** override layer.
   },
   "contact": { "phone": "+44…", "email": "hello@…" },
   "address": {
-    "lines": ["12 Bridge Street", "Hebden Bridge", "HX7 8AA"],
+    // the five boxes of §2.3, each optional; printed as `12 Main St` / `Austin, TX 78701`
+    "street": "12 Main St",
+    "street2": "Suite 400",
+    "city": "Austin",
+    "state": "TX", // the two-letter postal abbreviation, which is what the page prints
+    "zip": "78701",
     "directionsUrl": "https://…",
   },
   "social": [{ "platform": "instagram", "url": "https://…" }],
 }
 ```
 
-**`address` is the one block above that is about to change** ([#364](../../issues/364); built by
-[#386](../../issues/386)): `street`, `street2`, `city`, `state` and `zip` replace `lines`, `version`
-becomes `2`, and an older file's lines land in the street box. §2.3, _Address_, holds the rule and its
-reasons; #386 rewrites this block and §4.2's `version: 1` line when it lands, and not before, so that
-this block describes the file every builder writes today.
+**`address` is the one block above that has changed shape since `v1.0.0`** ([#364](../../issues/364),
+built by [#386](../../issues/386)): `street`, `street2`, `city`, `state` and `zip` replaced
+`lines`, which is why `version` is `2`. §2.3, _Address_, holds the rule and its reasons; §4.3 says
+what happens to a file that still says `1`.
 
 **`lang`** defaults to the browser's language at first run. WCAG 2.2 success criterion 3.1.1 requires
 `<html lang>`, and hardcoding `"en"` would mislead screen readers and translation tools about a page
@@ -835,25 +839,26 @@ implies chronology is what you compare, when the real question is "can I read th
 incompatibility for changes that are genuinely compatible: adding an optional section breaks no
 reader, and bumping would make an older builder _refuse_ a file it could have handled perfectly.
 
-- `version: 1` covers every additive change until something actually breaks.
+- `version: 2` covers every additive change until something actually breaks — as `1` did until
+  [#386](../../issues/386) removed `address.lines` (§2.3), the one bump so far.
 - Breaking = a rename, a type change, a removal, or a change in what an existing value _means_.
 - **A missing `version` reads as `1`** — the lenient assumption, since the only files plausibly
   omitting it are the oldest ones we can definitely read. An explicit `null` reads the same way:
   `null` is JSON's own spelling of _no value_, so it makes no claim either.
-- **A `version` that is present but is not a whole number `>= 0` refuses the file** — `"2"`, `1.5`,
+- **A `version` that is present but is not a whole number `>= 0` refuses the file** — `"3"`, `1.5`,
   `-1`, `{}`. This is the one place §4.4's _wrong-typed reads as absent_ does not apply, and the
   exemption is the point rather than an oversight.
 
 **Absent and unreadable are different claims.** Absent says the file makes no claim about its
 version, and reading it as `1` is safely lenient. A value we cannot read says the file _does_ claim
 a version and we cannot tell which — and reading that as "no claim" throws away the only signal
-there is. Compose leniency with §4.4 and a file carrying `"version": "2"` reads as absent, therefore
-as `1`, therefore **loads**: a v2 file walking past §4.3's forwards refusal on a type error rather
+there is. Compose leniency with §4.4 and a file carrying `"version": "3"` reads as absent, therefore
+as `1`, therefore **loads**: a v3 file walking past §4.3's forwards refusal on a type error rather
 than a version check, into exactly the partial-load-then-autosave data loss §4.3 exists to make
 unreachable. Everywhere else in the schema a wrong-typed value costs a preference; here it costs the
 file.
 
-Coercion — reading `"2"` as `2` and then refusing it as too new — was considered and rejected. It is
+Coercion — reading `"3"` as `3` and then refusing it as too new — was considered and rejected. It is
 friendlier for the one hand-edit we can guess at, but coercion rules are a surface that only grows,
 and the refusal already tells the person who hand-edited the file what they did.
 
@@ -880,8 +885,15 @@ review list as an ordinary row** (§7.4). Discoverability comes from the product
 from a modal that fires once and is gone.
 
 Note that with localStorage autosave the upgrade is effectively permanent the moment the file opens.
-That is acceptable because the upgrade is non-destructive by construction — it only ever adds defaults
-for things that were absent.
+That is acceptable because the upgrade is non-destructive by construction — it adds defaults for
+things that were absent, and the one conversion so far keeps everything it converts. **That
+conversion is `1` → `2`** ([#386](../../issues/386)): a file's free-text address lines land in the
+street box, joined by a comma and a space, for the owner to sort into the boxes §2.3 now has; the
+address row shows what landed, as the rule above requires; `lines` itself goes, since under version
+`2` it would be a second address the page could never print; and the file is renumbered to `2`
+whether or not it had an address, because it now holds this builder's shape and an older builder
+must refuse it (below) rather than read a street box as no address. A `lines` that was never a list
+is not converted and not removed — §4.5's permanent junk.
 
 **Forwards — a newer file in an older builder: refuse.** And **`version` is the only thing in this
 policy allowed to refuse anything.**
@@ -1908,8 +1920,9 @@ A row whose answer is a **list of things** reports how many of them — _12 link
 _11 accounts_. A row whose answer is **one short thing** still shows it, because a tagline is already a
 line and already says what is there.
 
-**The address row shows the address, then says a link is there** — _12 Bridge Street, Hebden Bridge, HX7
-8AA · directions link_. You can tell at a glance that you added one; the link itself appears in the field
+**The address row shows the address, then says a link is there** — _12 Main St, Austin, TX 78701 ·
+directions link_, the envelope lines of §2.3 joined by a comma, through the renderer's own rule so
+the row and the page cannot spell them two ways. You can tell at a glance that you added one; the link itself appears in the field
 that can change it when the row is open. The same middle dot as the hours row's note, and for the same
 reason: it reads as _and also_ without claiming a grammar. What the row says about the link is decided by
 whether there is one, never by what it is — so a hand-edited file that is a link and no address still has
@@ -1932,7 +1945,7 @@ here and for the address. A trimmed web address is unreadable, and a clamp would
 row's sideways scroll rather than fixed it. If a row still will not fit one line, that is a finding
 rather than a reason to reach for a clamp: with the worst realistic project the rows still over one line
 are the four holding a single long answer — a long business name, a long tagline, a phone and an email
-together, and an address written on five lines — and none of them is a list.
+together, and an address whose street and second line are both long — and none of them is a list.
 
 **A word wider than the column breaks, rather than running off the edge.** Wrapping breaks at spaces, so a
 run of characters with none in it — a pasted web address, a long email, a place name — is as wide as it is,
@@ -2536,7 +2549,7 @@ defects live. A dead tab stop survived 847 green tests here.
    presses Tab around every screen of the builder at both of §7.6's sizes and reads what focus
    painted on each stop: an outline of at least 2px that was not there at rest, or, on the fields
    that are a line, the bottom border thickening instead. It reaches 30 screens and every stop on
-   them — 262 at 390, 273 at 1440. **Each wizard step is measured twice, as it arrives and once it
+   them — 270 at 390, 281 at 1440 (#386's four address boxes added eight at each width). **Each wizard step is measured twice, as it arrives and once it
    has been answered** (#343), and the step §7.9 can refuse a third time while it is refusing:
    until that landed the walk saw arrival only, and fourteen stops at 390 lived in an answered
    state no gate had ever read — nine of the twelve steps gain one when they are filled, and the
@@ -2546,8 +2559,8 @@ defects live. A dead tab stop survived 847 green tests here.
    one place the browser rather than the builder decides.
 3. **What the tool covers, it puts out of reach, and what it leaves on the glass stays in reach.**
    _Measured_ — the same browser walk counts every control each screen is showing and then presses
-   Tab around it, at both of §7.6's sizes: **288 controls over 30 screens, 262 of them reachable at
-   390 and 273 at 1440**. Two screens account for the whole difference. On the review list at 390
+   Tab around it, at both of §7.6's sizes: **296 controls over 30 screens, 270 of them reachable at
+   390 and 281 at 1440**. Two screens account for the whole difference. On the review list at 390
    the preview page comes down over the column, and **2 of its 13 controls stay in reach** — _Edit
    your page_ and _Download_, the two the drawer put on its own glass, so that what it covers is
    not a dead end; the other 11 are still on the page and the keyboard cannot get to any of them.
@@ -2561,7 +2574,7 @@ defects live. A dead tab stop survived 847 green tests here.
    measured by a standing test.
 5. **Every control the keyboard reaches clears the tap floor**, except the deliberate inline
    weight. _Measured_ — the same browser walk reads the rendered box
-   of every tab stop at both of §7.6's sizes and holds it to `tap`'s 44px: 262 stops at 390, 273 at 1440. **A control is not always its own target**, and a check that read only the control would
+   of every tab stop at both of §7.6's sizes and holds it to `tap`'s 44px: 270 stops at 390, 281 at 1440. **A control is not always its own target**, and a check that read only the control would
    fail twenty-eight honest ones at each width — the 20×20 checkboxes are pressed through a 350×44
    `<label>`, §7.10's 1×1 day modes through a 98×44 one, and the web-address box through the ruled
    line it stands on. So what is measured is the label or the line, and only where the browser or a

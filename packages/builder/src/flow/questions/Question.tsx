@@ -1,6 +1,7 @@
 import { Button } from "../../ui/Button.js";
 import { LADDER } from "../../ui/ladder.js";
 import { TextArea, TextInput, UrlInput } from "../../ui/TextInput.js";
+import { Select } from "../../ui/Select.js";
 import { HEADING, TYPE } from "../../ui/type.js";
 import {
   cloneElement,
@@ -424,7 +425,7 @@ export function useJudged(
  * mattered, and `UrlInput` gets it here.
  */
 const LABELABLE = new Set(["button", "input", "meter", "output", "progress", "select", "textarea"]);
-const LABELABLE_CONTROLS = new Set<unknown>([TextInput, TextArea, UrlInput]);
+const LABELABLE_CONTROLS = new Set<unknown>([TextInput, TextArea, UrlInput, Select]);
 
 type Associable = ReactElement<{
   id?: string;

@@ -1,5 +1,6 @@
 export {
   render,
+  envelopeLines,
   escapeHtml,
   linkHref,
   mailtoHref,
