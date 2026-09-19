@@ -285,7 +285,7 @@ describe("what the list may offer", () => {
       style: { brand: "#c2185b" },
       header: { name: "Ada's" },
       contact: {},
-      address: { lines: [] },
+      address: {},
     });
     expect(uncoveredTopics(hollow)).toContain("contact");
     expect(uncoveredTopics(hollow)).toContain("address");

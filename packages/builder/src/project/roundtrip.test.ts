@@ -44,7 +44,7 @@ const complete: Project = {
     note: "Bank holidays vary",
   },
   contact: { phone: "+44 1422 000000", email: "hello@example.com" },
-  address: { lines: ["12 Bridge Street", "Hebden Bridge"], directionsUrl: "https://maps.example" },
+  address: { street: "12 Bridge Street", city: "Austin", directionsUrl: "https://maps.example" },
   social: [{ platform: "instagram", url: "https://instagram.example.com/ada" }],
 };
 
@@ -167,9 +167,30 @@ describe("a file from an older builder", () => {
     expect(saved["links"]).toEqual([]);
   });
 
-  it("leaves a version it can already read exactly as it found it", () => {
-    // A version below ours is one we can read, so saving does not renumber the file.
+  it("renumbers a version below ours the moment the file opens, and saving keeps it", () => {
+    // Since #386 the file's shape is ours once it is read (`upgradeDocument`, §4.3), so the
+    // number says so too — an older builder must refuse the street box, not read it as nothing.
     const document = reopen('{"version": 0, "lang": "en"}');
-    expect(writeDraft(readDraft(document), document)["version"]).toBe(0);
+    expect(document["version"]).toBe(SCHEMA_VERSION);
+    expect(writeDraft(readDraft(document), document)["version"]).toBe(SCHEMA_VERSION);
+  });
+
+  it("opens a version-1 address as one street box, and writes it back as the five-box shape", () => {
+    const older = reopen(
+      '{"version": 1, "address": {"lines": ["12 Bridge Street", "Hebden Bridge"], "directionsUrl": "https://maps.example"}}',
+    );
+    const draft = readDraft(older);
+    expect(draft.address).toEqual({
+      street: "12 Bridge Street, Hebden Bridge",
+      directionsUrl: "https://maps.example",
+    });
+    const saved = writeDraft({ ...draft, address: { ...draft.address, city: "Austin" } }, older);
+    expect(saved["address"]).toEqual({
+      street: "12 Bridge Street, Hebden Bridge",
+      directionsUrl: "https://maps.example",
+      city: "Austin",
+    });
+    expect("lines" in (saved["address"] as object)).toBe(false);
+    expect(saved["version"]).toBe(SCHEMA_VERSION);
   });
 });

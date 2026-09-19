@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { SCHEMA_VERSION } from "@linkpage/renderer";
 import { act, cleanup, fireEvent, render as mount, screen, within } from "@testing-library/react";
 import { useState, type JSX } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -304,6 +305,71 @@ describe("Continue is never greyed (§7.9 decision 1, #368)", () => {
     expect(message()).toContain("press Add");
   });
 
+  /**
+   * The US address form (§2.3; #364, built by #386; walk moment 16): five boxes and the
+   * directions link, `Continue` wanting any one of them — presence, never shape.
+   */
+  describe("the address screen (walk moment 16)", () => {
+    const ADDRESS = "Where are you?";
+
+    it("asks for a US address in boxes, and Continue wants any one of them filled", () => {
+      const flow = reach(ADDRESS);
+      for (const label of [
+        /^Street address/,
+        /^Apartment, suite, or unit/,
+        /^City/,
+        /^State/,
+        /^ZIP code/,
+        /^A link to directions/,
+      ]) {
+        expect(screen.getByLabelText(label), String(label)).toBeTruthy();
+      }
+      // The state is a picker that spells the abbreviation, opening on nothing chosen.
+      const state = screen.getByLabelText(/^State/) as HTMLSelectElement;
+      expect(state.tagName).toBe("SELECT");
+      expect(state.value).toBe("");
+      expect(state.options[0]?.textContent).toBe("");
+      expect([...state.options].map((option) => option.value)).toContain("TX");
+
+      fireEvent.click(submit() as Element);
+      expect(title()).toBe(ADDRESS);
+      expect(message()).toBe(
+        "Nothing typed yet — add the address, or say there's no place to visit.",
+      );
+
+      // One box, of any shape: a ZIP alone is an answer, trimmed, and nothing else is written.
+      type(/^ZIP code/, " 78701 ");
+      fireEvent.click(submit() as Element);
+      expect(title()).not.toBe(ADDRESS);
+      expect((flow.latest() as Draft).address).toEqual({ zip: "78701" });
+    });
+
+    it("stores the boxes by name, the state as the abbreviation the picker spelt", () => {
+      const flow = reach(ADDRESS);
+      type(/^Street address/, "12 Main St ");
+      type(/^Apartment/, "Suite 400");
+      type(/^City/, "Austin");
+      type(/^State/, "TX");
+      type(/^ZIP code/, "78701");
+      fireEvent.click(submit() as Element);
+      expect((flow.latest() as Draft).address).toEqual({
+        street: "12 Main St",
+        street2: "Suite 400",
+        city: "Austin",
+        state: "TX",
+        zip: "78701",
+      });
+    });
+
+    it("never judges a box's shape (§2.3): letters in the ZIP go through as typed", () => {
+      const flow = reach(ADDRESS);
+      type(/^ZIP code/, "seven eight seven");
+      fireEvent.click(submit() as Element);
+      expect(title()).not.toBe(ADDRESS);
+      expect((flow.latest() as Draft).address).toEqual({ zip: "seven eight seven" });
+    });
+  });
+
   describe("the contact screen (walk moment 15)", () => {
     const CONTACT = "How do people reach you?";
 
@@ -377,7 +443,7 @@ describe("Continue is never greyed (§7.9 decision 1, #368)", () => {
     it("holds a directions link the same way, in the link's own words", () => {
       const ADDRESS = "Where are you?";
       reach(ADDRESS);
-      type(/Address/, "12 Mill Lane");
+      type(/^Street address/, "12 Mill Lane");
       type(/A link to directions/, "a");
       fireEvent.click(submit() as Element);
       expect(title()).toBe(ADDRESS);
@@ -447,7 +513,7 @@ describe("a preset leaves no trace in project.json (§7.3)", () => {
     const text = build("appointments");
     expect(text.toLowerCase()).not.toContain("preset");
     expect(JSON.parse(text)).toEqual({
-      version: 1,
+      version: SCHEMA_VERSION,
       lang: "en-GB",
       style: {
         brand: expect.any(String) as string,

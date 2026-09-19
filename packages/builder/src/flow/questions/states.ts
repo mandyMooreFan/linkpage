@@ -1,0 +1,68 @@
+/**
+ * The state picker's list (§2.3, #364, built by #386): every place USPS gives a two-letter
+ * abbreviation and a ZIP — the fifty states, the District of Columbia, and the five inhabited
+ * territories — by name, in the order a person scans a list. The abbreviation is what the
+ * envelope line prints and what the file stores; the name is what the owner reads.
+ *
+ * **This is not a country field.** With one country in the product the list is the product's
+ * (§1), and the first pull request that adds a second country adds the field and decides what
+ * this picker does under it.
+ */
+export const STATES: readonly (readonly [abbreviation: string, name: string])[] = [
+  ["AL", "Alabama"],
+  ["AK", "Alaska"],
+  ["AS", "American Samoa"],
+  ["AZ", "Arizona"],
+  ["AR", "Arkansas"],
+  ["CA", "California"],
+  ["CO", "Colorado"],
+  ["CT", "Connecticut"],
+  ["DE", "Delaware"],
+  ["DC", "District of Columbia"],
+  ["FL", "Florida"],
+  ["GA", "Georgia"],
+  ["GU", "Guam"],
+  ["HI", "Hawaii"],
+  ["ID", "Idaho"],
+  ["IL", "Illinois"],
+  ["IN", "Indiana"],
+  ["IA", "Iowa"],
+  ["KS", "Kansas"],
+  ["KY", "Kentucky"],
+  ["LA", "Louisiana"],
+  ["ME", "Maine"],
+  ["MD", "Maryland"],
+  ["MA", "Massachusetts"],
+  ["MI", "Michigan"],
+  ["MN", "Minnesota"],
+  ["MS", "Mississippi"],
+  ["MO", "Missouri"],
+  ["MT", "Montana"],
+  ["NE", "Nebraska"],
+  ["NV", "Nevada"],
+  ["NH", "New Hampshire"],
+  ["NJ", "New Jersey"],
+  ["NM", "New Mexico"],
+  ["NY", "New York"],
+  ["NC", "North Carolina"],
+  ["ND", "North Dakota"],
+  ["MP", "Northern Mariana Islands"],
+  ["OH", "Ohio"],
+  ["OK", "Oklahoma"],
+  ["OR", "Oregon"],
+  ["PA", "Pennsylvania"],
+  ["PR", "Puerto Rico"],
+  ["RI", "Rhode Island"],
+  ["SC", "South Carolina"],
+  ["SD", "South Dakota"],
+  ["TN", "Tennessee"],
+  ["TX", "Texas"],
+  ["UT", "Utah"],
+  ["VT", "Vermont"],
+  ["VI", "U.S. Virgin Islands"],
+  ["VA", "Virginia"],
+  ["WA", "Washington"],
+  ["WV", "West Virginia"],
+  ["WI", "Wisconsin"],
+  ["WY", "Wyoming"],
+];

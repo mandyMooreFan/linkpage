@@ -579,7 +579,7 @@ describe("when something the owner typed cannot be used (§7.7, §7.9)", () => {
       ...POPULATED,
       links: [{ label: "Order online", url: "/menu" }],
       social: [{ platform: "instagram", url: "@ada" }],
-      address: { lines: ["12 Bridge Street"], directionsUrl: "@here" },
+      address: { street: "12 Bridge Street", directionsUrl: "@here" },
       contact: { phone: "0800 CHICKEN", email: "hello@nodot" },
     } as Draft);
     expect(warnings()).toHaveLength(2);
@@ -601,7 +601,7 @@ describe("when something the owner typed cannot be used (§7.7, §7.9)", () => {
     withDraft({
       ...POPULATED,
       links: [],
-      address: { lines: ["12 Bridge Street"], directionsUrl: "@here" },
+      address: { street: "12 Bridge Street", directionsUrl: "@here" },
     } as Draft);
     expect(warnings()).toEqual([
       "Your directions link won't work — paste the address from your browser.",

@@ -41,6 +41,6 @@ export const POPULATED: Project = {
     note: "Closed bank holidays",
   },
   contact: { phone: "+44 20 7946 0100", email: "hello@adasbakery.example" },
-  address: { lines: ["12 Mill Lane", "Hebden Bridge", "HX7 8AA"] },
+  address: { street: "12 Mill Lane", city: "Austin", state: "TX", zip: "78701" },
   social: [{ platform: "instagram", url: "https://instagram.com/adasbakery" }],
 };

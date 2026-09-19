@@ -71,7 +71,10 @@ export const POPULATED: Project = {
   },
   contact: { phone: "020 7123 4567", email: "hello@adasbakery.example" },
   address: {
-    lines: ["12 Baker Street", "London", "NW1 6XE"],
+    street: "12 Baker Street",
+    city: "Austin",
+    state: "TX",
+    zip: "78701",
     directionsUrl: "https://maps.example/?q=12+Baker+Street",
   },
   social: [
@@ -103,7 +106,11 @@ export const DAMAGED = {
   links: [{ label: "Tap", url: "javascript:alert(1)" }, "not a link", null],
   hours: { clock: 12, weekStart: "thursday", days: { mon: "9-5", sun: [] }, note: 0 },
   contact: { phone: [], email: "javascript:alert(1)" },
-  address: { lines: "12 Baker Street", directionsUrl: "data:text/html,<script>x</script>" },
+  address: {
+    street: 12,
+    lines: ["12 Baker Street"],
+    directionsUrl: "data:text/html,<script>x</script>",
+  },
   social: [{ platform: 0, url: "//example.com" }, { url: null }],
   hourz: { mon: "9-5" },
 } as unknown as Project;
@@ -192,15 +199,13 @@ export const MAXIMAL: Project = {
     email: "hello@hebdenbridgebakehouse.example",
   },
   address: {
-    lines: [
-      "The Old Weaving Shed",
-      "12 Bridge Street",
-      "Hebden Bridge",
-      "West Yorkshire",
-      "HX7 8AA",
-    ],
+    street: "The Old Weaving Shed, 1200 East Sixth Street",
+    street2: "Suite 400, behind the courtyard",
+    city: "Austin",
+    state: "TX",
+    zip: "78702-3456",
     directionsUrl:
-      "https://maps.example/?q=The+Old+Weaving+Shed%2C+12+Bridge+Street%2C+Hebden+Bridge%2C+HX7+8AA",
+      "https://maps.example/?q=The+Old+Weaving+Shed%2C+1200+East+Sixth+Street%2C+Austin%2C+TX+78702",
   },
   social: [
     ...SOCIAL_PLATFORMS.map((platform) => ({

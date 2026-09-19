@@ -77,8 +77,10 @@ export const ANSWERS = {
 
 /**
  * The wizard's text-ish fields — everything a step types into. The tagline's line is a
- * one-row `<textarea>` since #382, named by its hook so the address's four-row box, which has
- * its own answer kind, is not the first text-ish thing on a screen it never is.
+ * one-row `<textarea>` since #382, named by its hook; it was the only textarea besides the
+ * address's four-row box until #386 made the address five boxes, and the hook stays so that a
+ * future textarea with its own answer kind is not the first text-ish thing on a screen it
+ * never is. The state picker is a `<select>`, which no `type` step reaches.
  */
 export const TEXTISH =
   '[data-screen="flow"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea[data-wraps])';
@@ -235,10 +237,16 @@ async function fill(page, spec) {
       return true;
     }
     case "address": {
-      await page
-        .locator('[data-screen="flow"] textarea')
-        .first()
-        .fill("12 Mill Lane\nHebden Bridge\nHX7 8AA");
+      /*
+       * The five boxes (§2.3, #364, built by #386): street, an optional second line, city, a
+       * state picker and ZIP. The second line is left empty — it is the optional one, and the
+       * frame shows the form as most owners will leave it.
+       */
+      const street = page.getByLabel("Street address");
+      await street.fill("12 Mill Lane");
+      await page.getByLabel("City").fill("Austin");
+      await page.getByLabel("State").selectOption("TX");
+      await page.getByLabel("ZIP code").fill("78701");
       /*
        * **And the directions link, which the walk used to leave empty** (#244). It is optional,
        * so skipping it looked harmless — but it is the field that decides what the address row
@@ -248,9 +256,10 @@ async function fill(page, spec) {
        */
       const directions = page.getByLabel("A link to directions");
       await directions.fill("maps.example/?q=12+Mill+Lane");
+      await landed(await holds(street), "the street box is empty after typing into it");
       await landed(
-        (await page.locator('[data-screen="flow"] textarea').first().inputValue()).trim() !== "",
-        "the address box is empty after typing into it",
+        (await page.getByLabel("State").inputValue()) === "TX",
+        "the state picker did not take Texas",
       );
       await landed(await holds(directions), "the directions box is empty after typing into it");
       return true;

@@ -596,12 +596,35 @@ export function mendPhone(value: string): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Free-text lines, written the way the owner would write them on an envelope (§2.3), plus an
- * optional directions link.
+ * The lines of an envelope, from the five boxes (§2.3, #364, built by #386).
  *
- * Not structured street/city/region/postcode: that is what a developer reaches for and it is a
- * localisation trap — a UK florist filling in "state", a Japanese owner facing "street
- * address". Nothing in this project reads the address as data, so structure buys nothing.
+ * `12 Main St` / `Austin, TX 78701`: the street, then the second line if there is one, then the
+ * city, state and ZIP set out the way a US envelope sets them — a comma between the city and the
+ * state, a space before the ZIP. A box that is blank is left out and the line closes up around
+ * it, so *Austin, TX*, *TX 78701* and *Austin 78701* are all lines the page can print and none
+ * carries a stray comma. **No
+ * word of the renderer's own** (§2.5): the comma and the abbreviation are the owner's data.
+ *
+ * **Exported, because three surfaces print these lines and must agree**: the page here, the
+ * review row's summary (`rows.ts`, joined by a comma) and the address screen's own preview. One
+ * rule, the way `mendPhone` and `telHref` are one rule for the phone. A wrong-typed box reads
+ * as absent (§4.7), and the old `lines` array is not read here at all — the builder converts a
+ * `version: 1` file on the way in (`document.ts`), so the renderer only ever meets the boxes.
+ */
+export function envelopeLines(address: unknown): string[] {
+  const boxes = asRecord(address);
+  if (!boxes) return [];
+  const box = (key: string): string | undefined => asText(boxes[key]);
+  const cityState = [box("city"), box("state")].filter(Boolean).join(", ");
+  const cityLine = [cityState, box("zip")].filter(Boolean).join(" ");
+  return [box("street"), box("street2"), cityLine].filter(
+    (line): line is string => line !== undefined && line !== "",
+  );
+}
+
+/**
+ * The address, printed as the lines of an envelope (§2.3) — `envelopeLines`, above — plus an
+ * optional directions link.
  *
  * **When there is a `directionsUrl`, the address itself becomes the link.** An embedded map is
  * a subresource and invariant 2 forbids it, so a link out is the only answer to "where are
@@ -631,7 +654,7 @@ export function mendPhone(value: string): string {
  *
  * The line break carries a newline as well as a `<br>` so that text is *readable* when read as
  * a property: `textContent` ignores the `<br>`, and without the newline a consumer would be
- * handed `12 Baker StreetLondonNW1 6XE` rather than `12 Baker Street London NW1 6XE`.
+ * handed `12 Baker StreetAustin, TX 78701` rather than `12 Baker Street Austin, TX 78701`.
  * Whitespace after a forced break is dropped when the page is laid out, so nothing about how it
  * looks changes.
  */
@@ -639,9 +662,7 @@ function addressSection(value: unknown, words: Vocabulary, wordLang: string): st
   const address = asRecord(value);
   if (!address) return "";
 
-  const lines = asArray(address.lines)
-    .map((line) => asText(line))
-    .filter((line): line is string => line !== undefined);
+  const lines = envelopeLines(address);
   if (lines.length === 0) return "";
 
   const icon = glyphSvg(ICONS.location);

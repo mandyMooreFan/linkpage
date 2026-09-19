@@ -1,4 +1,4 @@
-import { hoursView, vocabulary, type Hours } from "@linkpage/renderer";
+import { envelopeLines, hoursView, vocabulary, type Hours } from "@linkpage/renderer";
 import { colourName } from "../flow/index.js";
 import { uncoveredTopics } from "../flow/plan.js";
 import { TOPIC_LABELS, TOPICS, type Topic } from "../flow/topics.js";
@@ -224,11 +224,15 @@ export function topicSummary(draft: Draft, topic: Topic): string {
       // that you added one, and the link appears in the field that can change it when the row
       // is open. Printing it was #244's sideways scroll; trimming it was refused, because a
       // trimmed web address is unreadable and would have hidden that scroll rather than fixed
-      // it. A file with a link and no lines (§4.5) still has this much to say.
+      // it. A file with a link and no boxes filled (§4.5) still has this much to say.
+      //
+      // The envelope lines are the renderer's own (`envelopeLines`, §2.3), joined by a comma,
+      // so the row and the page cannot spell the address two ways — *12 Main St, Austin, TX
+      // 78701* here is *12 Main St* / *Austin, TX 78701* there.
       const address = draft.address;
       const directions = address?.directionsUrl ?? "";
       return join([
-        (address?.lines ?? []).join(", "),
+        envelopeLines(address).join(", "),
         directions.trim() === "" ? undefined : "directions link",
       ]);
     }

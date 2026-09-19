@@ -117,7 +117,10 @@ function project(shape: Shape, mode: Mode): Project {
     },
     contact: { phone: "020 7123 4567", email: "hello@adasbakery.example" },
     address: {
-      lines: ["12 Baker Street", "London", "NW1 6XE"],
+      street: "12 Baker Street",
+      city: "Austin",
+      state: "TX",
+      zip: "78701",
       directionsUrl: "https://maps.example/?q=12+Baker+Street",
     },
     social: [
@@ -299,7 +302,7 @@ test.describe("the hours panel is named to assistive technology (CL-5)", () => {
 /**
  * **CL-6** (issue #281, decided in #266): the address link says what it opens.
  *
- * Before this the tree read `link "12 Baker Street London NW1 6XE"` — a name made entirely of
+ * Before this the tree read `link "12 Baker Street Austin, TX 78701"` — a name made entirely of
  * the destination, with nothing saying it was a link to a map. **`link-name` passes on that**,
  * which is why the 16-of-16 run above was green over this gap too: the link does have a name,
  * it is just the wrong one. It is the sharpest small case in #272 of a green checker not being
@@ -311,7 +314,7 @@ test.describe("the address link says it opens directions (CL-6)", () => {
 
     expect(nodes).toContainEqual({
       role: "link",
-      name: "Directions 12 Baker Street London NW1 6XE",
+      name: "Directions 12 Baker Street Austin, TX 78701",
     });
   });
 
@@ -327,10 +330,10 @@ test.describe("the address link says it opens directions (CL-6)", () => {
     expect(broken.changed, `nothing in the page matched the hidden directions word`).toBe(true);
 
     const nodes = await axNames(page, broken.html);
-    expect(nodes).toContainEqual({ role: "link", name: "12 Baker Street London NW1 6XE" });
+    expect(nodes).toContainEqual({ role: "link", name: "12 Baker Street Austin, TX 78701" });
     expect(nodes).not.toContainEqual({
       role: "link",
-      name: "Directions 12 Baker Street London NW1 6XE",
+      name: "Directions 12 Baker Street Austin, TX 78701",
     });
   });
 
@@ -345,7 +348,7 @@ test.describe("the address link says it opens directions (CL-6)", () => {
 
     expect(nodes).toContainEqual({
       role: "link",
-      name: "Cyfarwyddiadau 12 Baker Street London NW1 6XE",
+      name: "Cyfarwyddiadau 12 Baker Street Austin, TX 78701",
     });
   });
 
@@ -366,7 +369,7 @@ test.describe("the address link says it opens directions (CL-6)", () => {
         .trim(),
     );
 
-    expect(published).toBe("12 Baker Street London NW1 6XE");
+    expect(published).toBe("12 Baker Street Austin, TX 78701");
   });
 });
 

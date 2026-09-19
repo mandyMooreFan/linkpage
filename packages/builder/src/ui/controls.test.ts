@@ -13,6 +13,7 @@ import {
 import { WEIGHT, type ButtonWeight } from "./Button.js";
 import { CHECKBOX_CLASS } from "./Checkbox.js";
 import { RADIO_CLASS } from "./Radio.js";
+import { SELECT_CLASS } from "./Select.js";
 import { SLIDER_CLASS } from "./Slider.js";
 import { declaredWidth, widthsIn } from "./fill.testing.js";
 import { LADDER } from "./ladder.js";
@@ -305,15 +306,18 @@ describe("every shared control reaches a screen", () => {
       .sort();
 
   it("renders the several-line answer at the one field that is one", () => {
-    // `TextInput.tsx` says so itself: "for an answer that runs to several — the address, and
-    // nothing else today". A second textarea is a decision, not a diff.
-    // #382 made the decision: the tagline's line is the same control at one row, grown to its
-    // words, and it reaches it through `TextField`'s `wraps` — so the second caller is the
-    // field component, not a screen.
-    expect(callersOf("TextArea", "/TextInput.tsx")).toEqual([
-      "../flow/questions/SectionQuestions.tsx",
-      "./TextField.tsx",
-    ]);
+    // `TextInput.tsx` says so itself: "for an answer that wraps — the tagline … and nothing else
+    // today". A second textarea is a decision, not a diff. #382 made one: the tagline's line is
+    // the same control at one row, grown to its words, reached through `TextField`'s `wraps`.
+    // #386 unmade the other: the address was the four-row caller until it became five boxes, so
+    // the field component is now the only caller.
+    expect(callersOf("TextArea", "/TextInput.tsx")).toEqual(["./TextField.tsx"]);
+  });
+
+  it("renders the picker at the one screen that has one, the address's state", () => {
+    // `Select.tsx`: "one picker in the whole tool". A second is a decision (§2.3's *why one
+    // country* box is the reasoning it would have to answer), not a diff.
+    expect(callersOf("Select", "/Select.tsx")).toEqual(["../flow/questions/SectionQuestions.tsx"]);
   });
 
   it("renders the prefixed field at the one field that owns every web address", () => {
@@ -567,6 +571,22 @@ describe("the native controls, in the tool's ink", () => {
     // Not `resize-y`: Chromium paints the identical grip for it, so the mark stays. See
     // `TextInput.tsx` for the two alternatives the review shots ruled out.
     expect(TEXTAREA_CLASS).toMatch(/\bresize-none\b/);
+  });
+
+  /**
+   * The picker (#386), the same defect a control later: a raw `<select>` is a bordered, filled,
+   * rounded box in the browser's own chrome — the only boxed field the tool would have — and
+   * its class list is empty, so nothing in a diff says so. Same shape of guard.
+   */
+  it("has no raw select left in the markup", () => {
+    const offenders = others("./Select.tsx")
+      .filter(([, text]) => text.includes("<select"))
+      .map(([path]) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  it("draws the picker as the same ruled line every answer is written on", () => {
+    expect(SELECT_CLASS).toContain(LINE_CLASS);
   });
 
   /**

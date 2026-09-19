@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { escapeHtml, mendEmail, mendPhone, mendUrl, render, safeUrl } from "./render.js";
+import {
+  envelopeLines,
+  escapeHtml,
+  mendEmail,
+  mendPhone,
+  mendUrl,
+  render,
+  safeUrl,
+} from "./render.js";
 import { MINIMAL as base, POPULATED as full, POPULATED_DARK as dark } from "./fixtures.js";
 import { SHAPES } from "./chrome.js";
 import { VOCABULARIES, vocabulary } from "./locale.js";
@@ -512,20 +520,68 @@ describe("contact", () => {
 });
 
 describe("address", () => {
-  it("renders free-text lines as the directions link", () => {
+  /** `full`'s boxes with no directions link: the block is a `<p>` rather than an `<a>`. */
+  const unlinked = { street: "12 Baker Street", city: "Austin", state: "TX", zip: "78701" };
+
+  it("renders the envelope lines as the directions link", () => {
     expect(page({ ...base, address: full.address })).toMatchSnapshot();
   });
 
+  /**
+   * **The boxes print as an envelope** (§2.3, #364, built by #386): the street on its own line,
+   * then the city, the state and the ZIP on one — a comma after the city, a space before the
+   * ZIP — and no label on any of them. The comma and the abbreviation are the owner's data,
+   * not a word of ours (§2.5).
+   */
+  it("prints the boxes as an envelope: the street, then city, state and ZIP on one line", () => {
+    const html = page({ ...base, address: unlinked });
+    expect(html).toContain(
+      '<span class="lp-line">12 Baker Street</span><br>\n<span class="lp-line">Austin, TX 78701</span>',
+    );
+  });
+
+  it("prints the second line between the street and the city", () => {
+    const html = page({ ...base, address: { ...unlinked, street2: "Suite 400" } });
+    expect(html).toContain(
+      '<span class="lp-line">12 Baker Street</span><br>\n<span class="lp-line">Suite 400</span><br>\n' +
+        '<span class="lp-line">Austin, TX 78701</span>',
+    );
+  });
+
+  it("closes the city line up around a blank box, with no stray comma or space", () => {
+    expect(envelopeLines({ city: "Austin", state: "TX" })).toEqual(["Austin, TX"]);
+    expect(envelopeLines({ state: "TX", zip: "78701" })).toEqual(["TX 78701"]);
+    expect(envelopeLines({ city: "Austin", zip: "78701" })).toEqual(["Austin 78701"]);
+    expect(envelopeLines({ city: "Austin" })).toEqual(["Austin"]);
+    expect(envelopeLines({ street: "12 Main St", zip: " 78701 " })).toEqual([
+      "12 Main St",
+      "78701",
+    ]);
+  });
+
   it("renders the lines alone when there is no directions URL", () => {
-    const html = page({ ...base, address: { lines: full.address?.lines ?? [] } });
+    const html = page({ ...base, address: unlinked });
     expect(html).toContain('<p class="lp-address">');
     expect(html).not.toContain('<a class="lp-address"');
   });
 
-  it("drops blank lines and renders nothing when none survive", () => {
-    expect(page({ ...base, address: { lines: ["", "  ", "London"] } })).toContain("London");
-    expect(page({ ...base, address: { lines: ["", "  "] } })).not.toContain("lp-address");
-    expect(page({ ...base, address: { lines: [] } })).not.toContain("lp-address");
+  it("reads a wrong-typed or blank box as absent, and renders nothing when none survive", () => {
+    const wrong = { street: 12, city: "Austin", zip: ["78701"] } as unknown as Project["address"];
+    expect(page({ ...base, address: wrong })).toContain("Austin");
+    expect(envelopeLines(wrong)).toEqual(["Austin"]);
+    expect(page({ ...base, address: {} })).not.toContain("lp-address");
+    expect(page({ ...base, address: { street: "", city: "  " } })).not.toContain("lp-address");
+    expect(envelopeLines("12 Main St")).toEqual([]);
+  });
+
+  /**
+   * A `version: 1` file's `lines` never reach the page: the builder converts them into the
+   * street box on the way in (`document.ts`, §4.3), so the renderer reads one shape, not two.
+   * A stray `lines` on a v2 file is an unknown key (§4.5) — kept in the file, printed nowhere.
+   */
+  it("does not print a version-1 file's lines, which the builder converts before the page sees them", () => {
+    const old = { lines: ["12 Baker Street"] } as unknown as Project["address"];
+    expect(page({ ...base, address: old })).not.toContain("lp-address");
   });
 
   /**
@@ -572,7 +628,7 @@ describe("address", () => {
    * that a wrong word is worse than a missing one.
    */
   it("says nothing about directions when the address is not a link", () => {
-    const html = page({ ...base, address: { lines: full.address?.lines ?? [] } });
+    const html = page({ ...base, address: unlinked });
     expect(html).toContain('<p class="lp-address">');
     expect(html).not.toContain('<span class="lp-sr">Directions</span>');
   });
@@ -791,7 +847,7 @@ describe("render escapes project text rather than trusting it", () => {
     ["link label", { links: [{ label: "</a><script>x</script>", url: "https://x.example" }] }],
     ["hours note", { hours: { clock: "24h", weekStart: "mon", days: {}, note: "<script>x" } }],
     ["phone", { contact: { phone: '"><script>x</script>' } }],
-    ["address line", { address: { lines: ["<script>x</script>"] } }],
+    ["address line", { address: { street: "<script>x</script>" } }],
     ["platform", { social: [{ platform: "<script>x</script>", url: "https://x.example" }] }],
   ])("escapes a %s that is markup", (_what, patch) => {
     expect(render({ ...base, ...patch } as Project)).not.toMatch(/<script/i);
@@ -973,11 +1029,11 @@ describe("LocalBusiness microdata", () => {
   it("publishes the address as text and the directions link as hasMap", () => {
     const html = page(full);
     expect(html).toContain('itemprop="hasMap" href="https://maps.example/?q=12+Baker+Street"');
-    expect(addressText(html)).toBe("12 Baker Street London NW1 6XE");
+    expect(addressText(html)).toBe("12 Baker Street Austin, TX 78701");
   });
 
   it("keeps the address property when there is no directions URL", () => {
-    const project = { ...base, address: { lines: ["12 Baker Street"] } };
+    const project = { ...base, address: { street: "12 Baker Street" } };
     expect(addressText(page(project as Project))).toBe("12 Baker Street");
   });
 
@@ -986,7 +1042,7 @@ describe("LocalBusiness microdata", () => {
     // data is untouched by them. This is the one place a purely visual change reaches §6.4.
     const html = page(full);
     expect(html).toContain('<span class="lp-line">12 Baker Street</span>');
-    expect(addressText(html)).toBe("12 Baker Street London NW1 6XE");
+    expect(addressText(html)).toBe("12 Baker Street Austin, TX 78701");
   });
 
   /**
@@ -1006,7 +1062,7 @@ describe("LocalBusiness microdata", () => {
       const html = page({ ...full, lang });
       const words = vocabulary(lang);
       expect(html, lang).toContain(`<span class="lp-sr">${words.directions}</span>`);
-      expect(addressText(html), lang).toBe("12 Baker Street London NW1 6XE");
+      expect(addressText(html), lang).toBe("12 Baker Street Austin, TX 78701");
       expect(addressText(html), lang).not.toContain(words.directions);
     }
   });

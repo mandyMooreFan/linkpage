@@ -61,9 +61,9 @@ import { TYPE } from "./type.js";
  * it 42px, so the box was never going to grow. **The compensation is still load-bearing, and for
  * a better reason than before.** With the floor deciding the height, `padding-bottom` is what
  * decides where the text sits inside it: 44 − 8 − 8 − 1 and 44 − 8 − 7 − 2 are the same 27px of
- * content box, so the typed characters hold still too. And the address `<textarea>` is four rows
- * tall — well past the floor — so there the pixel taken back is still the only thing keeping the
- * box from growing. `controls.test.ts` holds all of it.
+ * content box, so the typed characters hold still too. And a `<textarea>` at several rows — the
+ * address's four, until #386 made it boxes — is well past the floor, so there the pixel taken
+ * back is the only thing keeping the box from growing. `controls.test.ts` holds all of it.
  */
 export const LINE_CLASS =
   `tap w-full border-0 border-b border-control-edge bg-transparent px-0 py-2 font-sans ` +
@@ -81,11 +81,12 @@ export function TextInput({ className, ...rest }: TextInputProps): JSX.Element {
 }
 
 /**
- * The same line, for an answer that runs to several — the address, and nothing else today.
+ * The same line, for an answer that wraps — the tagline, through `TextField`'s `wraps` (#382),
+ * and nothing else today. The address was the four-row caller until #386 gave it boxes (§2.3).
  *
  * **It lives here rather than in its own file so the two cannot drift.** They are one control at
- * two heights: an address written the way you would write it on an envelope is still a ruled line
- * you write on, and a box would make it the only boxed field in the tool. Sharing `INPUT_CLASS`
+ * two heights: an answer that runs past the edge is still a ruled line you write on, and a box
+ * would make it the only boxed field in the tool. Sharing `INPUT_CLASS`
  * is what keeps that true without a second string to keep in step — which is the whole failure
  * this file exists to have fixed.
  *

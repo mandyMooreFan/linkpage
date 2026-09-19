@@ -336,15 +336,6 @@ const intervals: Codec<Interval[] | undefined> = {
   write: (value) => (value ?? []).map(([open, close]) => [open, close]),
 };
 
-/** Free-text lines, written the way the owner would write them on an envelope (§2.3). */
-const lines: Codec<string[]> = {
-  read: (raw) =>
-    Array.isArray(raw)
-      ? (raw as unknown[]).filter((line): line is string => typeof line === "string")
-      : [],
-  write: identity,
-};
-
 const size = bounded(0, Number.MAX_SAFE_INTEGER, 0);
 
 const logoFields = structure<Logo>({ src: text, width: size, height: size });
@@ -446,17 +437,30 @@ const contact: Codec<Contact> = structure<Contact>({
   email: optionalText,
 });
 
+/**
+ * The five boxes of a US address (§2.3, #364, built by #386), each a string and each optional:
+ * `Continue` wants any one of them, and the page prints whichever are there as envelope lines.
+ *
+ * There is no `lines` here. A `version: 1` file's free-text lines are turned into the street
+ * box before this codec sees the document — `upgradeDocument` in `document.ts`, on the way in —
+ * so the schema describes one shape, the one every builder writes today.
+ */
 const address: Codec<Address> = structure<Address>({
-  lines,
+  street: optionalText,
+  street2: optionalText,
+  city: optionalText,
+  state: optionalText,
+  zip: optionalText,
   directionsUrl: optionalText,
 });
 
 /**
  * `version` always reads as the version we write.
  *
- * Anything this codec ever sees has already survived `readProjectFile`, so it is 1 or older,
- * and an older file is upgraded by being read — silently, with no notice and no dialog (§4.3).
- * The write rule then keeps the file's own spelling of it, so a document already saying `1` is
+ * Anything this codec ever sees has already survived `readProjectFile`, which refuses a version
+ * beyond ours and **renumbers an older one to ours** as it converts the file's shape
+ * (`upgradeDocument`, §4.3) — so by the time a document is here it says `2`, or says nothing.
+ * The write rule then keeps the file's own spelling of it, so a document already saying `2` is
  * not rewritten and a document saying nothing gains it.
  */
 const version: Codec<typeof SCHEMA_VERSION> = {
