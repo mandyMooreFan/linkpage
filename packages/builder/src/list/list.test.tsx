@@ -461,9 +461,12 @@ describe("the list's ladder and emphasis (§1, §2)", () => {
     openRow(/^A line about what you do/);
 
     expect(row("tagline").querySelector("[data-row-summary]")).toBeNull();
-    // Once, and in the field that can change it.
-    expect(screen.getByLabelText("Tagline")).toHaveProperty("value", tagline);
-    expect(row("tagline").textContent).not.toContain(tagline);
+    // Once, and in the field that can change it. The field is a `<textarea>` since #382, and
+    // `textContent` reads a textarea's words as text — so the row is read less the box's own.
+    const box = screen.getByLabelText("Tagline");
+    expect(box).toHaveProperty("value", tagline);
+    const outside = (row("tagline").textContent ?? "").replace(box.textContent ?? "", "");
+    expect(outside).not.toContain(tagline);
   });
 
   /**

@@ -17,6 +17,10 @@ import { WIDTHS } from "./walk.js";
  * box is the one place in the builder where what is on screen depends on a scroll position, and
  * jsdom has none: whether the chosen language is inside the box when the row opens, and whether
  * the box's foot lands on a row's edge or a few pixels past a divider, are both answered here.
+ *
+ * **And how tall the tagline's line stands** (§7.2; #382, spec-pass finding 11). Whether a box
+ * grew to hold its words or scrolled them out of sight is a rendered height against a scroll
+ * height, which only a browser has.
  */
 
 const NARROW = WIDTHS[0];
@@ -109,23 +113,28 @@ test("the measurement goes red when the frame is pushed off the edge", async ({ 
 /** Where the store keeps the project (`src/project/store.ts`); seeding it lands on the list. */
 const PROJECT_STORAGE_KEY = "linkpage.project";
 
-/**
- * The review list with the language row open, on a project whose language is English — which
- * is the eleventh row of forty-two and so below the fold of a box that opens at its top.
- */
-async function languageRowOpen(page: Page, lang: string): Promise<void> {
+/** The review list on a seeded project, with one row opened by its name (#379's pattern). */
+async function rowOpen(page: Page, project: unknown, row: RegExp, opened: string): Promise<void> {
   await page.addInitScript(
     ([key, text]: [string, string]) => window.localStorage.setItem(key, text),
-    [PROJECT_STORAGE_KEY, JSON.stringify({ ...POPULATED, lang })] as [string, string],
+    [PROJECT_STORAGE_KEY, JSON.stringify(project)] as [string, string],
   );
   await page.goto("/linkpage/");
   await page.getByRole("heading", { level: 1 }).waitFor();
   // The drawer covers the rows at 390 (§7.6); put it away wherever it is open.
   const drawer = page.getByRole("button", { name: /(the|your) page$/ }).first();
   if ((await drawer.getAttribute("aria-expanded")) === "true") await drawer.click();
-  await page.getByRole("button", { name: /^Page language/, expanded: false }).click();
-  await page.locator("[data-languages]").waitFor();
+  await page.getByRole("button", { name: row, expanded: false }).click();
+  await page.locator(opened).waitFor();
   await page.waitForTimeout(400); // §7.11's fade
+}
+
+/**
+ * The review list with the language row open, on a project whose language is English — which
+ * is the eleventh row of forty-two and so below the fold of a box that opens at its top.
+ */
+async function languageRowOpen(page: Page, lang: string): Promise<void> {
+  await rowOpen(page, { ...POPULATED, lang }, /^Page language/, "[data-languages]");
 }
 
 /** The scroll box's inside — its border excluded — and every row's box, in page coordinates. */
@@ -203,4 +212,87 @@ test("the whole-rows measurement goes red when the box is a sliver taller", asyn
   const last = visible[visible.length - 1];
   expect(visible.length, "the mutant shows a fifth row's sliver").toBe(5);
   expect(inside.bottom - (last?.top ?? NaN), "of a few pixels").toBeLessThan(8);
+});
+
+/**
+ * The tagline row open — the flow's own question, in the row (§7.4) — on a project whose
+ * tagline is longer than the line at either width. `POPULATED`'s fits a laptop's column.
+ */
+const LONG_TAGLINE =
+  "Sourdough, pastries, and the best cheese scone in town, with very good coffee from seven";
+/** And one that fits a phone's line, so the box at rest can be measured against the floor. */
+const SHORT_TAGLINE = "Sourdough since 1902";
+
+async function taglineRowOpen(page: Page, tagline: string): Promise<void> {
+  await rowOpen(
+    page,
+    { ...POPULATED, header: { ...POPULATED.header, tagline } },
+    /^A line about what you do/,
+    "[data-wraps]",
+  );
+}
+
+/**
+ * The line's own box and what it holds, as the browser laid them out: `box` is the whole box,
+ * rule included, which is what `tap` floors; `inside` and `words` both leave the rule out, so
+ * they compare like with like.
+ */
+async function taglineLine(page: Page): Promise<{
+  readonly box: number;
+  readonly inside: number;
+  readonly words: number;
+  readonly lines: number;
+}> {
+  return page.locator("[data-wraps]").evaluate((element: HTMLTextAreaElement) => {
+    const lineHeight = parseFloat(getComputedStyle(element).lineHeight);
+    return {
+      box: element.offsetHeight,
+      inside: element.clientHeight,
+      words: element.scrollHeight,
+      lines: Math.round(
+        (element.scrollHeight -
+          parseFloat(getComputedStyle(element).paddingTop) -
+          parseFloat(getComputedStyle(element).paddingBottom)) /
+          lineHeight,
+      ),
+    };
+  });
+}
+
+/** §7.6's `tap` floor, which is what an empty or one-line box rests on. */
+const TAP_FLOOR = 44;
+
+for (const width of [NARROW, WIDE]) {
+  test(`the tagline's line grows to its words instead of hiding their end at ${width.label}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(width.viewport);
+    await taglineRowOpen(page, LONG_TAGLINE);
+
+    const line = await taglineLine(page);
+    expect(line.lines, "the tagline really is longer than the line here").toBeGreaterThan(1);
+    expect(line.words, "nothing is scrolled out of sight").toBeLessThanOrEqual(line.inside);
+    expect(line.box, "so the box stands taller than the floor").toBeGreaterThan(TAP_FLOOR);
+  });
+
+  test(`and a tagline that fits leaves the box on the floor at ${width.label}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(width.viewport);
+    await taglineRowOpen(page, SHORT_TAGLINE);
+
+    const line = await taglineLine(page);
+    expect(line.lines).toBe(1);
+    expect(line.box, "one row, held at `tap` like the one-line box it replaced").toBe(TAP_FLOOR);
+  });
+}
+
+test("the growth measurement goes red when the line is held to one row", async ({ page }) => {
+  await page.setViewportSize(NARROW.viewport);
+  await taglineRowOpen(page, LONG_TAGLINE);
+
+  // `fixed` is the property's initial value: the box the finding photographed.
+  await page.addStyleTag({ content: `[data-wraps] { field-sizing: fixed !important; }` });
+  const line = await taglineLine(page);
+  expect(line.words, "the mutant scrolls the end out of sight").toBeGreaterThan(line.inside);
 });

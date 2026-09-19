@@ -75,9 +75,13 @@ export const ANSWERS = {
   "Where else are you online?": { kind: "skip" },
 };
 
-/** The wizard's text-ish fields — everything a step types into. */
+/**
+ * The wizard's text-ish fields — everything a step types into. The tagline's line is a
+ * one-row `<textarea>` since #382, named by its hook so the address's four-row box, which has
+ * its own answer kind, is not the first text-ish thing on a screen it never is.
+ */
 export const TEXTISH =
-  '[data-screen="flow"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"])';
+  '[data-screen="flow"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea[data-wraps])';
 
 /**
  * Settle the frame's own fade (§7.11) before the caller looks at the screen.

@@ -307,8 +307,12 @@ describe("every shared control reaches a screen", () => {
   it("renders the several-line answer at the one field that is one", () => {
     // `TextInput.tsx` says so itself: "for an answer that runs to several — the address, and
     // nothing else today". A second textarea is a decision, not a diff.
+    // #382 made the decision: the tagline's line is the same control at one row, grown to its
+    // words, and it reaches it through `TextField`'s `wraps` — so the second caller is the
+    // field component, not a screen.
     expect(callersOf("TextArea", "/TextInput.tsx")).toEqual([
       "../flow/questions/SectionQuestions.tsx",
+      "./TextField.tsx",
     ]);
   });
 

@@ -113,6 +113,27 @@ export function TextInput({ className, ...rest }: TextInputProps): JSX.Element {
  */
 export const TEXTAREA_CLASS = `${INPUT_CLASS} resize-none`;
 
+/**
+ * The same line at one row, grown to its words — the tagline, and nothing else today (#382).
+ *
+ * A single-line `<input>` shows a long answer up to its right edge and scrolls the rest out of
+ * sight with nothing on screen to say more exists, while the page beside the question and the
+ * review row both show the whole line. The tagline is *one line on the page* and still longer
+ * than a phone's box, so its line wraps: a `<textarea>` at `rows={1}` wearing this, which is the
+ * `field-sizing: content` the address field's note above rejected — and rejected for a reason
+ * that is exactly reversed here. There, a field sized to no content collapsed to one ruled line
+ * when it was meant to ask for several; here one ruled line *is* the empty state, and `tap`
+ * still holds it at the floor, so an empty tagline box is the empty name box above it, pixel for
+ * pixel. Typed past the edge, the line takes a second row instead of hiding the end.
+ *
+ * **Where the property is not known** (it is Baseline since mid-2026), the same markup is a
+ * one-row box that scrolls with a scrollbar — the browser's own mark that more exists, which is
+ * the least the finding asked for. **How the box behaves like the one-line box it replaces** —
+ * `Enter` goes on, a line break never enters the answer — is `TextField`'s, beside the rest of
+ * the field's behaviour; `TextField.test.tsx` holds it, and `layout.e2e.ts` measures the growth.
+ */
+export const WRAP_CLASS = "field-sizing-content";
+
 export interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   readonly ref?: Ref<HTMLTextAreaElement>;
 }
