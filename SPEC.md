@@ -1009,7 +1009,7 @@ preview, and six making measurements that cannot be made anywhere but a browser.
 | `exported-page-a11y.e2e.ts` | `axe-core` over the exported page — every shape, both modes, both widths         |
 | `focus-ring.e2e.ts`         | a focus ring is painted on every tab stop (§7.12 commitment 2)                   |
 | `hover.e2e.ts`              | every enabled button offers a hand and changes under the pointer (§7.4)          |
-| `layout.e2e.ts`             | where screen one's boxes land: the frame's edge, the footer's foot (§7.6, §7.8)  |
+| `layout.e2e.ts`             | where boxes land: screen one's edges, the picker, the tagline, the hours exits   |
 | `reachability.e2e.ts`       | what Tab reaches, against every control a screen is showing (§7.12 commitment 3) |
 | `tap-target.e2e.ts`         | the rendered box of every tab stop, against the tap floor (§7.12 commitment 5)   |
 
@@ -1929,6 +1929,21 @@ always met them in, so §7.12's counts do not move — on one baseline, wrapping
 when a long escape needs it; each keeps its own weight, so the fill still marks the one primary
 thing on the screen. `Back` had stood a whole section below as _the most separate thing on the
 screen_; it is now the last thing in the row, still the quiet weight, still never a submit.
+**And on a screen of its own, the row stays in view when the screen is taller than the viewport**
+(#383, spec-pass finding 10). It holds at the foot of the viewport, 16 px off the edge, over the
+ground with 16 px of fade above it so what scrolls under dims into the row rather than being cut,
+for as long as the form runs on below it, and goes back to its own rung under the last control once
+the form's end scrolls up to meet it; on a screen that fits, nothing engages and nothing moves. The
+hours screen is the one that needed it — seven day rows and a note put its exits a screenful below
+the fold at both widths, so nothing on arrival said the step could be skipped or where to go on —
+but the rule is the shell's, not the screen's. A row inside the review list does not take it: there
+the form is one row among others with the list's own footer under them, and a `Save` held at the foot
+of the viewport reads as the list's rather than the row's, so it stays at the row's end. The document
+carries scroll padding the height of the row and its band, so a control the keyboard scrolls into
+view lands above the row rather than under it (a row wrapped to two lines on a phone is taller than
+the padding; §11's phone pass reads it). _Measured_ on the hours screen at both of §7.6's sizes
+(`layout.e2e.ts`): the three exits inside the viewport on arrival, the row below the note once the
+screen is scrolled to its end, and the note clear of the row when focused.
 
 **The browser's own controls wear the tool's ink** (#193, #375). A raw tick box, radio or slider
 paints itself in the browser's accent colour — a saturated blue that belongs to no ramp, and on the
@@ -2297,7 +2312,8 @@ question with seven parts, not seven questions (§7.2).
 > to ignore once it is true.
 >
 > **The measurements are the argument, so they are recorded.** Today's screen is **1516 px tall on an
-> 844 px viewport**, with `Continue` below all of it, and `Mon–Fri 9–5` costs **15 interactions**. Density
+> 844 px viewport**, with `Continue` below all of it (the row stays in view since #383 — §7.4 — but the
+> height it stood below is the point here), and `Mon–Fri 9–5` costs **15 interactions**. Density
 > alone takes 1504 px to 1363 px and stops, **because the height was never the day rows** — five open days
 > cost five time rows, and compressing the day rows cannot touch them. So the carry, not the layout, is
 > what buys anything; and it buys it on the week no _copy_ can help. Mon–Thu 9–5, Fri 9–9, Sat 10–4 goes
