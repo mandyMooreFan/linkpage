@@ -1,3 +1,5 @@
+import { isEnglishFallback, languageTag, vocabulary } from "@linkpage/renderer";
+
 /**
  * What each language the renderer can write is called **in that language** (`SPEC.md` §7.4).
  *
@@ -85,3 +87,35 @@ export const LANGUAGE_NAMES: Readonly<Record<string, string>> = {
   zh: "简体中文",
   "zh-hant": "繁體中文",
 };
+
+/**
+ * Which row a stored tag *is*, or `undefined` when it is none of them (§7.4, §4.5; #379).
+ *
+ * **The collapsed row and the open picker both ask this**, so they cannot disagree: the row that
+ * says *English* for `en-US` is the row the picker marks. Region and script subtags resolve the
+ * way the renderer resolves them — `en-US` is English, `zh-TW` is 繁體中文 — because the answer
+ * is about which words reach the page, and that is the renderer's to give.
+ *
+ * **A tag the page cannot write is no row**, even though the page's words for it are English.
+ * `vocabulary("sw")` returns the English entry as a fallback, and comparing entries would have
+ * called `sw` English — which is how the picker used to light the English row for a hand-edited
+ * `sw` and fold the typed field away with the value in it. §4.5 says that value is preserved and
+ * *displayed*; `isEnglishFallback` is the renderer's own word for "these are stand-in words", and
+ * a value that is not tag-shaped at all is the same case one step earlier: the page declares
+ * `en` for it (§4.7), but nothing about the stored value is English.
+ */
+export function listedKey(tag: string | undefined): string | undefined {
+  if (tag === undefined || tag === "") return undefined;
+  if (languageTag(tag) !== tag || isEnglishFallback(tag)) return undefined;
+  const words = vocabulary(tag);
+  return Object.keys(LANGUAGE_NAMES).find((key) => vocabulary(key) === words);
+}
+
+/**
+ * What the collapsed row says: the language's name in its own language, or the tag as typed
+ * when the page cannot write it (§7.4: *a collapsed row says what is there*).
+ */
+export function languageLabel(tag: string | undefined): string {
+  const key = listedKey(tag);
+  return (key === undefined ? tag : LANGUAGE_NAMES[key]) ?? "";
+}

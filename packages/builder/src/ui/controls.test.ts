@@ -22,7 +22,7 @@ import { SHEET_SURFACE } from "../download/DownloadSheet.js";
 import { LEAD_IN_LIST } from "../download/Hosting.js";
 import { REORDER_CLASS } from "../list/LinkButtons.js";
 import { MENU_PANEL, MENU_SURFACE } from "../list/List.js";
-import { ROW_BUTTON, ROW_OPEN, ROW_PADDING, ROW_STACK_PADDING } from "./row.js";
+import { ROW_BUTTON, ROW_OPEN, ROW_PADDING, ROW_SCROLL_BOX, ROW_STACK_PADDING } from "./row.js";
 import { BRAND_SWATCHES } from "../flow/index.js";
 import { BAR_FILL } from "../flow/ProgressBar.js";
 
@@ -1338,6 +1338,29 @@ describe("the one hairline-separated row", () => {
     expect(users.length).toBeGreaterThanOrEqual(2);
   });
 
+  it("shows whole rows in a scrolling list, and says the sum it is made of (#379)", () => {
+    // A two-line row is its padding twice, `text-base`'s line (1.5rem), the `gap-0.5` between the
+    // lines (0.125rem) and `text-sm`'s line (1.25rem): 4.875rem, 78px at the browser's default.
+    const rowRem = (2 * ROW_PADDING.px) / 16 + 1.5 + 0.125 + 1.25;
+    expect(rowRem).toBe(4.875);
+    expect(ROW_SCROLL_BOX.rowPx).toBe(rowRem * 16);
+    // Between `rows` rows sit `rows - 1` hairlines, and the box wears one at each end (`border-y`
+    // is `ROW_LIST`'s); `border-box` puts those two inside the height.
+    const px = ROW_SCROLL_BOX.rows * ROW_SCROLL_BOX.rowPx + (ROW_SCROLL_BOX.rows - 1) + 2;
+    expect(ROW_SCROLL_BOX.px).toBe(px);
+    expect(ROW_SCROLL_BOX.className).toBe(
+      `max-h-[calc(${ROW_SCROLL_BOX.rows}*${rowRem}rem+${ROW_SCROLL_BOX.rows - 1 + 2}px)]`,
+    );
+    // And the picker is what wears it — a `max-h-80` there is 320px, which is four rows and a
+    // sliver of the fifth under a doubled line.
+    const picker = Object.entries(sources).find(([path]) => path.endsWith("/list/List.tsx"));
+    expect(picker).toBeDefined();
+    expect(code(picker?.[1] ?? "")).toMatch(
+      /data-languages[\s\S]{0,400}ROW_SCROLL_BOX|ROW_SCROLL_BOX[\s\S]{0,400}data-languages/,
+    );
+    expect(code(picker?.[1] ?? "")).not.toContain("max-h-80");
+  });
+
   it("keeps the row's padding above the gap inside a two-line row (§1)", () => {
     // `py-4` against `gap-0.5` is 16px against 2px — comfortably past the ≥4× floor the stacked
     // list anchor asks for, which is the measurement the language picker's `py-2` failed at 4:1.
@@ -2217,6 +2240,9 @@ describe("the stray sweep (design change 12)", () => {
       "max-w-[min(20rem,calc(100vw-2.5rem))]",
       // The panel 4px under the button that opens it — off the form ladder on purpose. `List.tsx`.
       "top-[calc(100%+0.25rem)]",
+      // The language picker's box: four whole two-line rows and their three hairlines, so the
+      // box's own edge never falls a few pixels from a divider (#379). `row.ts` carries the sum.
+      ROW_SCROLL_BOX.className,
       // `transition-[width]` was here, on the bar's fill, and is gone: the tween is `bar-tween`
       // in `theme.css` now, because a duration in the markup is one `prefers-reduced-motion`
       // cannot reach (#246). The arbitrary value was the smaller half of that; being out of the

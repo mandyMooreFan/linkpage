@@ -317,7 +317,19 @@ describe("every answer is a row, saying what is there (§7.4)", () => {
     // A file that said nothing about shape or mode reads as the defaults, and the defaults
     // are what the row says — which is the whole of "loads silently" not meaning "invisibly".
     expect(summary(POPULATED, "style")).toBe("Raspberry · Centred · Light");
-    expect(summary(POPULATED, "lang")).toBe("en-GB");
+    expect(summary(POPULATED, "lang")).toBe("English");
+  });
+
+  it("says the page's language by its name, and a tag the page cannot write as typed (§7.4, §4.5; #379)", () => {
+    // What is there is a language, not a tag: a bakery owner reads *English*, not `en-US`.
+    expect(summary({ ...POPULATED, lang: "en-US" }, "lang")).toBe("English");
+    expect(summary({ ...POPULATED, lang: "cy" }, "lang")).toBe("Cymraeg");
+    expect(summary({ ...POPULATED, lang: "zh-TW" }, "lang")).toBe("繁體中文");
+    // §4.5 preserves an unknown value, and the row shows it rather than the English it falls
+    // back to — the fallback is the page's limitation, not the owner's answer.
+    expect(summary({ ...POPULATED, lang: "sw" }, "lang")).toBe("sw");
+    expect(summary({ ...POPULATED, lang: "not a tag!" }, "lang")).toBe("not a tag!");
+    expect(summary({ ...POPULATED, lang: undefined }, "lang")).toBe("");
   });
 });
 

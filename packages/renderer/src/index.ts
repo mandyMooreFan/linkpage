@@ -41,7 +41,14 @@ export {
 export type { Glyph, IconName, SocialGlyph, SocialPlatform } from "./icons.js";
 export { formatTime, hoursView } from "./hours.js";
 export type { HoursRow, HoursView } from "./hours.js";
-export { VOCABULARIES, dayName, direction, languageTag, vocabulary } from "./locale.js";
+export {
+  VOCABULARIES,
+  dayName,
+  direction,
+  isEnglishFallback,
+  languageTag,
+  vocabulary,
+} from "./locale.js";
 export type { DayNames, Vocabulary } from "./locale.js";
 export type {
   Address,
