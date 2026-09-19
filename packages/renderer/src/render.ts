@@ -421,6 +421,16 @@ const PARENTHESISED_TRUNK = /^(\+[0-9]{1,3})[ .-]*\(0\)/;
 const FEWEST_DIGITS = 4;
 const MOST_DIGITS = 15;
 /**
+ * §2.3 clause 5 (#364, #385): ten digits shaped like a US number. The North American plan
+ * never starts an area code with 0 or 1, so the first digit is 2–9. That is the whole check —
+ * one line, no library — and it is what keeps a foreign number a digit short (`0770090012`, a
+ * UK mobile, which starts with the trunk 0) out of the clause: the owner picked this over a
+ * count alone. **The exchange is deliberately not checked**, though the plan fixes it the same
+ * way: `(555) 123-4567`, the number every US reader knows and the spec's own example, has an
+ * exchange starting with 1, and a check that refused it would refuse the sentence it answers to.
+ */
+const US_NUMBER = /^[2-9][0-9]{9}$/;
+/**
  * §2.3's email floor: one `@`, non-empty either side, no whitespace, no control characters, and
  * at least one dot after the `@`.
  *
@@ -445,10 +455,12 @@ function isEmailish(raw: string): boolean {
 /**
  * Phone and email, rendered as `tel:` and `mailto:` links (§2.3).
  *
- * **The displayed text is always what the owner typed; only the `href` is normalised.** A
- * number is written the way a local reader expects to see it — `020 7123 4567` — and a dialler
- * wants `+442071234567`; showing our normalisation would be showing our results rather than
- * the owner's intent.
+ * **The displayed text is always what the owner typed, or what the builder stored for them;
+ * the renderer normalises only the `href`.** A number is written the way a local reader
+ * expects to see it — `020 7123 4567` — and a dialler wants `+442071234567`; showing our
+ * normalisation would be showing our results rather than the owner's intent. The one number
+ * the builder stores mended is ten plain US digits (`mendPhone`, §7.9 decision 4), and that
+ * mend was shown to the owner in the field before it reached here.
  *
  * A value we cannot turn into a URL still renders, as text rather than as a link. Contact
  * details are content the owner typed, so §4.4's rule that owner data is kept rather than
@@ -490,10 +502,13 @@ function contactRow(
 /**
  * A `tel:` URL, or `undefined` when nothing in there can be dialled (`SPEC.md` §2.3).
  *
- * **The four clauses are the whole rule, and no country is ever learned, inferred or asked
- * for.** `lang` carries a region, but §4.1 establishes that a wrong region is *harmless*
- * today — so reading the phone off it would make a wrong region **harmful**, and a Manchester
- * baker on a US-configured laptop would be dialled as `+1`.
+ * **The five clauses are the whole rule, and the one country in them is declared, never
+ * learned, inferred or asked for.** `lang` carries a region, but §4.1 establishes that a wrong
+ * region is *harmless* today — so reading the phone off it would make a wrong region
+ * **harmful**, and a Manchester baker on a US-configured laptop would be dialled as `+1`. §1
+ * declares the United States instead (#364), which is what clause 5 spends: ten digits with no
+ * `+`, shaped like a US number, dial as `+1`; a number that supplied its own `+CC` and every
+ * other length dial as typed, digits only, as they always have.
  *
  * **Returning `undefined` is a real answer, not a failure.** `contactRow` renders the text
  * without a link, the owner's number still reads correctly on the page, and §7.9 marks it in
@@ -507,8 +522,11 @@ function contactRow(
  * than a visibly dead one. The stated caution against guessing at trunk prefixes produced
  * exactly the outcome it was avoiding.
  *
- * **The limit, stated rather than buried:** nothing merely mistyped is caught. `07700 90012`,
- * a digit short, still links. Catching that needs the country §2.3 declined.
+ * **The limit, stated rather than buried:** nothing merely mistyped is caught. `555 123 456`,
+ * a digit short, still links and is never a US number; `07700 90012`, a UK mobile a digit
+ * short, still links as typed — `US_NUMBER` keeps it out of clause 5, and no more than that.
+ * Catching either outright needs a rule per country, and this product has one country by
+ * decision, not by detection.
  *
  * Exported because the builder has to ask this exact question — §7.4's row mark and §7.7's
  * line are *"could a target be derived?"*, and asking anything else would let the builder and
@@ -525,6 +543,8 @@ export function telHref(value: unknown): string | undefined {
   const digits = trimmed.replace(NOT_A_DIGIT, "");
   // Clause 4. The upper bound is what catches two whole numbers sharing one box.
   if (digits.length < FEWEST_DIGITS || digits.length > MOST_DIGITS) return undefined;
+  // Clause 5. A `+` supplied its own country, so the declared one applies only without it.
+  if (!trimmed.startsWith("+") && US_NUMBER.test(digits)) return `tel:+1${digits}`;
   return `tel:${trimmed.startsWith("+") ? "+" : ""}${digits}`;
 }
 
@@ -534,7 +554,7 @@ export function mailtoHref(value: unknown): string | undefined {
 }
 
 /**
- * §7.9 decision 4 (#142): a mend is shown, not said — these two are what the builder stores
+ * §7.9 decision 4 (#142): a mend is shown, not said — these three are what the builder stores
  * and shows, so the owner meets the correction where they typed rather than on the exported
  * page.
  *
@@ -543,9 +563,10 @@ export function mailtoHref(value: unknown): string | undefined {
  * mended comes back as the owner typed it (trimmed), so §7.9's mark still has the raw text to
  * point at, and nothing is ever invented.
  *
- * Phone is deliberately absent: §7.9 names only a web address and an email, and a phone
- * number's normalisation stays in the href, where showing it would be showing our results
- * rather than the owner's intent.
+ * Phone joined the two on #364 (built by #385) for **one shape and no other**: ten plain
+ * digits shaped like a US number are set out as `(555) 123-4567`. Every other number keeps
+ * its normalisation in the href alone, where showing it would be showing our results rather
+ * than the owner's intent — a number the mend cannot read whole it never touches.
  */
 export function mendUrl(value: string): string {
   const raw = value.trim();
@@ -558,6 +579,16 @@ export function mendEmail(value: string): string {
   // `hello @mysite.com` was a marked row; compacted, it is an address.
   const compact = value.replace(/\s+/g, "");
   return isEmailish(compact) ? compact : value.trim();
+}
+
+export function mendPhone(value: string): string {
+  const raw = value.trim();
+  // Asked of `telHref` rather than re-spelt: the mend fires on exactly the numbers clause 5
+  // dials as `+1`, so the field, the review row and the page cannot disagree about which
+  // number is a US one. A `+CC` number's target never equals `+1` plus its own digits.
+  const digits = raw.replace(NOT_A_DIGIT, "");
+  if (telHref(raw) !== `tel:+1${digits}`) return raw;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
 // ---------------------------------------------------------------------------

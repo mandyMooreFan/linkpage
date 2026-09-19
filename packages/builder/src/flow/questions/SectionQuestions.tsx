@@ -71,8 +71,11 @@ export function ContactQuestion({
     >
       {/*
        * No judge on the phone, on purpose (§7.9 decision 1): a vanity number or an extension is
-       * right as typed, and its notice stays the review list's mark. The email is judged with
-       * the floor the page dials `mailto:` by, spaces stripped first as the mend would.
+       * right as typed, and its notice stays the review list's mark. Ten plain US digits are
+       * set out as `(555) 123-4567` on `Continue` — a mend shown, not said (§7.9 decision 4,
+       * #385), stored by `answerSection` and met here again when the row reopens. The email
+       * is judged with the floor the page dials `mailto:` by, spaces stripped first as the
+       * mend would.
        */}
       <TextField
         label="Phone"

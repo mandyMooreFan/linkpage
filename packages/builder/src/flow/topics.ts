@@ -1,5 +1,6 @@
 import {
   mendEmail,
+  mendPhone,
   mendUrl,
   type Address,
   type Contact,
@@ -138,10 +139,13 @@ function cleanHours(value: Hours): Hours {
  * on the exported page. What cannot be mended stores as typed, and the §7.9 mark still points
  * at it. This supersedes §2.3's old "nothing derived is ever stored" for these fields, and the
  * mend functions live in the renderer so the builder and the page cannot disagree.
+ *
+ * The phone joined them on #364 (built by #385) for one shape only: ten plain digits shaped
+ * like a US number store as `(555) 123-4567`. Any other number stores as typed, trimmed.
  */
 
 function cleanContact(value: Contact): Contact {
-  const phone = value.phone?.trim();
+  const phone = mendPhone(value.phone ?? "");
   const email = mendEmail(value.email ?? "");
   return { ...(blank(phone) ? {} : { phone }), ...(blank(email) ? {} : { email }) };
 }
