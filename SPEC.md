@@ -2686,7 +2686,32 @@ sizes. **Nothing it finds gates a merge**, deliberately, the way §7.4's appeara
 `heading-order` on the style row's opened readout, an `<h3>` under the list's `<h1>` with no `<h2>`
 for the row. They were #318's, ruled to a successor effort on #273, and cleared before
 `v1.1.0-beta` — the flow's root is a `<main>` and the style row carries its own clipped `<h2>`.
-#318's eleven undecided `color-contrast` results stand as they were: not findings, and not clean.
+**#318's eleven undecided `color-contrast` results have been read** (#415, #416; the working is in
+`docs/contrast-undecided-research.md`). **No colour among them is too low** — the lowest of the
+eight distinct pieces of text is 5.59:1 against 4.5:1, and most are 16:1 or better. **Not one of the
+refusals is about colour at all**, and the hypothesis that a transparent background caused them is
+wrong: transparency is everywhere here, because the ground is painted once on `<main>`, and axe
+walks past it naming an opaque ancestor. What stops it is geometry three ways — rows clipped out of
+the language list's scroll box (101 of the 133 nodes), text genuinely covered by the open menu
+panel, and a wrapped message whose two lines sit over different things — and, on two screens, a
+single arrow character, `↑` being U+2191, which axe's `ignoreUnicode` declines. **Three of the four
+are the checker correctly declining to guess, and the fourth is its own limit.** They are recorded
+here rather than fixed: there is nothing to fix.
+
+**A fifth cause has been added since, by us, and it is four fifths of the total** (#422). #383's
+sticky exits row draws its plate with `::before` and `::after`, and axe will not judge text whose
+ancestor carries a positioned pseudo element larger than a quarter of its area — 41,984 px² against
+a 4,442 px² `Back`, 38 times over, on every wizard screen at both sizes. **So the sweep's undecided
+count is 55 of 76 today and was exactly 11 at `b96e8df`, the commit before it.** The colours are
+unchanged and measured (16.02:1 and 9.29:1); what was lost is the instrument's ability to look at
+44 screens, which is why it is ticketed rather than accepted.
+
+**This is the failure mode "not findings, and not clean" exists to name, and it caught us.**
+Undecided is not a violation, so the sweep went on exiting 0 while the count more than quadrupled,
+through a change that shipped inside map #357 and through four sweeps run by hand on the day map
+#414 was charted. The report prints an undecided reading as a rule id and a count with no element,
+no colours and not even axe's own stated reason, all of which it holds and discards (#421) — and a
+number with nothing beside it is one nobody looks at twice.
 Reaching the list takes sixty-odd driven steps, and the check would not have caught #254, #255,
 #244 or #246. **The two tiers are not interchangeable**: the exported page's is a gate and this one
 is a report for a person, and the six commitments above do not rest on it.
