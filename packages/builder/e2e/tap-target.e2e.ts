@@ -28,9 +28,11 @@ import { tabStops, walkScreens, WIDTHS, type Stop } from "./walk.js";
  * biggest box would pass everything, because every control in this tool sits inside a full-width
  * column. Two mechanisms are recognised and no others: a `<label>` whose `control` **is** this
  * stop, which is the browser's own forwarding and is asked of the browser rather than guessed;
- * and `[data-url-field]`, the one place the product forwards a press by hand (`TextInput.tsx`'s
- * `onPointerDown`, *"clicking the prefix focuses the box"*). A third mechanism arriving without
- * declaring itself goes red here, which is the right way round.
+ * and `[data-forwards-press]`, the rows that forward a press by hand — `TextInput.tsx`'s
+ * web-address row (*"clicking the prefix focuses the box"*) and, since #376, `Suggest.tsx`'s,
+ * whose box is the same 24px of type on the same 44px line. A mechanism arriving without
+ * declaring itself goes red here, which is the right way round — and is how the second one was
+ * caught, as a 326×24 combobox on *Where else are you online?*.
  *
  * **Height is the axis, because `tap` is a `min-height`.** `theme.css` says why at length: most
  * controls in this tool must *not* take a width floor — a button is as wide as its words (§4,
@@ -89,7 +91,7 @@ function hit(element: Element): Target {
       forwards:
         up > 0 &&
         ((node instanceof HTMLLabelElement && node.control === element) ||
-          node.hasAttribute("data-url-field")),
+          node.hasAttribute("data-forwards-press")),
     });
     node = node.parentElement;
   }
@@ -247,7 +249,7 @@ test("the walk goes red when the floor is taken away", async ({ page }) => {
     if (!screen.id.endsWith("which-of-these-do-you-have")) return;
     const mutant = await page.addStyleTag({
       content: `
-        :is(button, input, textarea, select, label, [data-url-field]) {
+        :is(button, input, textarea, select, label, [data-forwards-press]) {
           min-height: 0 !important;
           height: 20px !important;
         }

@@ -129,13 +129,37 @@ export function Suggest({
     }
   };
 
+  const box = useRef<HTMLInputElement>(null);
+
   return (
     <div className="relative" ref={wrapper}>
-      <div className={SUGGEST_ROW_CLASS}>
+      {/*
+       * **The row forwards a press to the box, and says so.** The box is 24px of type standing on
+       * a 44px ruled line, exactly as the web-address field's is, so the line is what a finger
+       * actually hits and `tap-target.e2e.ts` measures the effective target rather than the
+       * control. `data-forwards-press` is how that instrument is told: it recognises a `<label>`
+       * the browser forwards for, and rows that declare they forward by hand — and it goes red on
+       * a row that forwards without declaring it, which is how this one was caught.
+       */}
+      <div
+        className={SUGGEST_ROW_CLASS}
+        data-forwards-press
+        onPointerDown={(event) => {
+          if (event.target === box.current) return;
+          // Not the arrow either — that has its own job, and focus belongs on the box after it.
+          if ((event.target as Element).closest("[data-suggest-open]") !== null) return;
+          event.preventDefault();
+          box.current?.focus();
+        }}
+      >
         <input
           {...rest}
           id={id}
-          ref={ref}
+          ref={(node) => {
+            box.current = node;
+            if (typeof ref === "function") ref(node);
+            else if (ref !== null && ref !== undefined) ref.current = node;
+          }}
           type="text"
           role="combobox"
           aria-expanded={showing}

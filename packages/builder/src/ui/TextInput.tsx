@@ -210,6 +210,10 @@ export function UrlInput({
     <span
       className={`${URL_ROW_CLASS} ${className ?? ""}`.trim()}
       data-url-field
+      // What it *is* is `data-url-field`, which four tests find the row by; what it *does*
+      // is forward a press, which is a behaviour `Suggest.tsx`'s row shares and which
+      // `tap-target.e2e.ts` reads. Two hooks because they answer two questions.
+      data-forwards-press
       onPointerDown={(event) => {
         if (event.target === box.current) return;
         event.preventDefault();
