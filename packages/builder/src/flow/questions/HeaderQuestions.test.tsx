@@ -27,8 +27,29 @@ describe("the tagline's line wraps (#382)", () => {
     expect(onAnswer).toHaveBeenCalledWith("Sourdough since 1902");
   });
 
-  it("leaves the name's line as it was", () => {
+  /**
+   * **This said `INPUT` until #399**, and was right to: #382's finding named the tagline, and the
+   * scope line is worth a test rather than a comment. #399 is the ticket it was waiting for — a
+   * 72-character trading name hid 242px of itself at 390 — so the claim is inverted rather than
+   * deleted, and the two boxes §7.4 names as the single long answers are now one shape.
+   */
+  it("and the name's line, which waited for #399", () => {
     mount(<NameQuestion initial="" onAnswer={() => {}} />);
-    expect(screen.getByLabelText("Business name").tagName).toBe("INPUT");
+    const box = screen.getByLabelText("Business name");
+    expect(box.tagName).toBe("TEXTAREA");
+    expect(box.hasAttribute("data-wraps")).toBe(true);
+  });
+
+  /**
+   * The check #399's ticket asked for before this was turned on. `organization` is valid on a
+   * `<textarea>` — WHATWG's autofill table puts it in the Text control group, *"input (Hidden,
+   * Text, Search), textarea, select"* — and what could still have gone wrong is the attribute
+   * being dropped on the way through `wrappingInput`, which is what this reads.
+   */
+  it("keeps the name box's autofill hint through the change", () => {
+    mount(<NameQuestion initial="" onAnswer={() => {}} />);
+    expect(screen.getByLabelText("Business name").getAttribute("autocomplete")).toBe(
+      "organization",
+    );
   });
 });

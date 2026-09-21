@@ -287,6 +287,92 @@ for (const width of [NARROW, WIDE]) {
   });
 }
 
+/**
+ * The name's box, the same way (#399, filed to wait from #382).
+ *
+ * **Its own fixtures, not the tagline's.** A business name and a line about what you do are
+ * different lengths of thing — the name that overflows is a real long trading name, not a
+ * sentence — and a shared constant would quietly make one of the two tests about the other.
+ */
+const LONG_NAME = "Ada & Sons Bakers and Wholesale Confectioners of Great Titchfield Street";
+/** And one that fits a phone's line, so the box at rest can be measured against the floor. */
+const SHORT_NAME = "Ada & Sons Bakers";
+
+async function nameRowOpen(page: Page, name: string): Promise<void> {
+  await rowOpen(
+    page,
+    { ...POPULATED, header: { ...POPULATED.header, name } },
+    /^Business name/,
+    "[data-wraps]",
+  );
+}
+
+for (const width of [NARROW, WIDE]) {
+  test(`the name's line grows to its words instead of hiding their end at ${width.label}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(width.viewport);
+    await nameRowOpen(page, LONG_NAME);
+
+    const line = await taglineLine(page);
+    expect(line.lines, "the name really is longer than the line here").toBeGreaterThan(1);
+    expect(line.words, "nothing is scrolled out of sight").toBeLessThanOrEqual(line.inside);
+    expect(line.box, "so the box stands taller than the floor").toBeGreaterThan(TAP_FLOOR);
+  });
+
+  test(`and a name that fits leaves the box on the floor at ${width.label}`, async ({ page }) => {
+    await page.setViewportSize(width.viewport);
+    await nameRowOpen(page, SHORT_NAME);
+
+    const line = await taglineLine(page);
+    expect(line.lines).toBe(1);
+    expect(line.box, "one row, held at `tap` like the one-line box it replaced").toBe(TAP_FLOOR);
+  });
+}
+
+/**
+ * **The second half of #399's ticket, measured rather than reasoned.** The name box and the
+ * tagline box are the same box at rest, and the ticket asked whether turning the name's wrapping
+ * on kept that true. Both rest on `tap`, so the answer should be yes — and "should be" is what
+ * this test exists to replace.
+ *
+ * **At rest here means one line, not empty.** The ticket said *empty*; the business name is the
+ * one answer the tool refuses to go on without — `NameQuestion` carries no escape and judges the
+ * value non-empty (§7.9 decision 1) — and a walk that seeded a nameless project did not reach an
+ * open row within the timeout. Rather than chase that, the measurement is taken where it is
+ * plainly reachable and says the same thing: a box on the floor with one row in it.
+ */
+test("a one-line name box and a one-line tagline box are the same box", async ({ page }) => {
+  await page.setViewportSize(NARROW.viewport);
+
+  await nameRowOpen(page, SHORT_NAME);
+  const name = await taglineLine(page);
+
+  await taglineRowOpen(page, SHORT_TAGLINE);
+  const tagline = await taglineLine(page);
+
+  expect(name.box, "the same height at rest").toBe(tagline.box);
+  expect(name.inside, "and the same room inside").toBe(tagline.inside);
+  expect(name.box, "both on the floor").toBe(TAP_FLOOR);
+});
+
+/**
+ * **The first half, as far as a browser can be asked.** `organization` on a `<textarea>` is
+ * valid — WHATWG's autofill table puts it in the Text control group, which is *"input (Hidden,
+ * Text, Search), textarea, select"* — so the attribute must survive the change to a wrapping
+ * box. Whether a given browser's heuristic then offers a saved company name is that browser's
+ * to decide and cannot be measured from a page, which is why this asserts what it can: the
+ * attribute is on the control the owner types into, and it is a textarea.
+ */
+test("the name box keeps its autofill hint when it becomes a line that wraps", async ({ page }) => {
+  await page.setViewportSize(NARROW.viewport);
+  await nameRowOpen(page, SHORT_NAME);
+
+  const box = page.locator("[data-wraps]");
+  await expect(box).toHaveAttribute("autocomplete", "organization");
+  expect(await box.evaluate((element) => element.tagName.toLowerCase())).toBe("textarea");
+});
+
 test("the growth measurement goes red when the line is held to one row", async ({ page }) => {
   await page.setViewportSize(NARROW.viewport);
   await taglineRowOpen(page, LONG_TAGLINE);
