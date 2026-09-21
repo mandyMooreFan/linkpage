@@ -1737,8 +1737,18 @@ longer than a phone's box, and a single-line box shows it up to its right edge a
 nothing on screen to say more exists — while the page beside the question and the review row both show
 the whole line. So the tagline's box is the same ruled line at one row, grown to its words: empty or
 short it stands on §7.6's floor like the name's box above it, and past the edge it takes a second row.
-`Enter` still goes on, and a line break is never part of the answer. The name's box is left as it is —
-the finding named the tagline, and a name that long is rarer than a tagline that long.
+`Enter` still goes on, and a line break is never part of the answer.
+
+**The name's box took the same rule** (#399). It waited because #382's finding named the tagline and a
+name that long is rarer than a tagline that long — not because the box behaved differently. Measured
+before it was turned on: a seventy-two-character trading name is 592px of text in a 350px box at 390,
+so **242px of the owner's own name sat out of sight**, and 80px did at 1440. The two boxes this section
+names as the single long answers are now one shape, and a name that fits still rests on the floor
+exactly as the tagline's does. **`autocomplete="organization"` survives the change**: WHATWG's autofill
+table puts `organization` in the Text control group — _input (Hidden, Text, Search), textarea, select_ —
+so a wrapping box is as valid a target as the one-line box was. Whether a given browser's heuristic then
+offers a saved company name is that browser's to decide and is not measurable from the page; what is
+measured is that the attribute is still on the control the owner types into.
 
 **One _question_ per screen, not one field per screen.** _When are you open?_ is one question whose
 answer happens to have seven parts, in the same way the link step is one question with several picks.
