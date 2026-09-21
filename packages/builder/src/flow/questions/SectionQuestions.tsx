@@ -11,10 +11,11 @@ import { emailJudge, linkJudge } from "../../project/unusable.js";
 import { Field, Question } from "./Question.js";
 import { STATES } from "./states.js";
 import { useTyping } from "./typing.js";
-import { TextInput } from "../../ui/TextInput.js";
 import { Select } from "../../ui/Select.js";
 import { Button } from "../../ui/Button.js";
 import { LADDER } from "../../ui/ladder.js";
+import { Suggest } from "../../ui/Suggest.js";
+import { ROW_LIST_FIELDS, ROW_STACK_PADDING } from "../../ui/row.js";
 
 /**
  * Contact, address and social — the three optional sections that are ordinary forms.
@@ -225,6 +226,13 @@ export function AddressQuestion({
   );
 }
 
+/**
+ * The ten, in the words the page will print — `socialLabel`'s, so the suggestion and the brand
+ * mark it earns cannot drift apart. Built once: the list is fixed at module scope and every row
+ * on the screen offers the same one.
+ */
+const PLATFORM_NAMES: readonly string[] = SOCIAL_PLATFORMS.map(socialLabel);
+
 export interface SocialQuestionProps {
   readonly initial: readonly SocialLink[] | undefined;
   readonly onAnswer: (social: SocialLink[]) => void;
@@ -242,6 +250,21 @@ export interface SocialQuestionProps {
  * platform is kept and renders with the generic glyph — LinkedIn is the live example, absent
  * from the marks only because Simple Icons removed it at LinkedIn's request. A `<select>` here
  * would turn "the ten we happen to have drawn" into "the places a business can be".
+ *
+ * **That stayed true and the box still said nothing** (#376, walk #359 moment 17). It was a
+ * `<datalist>`, whose popup is browser furniture: no mark on the line, nothing in the tree, and
+ * nothing a test or a review shot can see. `Suggest` is the same openness with the list made
+ * ours — an arrow that says *this opens*, ten names under it, and every one of them still only a
+ * suggestion. See `ui/Suggest.tsx` for why that trade goes this way and not the other.
+ *
+ * **The pair is a row in the list family** (#376, walk #359 moment 18; spec pass #358 finding 8).
+ * It wrote `border-b border-rule py-2` by hand — B-43 wrote that row once in `ui/row.ts` and
+ * `LinkButtons` names the hand-written spelling as the one it replaced, but this screen, the
+ * other place two fields share a row, was left on it. 8px of padding under `betweenFields`' 32px
+ * inverts the grouping the walk said was missing, and the per-row rule is the second line it saw
+ * under *Your page there*. It takes `ROW_LIST_FIELDS` rather than `ROW_LIST`: a row that ends in
+ * an underlined field needs no edge of its own, and `border-y` only moved that second line from
+ * 10px under the field's own to 14px — mended by taking it away, not by spacing it.
  */
 export function SocialQuestion({
   initial,
@@ -275,32 +298,28 @@ export function SocialQuestion({
       escape={{ label: "We're not on social", onEscape: onSkip }}
       onBack={onBack}
     >
-      <datalist id={listId}>
-        {SOCIAL_PLATFORMS.map((platform) => (
-          <option key={platform} value={platform}>
-            {socialLabel(platform)}
-          </option>
-        ))}
-      </datalist>
-
-      <ul className="m-0 flex list-none flex-col gap-2 p-0">
+      <ul className={`w-full ${ROW_LIST_FIELDS}`} data-social-rows>
         {rows.map((row, index) => (
           // Positional keys: a row is identified by where it is, and rows are only appended.
           // Two fields, so the gap between them is the field-to-field rung and not the one used
           // *inside* a field — which is what made every label here read as belonging to the box
-          // above it (B-65 measured this step as the worst of them).
+          // above it (B-65 measured this step as the worst of them). The row's own padding takes
+          // the *section* rung, because a boundary no wider than the gap inside it stops reading
+          // as one — `LinkButtons` carries the same two numbers for the same reason.
           <li
             key={index}
-            className={`flex flex-col ${LADDER.betweenFields.className} border-b border-rule py-2`}
+            className={`flex flex-col ${LADDER.betweenFields.className} ${ROW_STACK_PADDING.className}`}
+            data-social-row
           >
-            <Field label="Where">
-              <TextInput
-                type="text"
-                list={listId}
+            <Field label="Where" htmlFor={`${listId}-where-${index}`}>
+              <Suggest
+                id={`${listId}-where-${index}`}
                 value={row.platform}
+                options={PLATFORM_NAMES}
+                openLabel="Show the sites we know"
                 spellCheck={false}
                 autoCapitalize="none"
-                onChange={(event) => update(index, { ...row, platform: event.target.value })}
+                onValueChange={(platform) => update(index, { ...row, platform })}
               />
             </Field>
             <UrlField

@@ -1075,6 +1075,11 @@ describe("no button is drawn by hand (B-3)", () => {
       "../list/LinkButtons.tsx",
       "../list/List.tsx",
       "../list/StyleStep.tsx",
+      // The suggestion arrow and its options (#376): a mark standing on a field's own ruled line,
+      // and the rows of the list it opens. Neither is one of §4's weights — the arrow is 16px of
+      // furniture inside a box, and an option is a row, which is the shape `ROW_BUTTON` describes
+      // rather than a button the tool offers.
+      "./Suggest.tsx",
     ]);
 
     const offenders = others("./Button.tsx").flatMap(([path, text]) =>

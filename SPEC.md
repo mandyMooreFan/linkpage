@@ -2499,6 +2499,32 @@ the single biggest thing given up here, and still unjudged on a real phone (§11
 > are hours to read. So the first echo is always the seeded default (§4.1), and it can change under them
 > later. Accepted — it changes a display, never a fact.
 
+#### The social platform box suggests, and does not choose (#376)
+
+**_Where_ on _Where else are you online?_ is a box the owner types in, with the ten platforms that have a
+vendored brand mark offered beside it behind an arrow.** It is not a picker and must never become one:
+§4.4 keeps a platform outside the ten verbatim and renders it with the generic glyph, and **LinkedIn is
+the live case** — Simple Icons withdrew the mark at LinkedIn's request (§2.4), so a business on LinkedIn
+can only name it if the box is open. A `<select>` would turn _the ten we happen to have drawn_ into _the
+places a business can be_.
+
+**That was already true when the box was a `<datalist>`, and the box still said nothing.** The cold walk
+(#359) read it as a plain typing box and never learned the ten were there. The mend is a mark that says
+_this opens_ — and the arrow the state picker wears is painted by the browser on a `<select>`, which a
+text box has none of. **Drawing one over a `<datalist>` was rejected as a lie we could not even check:**
+the popup is browser furniture, so whether a press opens it is the browser's decision and not ours, and
+nothing in the DOM can be asked whether it did — it is invisible to a test and to the review shots alike.
+So the list is ours. It opens on the arrow, narrows as the owner types, sits in the accessibility tree as
+a combobox and its listbox, and `pnpm shots` can photograph it. **Every name in it is a suggestion the
+owner may ignore**, which is the guarantee `SocialQuestion.test.tsx` names as load-bearing.
+
+**The pair is a row in the list family.** _Where_ and _Your page there_ are one answer — a site and the
+address on it — and they sit in the hairline-separated list `ui/row.ts` describes, at the section padding,
+exactly as the link-button editor's rows do. The screen had written that row by hand at a third of the
+padding with a rule per row, which is the spelling B-43 replaced everywhere else: 8px of boundary under a
+32px internal gap inverts the grouping, and the per-row rule trailed a second line under the address
+field's own — the failure `divide-y` exists to prevent.
+
 ### 7.11 Motion
 
 **The builder's motion language is _frame_: still chrome, fading content** (#140). A run's chrome —

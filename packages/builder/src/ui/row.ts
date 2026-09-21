@@ -38,6 +38,24 @@
 export const ROW_LIST = "m-0 list-none divide-y divide-rule border-y border-rule p-0";
 
 /**
+ * The same rows, for a list whose rows **end in a field** — the social accounts, and nothing else
+ * today (#376).
+ *
+ * **`divide-y` without `border-y`: the rules go between the rows and nowhere else.** `ROW_LIST`'s
+ * two edges are right for a list of summaries and wrong here, and the difference is what the row
+ * ends with. A link-button row ends in the reorder arrows and *Remove*, so the list's bottom edge
+ * lands under a row of buttons; a social row ends in *Your page there*, an underlined field, so
+ * that same edge lands **14px under the field's own line** — which is the doubled rule the cold
+ * walk reported (#359, moment 19), moved rather than mended. A one-row list wore both edges and
+ * got a rule floating above its first label too.
+ *
+ * So the field's own underline is the boundary at each end, because it already is one, and the
+ * only rule this list draws is the one *between* two pairs — which is the whole of what separating
+ * them needs.
+ */
+export const ROW_LIST_FIELDS = "m-0 list-none divide-y divide-rule p-0";
+
+/**
  * A row holding a line or two — a summary, a name over a sample.
  *
  * 16px against the 2px inside a two-line row is 8:1, comfortably past §1's ≥4× floor. It is the
