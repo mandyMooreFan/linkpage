@@ -15,7 +15,7 @@ import { Select } from "../../ui/Select.js";
 import { Button } from "../../ui/Button.js";
 import { LADDER } from "../../ui/ladder.js";
 import { Suggest } from "../../ui/Suggest.js";
-import { ROW_LIST, ROW_STACK_PADDING } from "../../ui/row.js";
+import { ROW_LIST_FIELDS, ROW_STACK_PADDING } from "../../ui/row.js";
 
 /**
  * Contact, address and social — the three optional sections that are ordinary forms.
@@ -262,7 +262,9 @@ export interface SocialQuestionProps {
  * `LinkButtons` names the hand-written spelling as the one it replaced, but this screen, the
  * other place two fields share a row, was left on it. 8px of padding under `betweenFields`' 32px
  * inverts the grouping the walk said was missing, and the per-row rule is the second line it saw
- * under *Your page there* — which is the exact failure `ROW_LIST`'s `divide-y` exists to prevent.
+ * under *Your page there*. It takes `ROW_LIST_FIELDS` rather than `ROW_LIST`: a row that ends in
+ * an underlined field needs no edge of its own, and `border-y` only moved that second line from
+ * 10px under the field's own to 14px — mended by taking it away, not by spacing it.
  */
 export function SocialQuestion({
   initial,
@@ -296,7 +298,7 @@ export function SocialQuestion({
       escape={{ label: "We're not on social", onEscape: onSkip }}
       onBack={onBack}
     >
-      <ul className={`w-full ${ROW_LIST}`} data-social-rows>
+      <ul className={`w-full ${ROW_LIST_FIELDS}`} data-social-rows>
         {rows.map((row, index) => (
           // Positional keys: a row is identified by where it is, and rows are only appended.
           // Two fields, so the gap between them is the field-to-field rung and not the one used

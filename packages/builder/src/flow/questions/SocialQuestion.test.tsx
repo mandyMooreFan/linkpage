@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render as mount, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SocialQuestion } from "./SectionQuestions.js";
-import { ROW_LIST, ROW_STACK_PADDING } from "../../ui/row.js";
+import { ROW_LIST_FIELDS, ROW_STACK_PADDING } from "../../ui/row.js";
 import { SOCIAL_PLATFORMS } from "@linkpage/renderer";
 
 /**
@@ -47,7 +47,16 @@ describe("the pair is one row, in the list family the link buttons already use (
     ]);
 
     const list = document.querySelector("[data-social-rows]");
-    expect(list?.className).toContain(ROW_LIST);
+    expect(list?.className).toContain(ROW_LIST_FIELDS);
+
+    /*
+     * **The point of the whole finding, stated as the thing it is.** *Your page there* is an
+     * underlined field at the foot of every row, so any rule the list draws at its own edge lands
+     * a few pixels under that underline and *is* the doubled line the walk saw. `border-y` moved
+     * it from 10px to 14px rather than mending it; the rules go between the rows and nowhere else.
+     */
+    expect(list?.className).not.toContain("border-y");
+    expect(list?.className).toContain("divide-y");
 
     // Named, not implied: without it the loop below is vacuous and passes on a screen that has
     // no rows at all — which is exactly how it passed before this was built.
