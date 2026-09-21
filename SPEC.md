@@ -1998,6 +1998,20 @@ placeholder, so it stops being instruction, and **the hint names who the field i
 designer or a brand guide."_ An owner handed a code by their designer needs that code to be the least
 ambiguous thing on the screen, and it still is.
 
+**Both sentences above are the review list's as well as the flow's** (#378). They were written for the
+flow's colour screen and only the flow's screen met them: the style step still read _Or type an exact
+colour, like #c2185b._ over a bare box, and named no colour at all under its grids. An owner met one
+shape on day one and a different one when they came back to the same choice — which is the drift §6's
+"one control with two callers" rule exists to prevent. The step now carries `Field` as the flow does,
+and names the colour chosen under each grid.
+
+**Where the step asks two colours, each line is in that chooser's own words** — _Your main colour:
+Raspberry_, _A second colour: Forest_. The flow asks one colour and can say _Your colour:_; this screen
+asks two, so a shared sentence would leave the second line reading as the first's. Naming only the main
+colour was rejected for leaving two choosers behaving differently on one screen, and the bare name for
+losing which chooser it belonged to. A colour typed as a code is still quoted back as that code, here as
+in the flow.
+
 **The builder's visual language is _paper_** — a warm off-white ground, one ink, hairline rules, one
 accent (the bar's indigo, spent on the one filled button; #409), and
 **structure from space rather than from containers**. Nothing is elevated, nothing is carded, and type is

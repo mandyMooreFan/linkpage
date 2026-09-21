@@ -7,7 +7,7 @@ import {
   type WeekStart,
 } from "@linkpage/renderer";
 import { useId, useState, type JSX, type ReactNode } from "react";
-import { BRAND_SWATCHES } from "../flow/index.js";
+import { BRAND_SWATCHES, colourName } from "../flow/index.js";
 import { Field } from "../flow/questions/Question.js";
 import { LADDER } from "../ui/ladder.js";
 import { HEADING, TYPE } from "../ui/type.js";
@@ -217,14 +217,33 @@ function ColourControl({
         ))}
       </ul>
 
-      <label className="flex flex-col" htmlFor={groupId}>
-        <span className={`mt-1 block ${TYPE.quietLine.className}`}>
-          Or type an exact colour, like #c2185b.
-        </span>
+      {/*
+       * **The name of the colour chosen, once, under the grid it was chosen in** (§3.1, §7.4;
+       * #378). The grid stays a grid — twelve labelled rows would turn a compact field into a
+       * long list — so this is the one place on the screen the word comes from. Without it the
+       * owner meets *Crimson* for the first time in the collapsed row, with nothing where they
+       * chose it to say where the word came from, which is the argument §3.1 already records.
+       *
+       * **In the chooser's own words, not the flow's.** `ColourQuestion` asks one colour and
+       * says *Your colour:*; this screen asks two, so each line echoes the legend above it or
+       * the second reads as the first's.
+       */}
+      {value !== "" && <p className="-mt-1 text-base">{`${label}: ${colourName(value)}`}</p>}
+
+      {/*
+       * **The example is the placeholder, and the hint says who the field is for** (§7.4; #378).
+       * It read *Or type an exact colour, like #c2185b.* over a bare box — the notation as
+       * instruction, which is the shape the design change list took out of the flow's copy of
+       * this field and left in this one. `Field` is what the flow uses, so it is what this uses:
+       * the label names the field, the hint describes it, and the two cannot merge into one
+       * run-on accessible name (#91).
+       */}
+      <Field label="Or type your exact colour" hint="From a designer or a brand guide.">
         <TextInput
           id={groupId}
           type="text"
           value={typed}
+          placeholder="#c2185b"
           spellCheck={false}
           autoCapitalize="none"
           onChange={(event) => {
@@ -235,7 +254,7 @@ function ColourControl({
             if (parseHex(next.trim()) !== null) onPick(next.trim());
           }}
         />
-      </label>
+      </Field>
 
       {onClear !== undefined && value !== "" && (
         <Button

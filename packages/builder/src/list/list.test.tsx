@@ -693,6 +693,70 @@ describe("how it looks (§3.1, §3.4)", () => {
     expect(disclosure.getAttribute("aria-controls")).toBeTruthy();
   });
 
+  /**
+   * **The two §7.4 sentences the step lagged the flow on** (#378; spec pass #358, findings 2 and
+   * 3). Both are about the same screen saying the same thing in two places: `ColourQuestion.tsx`
+   * already did what §3.1 and §7.4 describe and `StyleStep.tsx` did not, so an owner met one
+   * shape on day one and a different one when they came back.
+   */
+  it("names the colour chosen under each grid, in that chooser's own words", () => {
+    editing();
+    openRow(/^How it looks/);
+
+    /*
+     * **Its own words, not the flow's.** The flow asks one colour and says *Your colour:*; this
+     * screen asks two, so each line echoes the legend above it or the second would read as the
+     * first's. The owner chose this over naming only the main one — which would leave the two
+     * choosers behaving differently on one screen — and over the bare name.
+     */
+    expect(screen.getByText(/^Your main colour: /).textContent).toBe("Your main colour: Raspberry");
+    expect(screen.getByText(/^A second colour: /).textContent).toBe("A second colour: Forest");
+  });
+
+  it("says nothing where no second colour has been chosen", () => {
+    const { style, ...rest } = POPULATED;
+    // Absent, not empty: §3.4's optional colour has no "" state, so the key goes rather than
+    // being blanked — which is also what `clearAccent` does when the owner presses the escape.
+    const withoutAccent = Object.fromEntries(
+      Object.entries(style).filter(([key]) => key !== "accent"),
+    ) as typeof style;
+    editing({ ...rest, style: withoutAccent });
+    openRow(/^How it looks/);
+
+    expect(screen.getByText(/^Your main colour: /).textContent).toBe("Your main colour: Raspberry");
+    expect(screen.queryByText(/^A second colour: /), "nothing to name yet").toBeNull();
+  });
+
+  /**
+   * A typed colour is quoted back as a hex rather than given a name it was never told
+   * (`colourName`'s own rule) — the same on this screen as on the flow's.
+   */
+  it("quotes a typed colour back as the code it is", () => {
+    editing({ ...POPULATED, style: { ...POPULATED.style, brand: "#7a5c3e" } });
+    openRow(/^How it looks/);
+
+    expect(screen.getByText(/^Your main colour: /).textContent).toBe("Your main colour: #7a5c3e");
+  });
+
+  /**
+   * §7.4: *"The exact-colour field stops teaching notation. Its example moves out of the hint and
+   * into the placeholder … the hint names who the field is for."* The flow's field has said this
+   * since the design change list; this one still read *Or type an exact colour, like #c2185b.*
+   * above a bare box.
+   */
+  it("stops teaching notation in the exact-colour field, as the flow's does", () => {
+    editing();
+    openRow(/^How it looks/);
+
+    const boxes = screen.getAllByLabelText("Or type your exact colour");
+    expect(boxes, "one per chooser").toHaveLength(2);
+    for (const box of boxes) {
+      expect(box.getAttribute("placeholder"), "the example is the placeholder").toBe("#c2185b");
+    }
+    expect(screen.queryByText(/Or type an exact colour, like/), "the old teaching line").toBeNull();
+    expect(screen.getAllByText("From a designer or a brand guide.")).toHaveLength(2);
+  });
+
   it("writes a control straight through, because the page is the feedback", () => {
     const { latest } = editing();
     openRow(/^How it looks/);
