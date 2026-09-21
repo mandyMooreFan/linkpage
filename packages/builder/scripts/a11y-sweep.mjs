@@ -72,6 +72,7 @@
 import { audit, TAGS, WCAG_TAGS, droppedBy, failed } from "./axe.mjs";
 import { flowFrames, LIST_FRAMES, missing } from "./census.mjs";
 import { walkList } from "./list-route.mjs";
+import { NODE_CAP, one, undecidedLines } from "./undecided.mjs";
 import { ANSWERS, settle, walkFlow } from "./flow.mjs";
 import { portFor } from "./port.mjs";
 import { serve } from "./serve.mjs";
@@ -353,7 +354,11 @@ async function look(page, size, name) {
   findings.push({
     screen: `${size.dir}/${name}`,
     violations: results.violations,
-    incomplete: results.incomplete.map((r) => r.id),
+    // **The nodes, not just the id** (#421). This used to be `.map((r) => r.id)`, and that one
+    // `.map` is why "nobody has looked at why" stood on #318 for a month: axe hands over the
+    // element, the colours it did resolve and its own reason for giving up, and the report threw
+    // all three away before anyone could read them.
+    incomplete: results.incomplete,
     passes: results.passes.length,
   });
   const bad = failed(results);
@@ -404,7 +409,6 @@ async function sweep(browser, size) {
  * screen it is on, and a page-level rule can name two dozen elements at once: printed in full it
  * is a wall nobody reads, which is the same failure as printing nothing.
  */
-const NODE_CAP = 8;
 function nodeLines(nodes) {
   const seen = new Map();
   for (const node of nodes) {
@@ -437,7 +441,6 @@ function report({ controls, empty, gone }) {
     }
   }
   log("");
-  const one = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
   log(
     `  An empty document under these tags: ${one(empty.violations.length, "violation")}` +
       ` (${empty.violations.join(", ") || "none"}), ${one(empty.passes, "pass")}.`,
@@ -505,13 +508,27 @@ function report({ controls, empty, gone }) {
   // iframe, which is the exported page and has a check of its own. The rest is what a hand-run
   // tier is *for*: axe saying it could not tell, in a report a person is already reading.
   const incomplete = new Map();
-  for (const { incomplete: ids } of findings) {
-    for (const id of ids) incomplete.set(id, (incomplete.get(id) ?? 0) + 1);
+  const screensByNode = new Map();
+  for (const { screen, incomplete: results } of findings) {
+    for (const r of results) {
+      const entry = incomplete.get(r.id) ?? { screens: 0, nodes: [] };
+      entry.screens += 1;
+      entry.nodes.push(...r.nodes);
+      for (const node of r.nodes) if (!screensByNode.has(node)) screensByNode.set(node, screen);
+      incomplete.set(r.id, entry);
+    }
   }
   if (incomplete.size > 0) {
     log("");
     log("  Undecided — axe could not tell either way. Not findings, and not clean either:");
-    for (const [id, n] of [...incomplete].sort()) log(`    ${id} — on ${n} of ${findings.length}`);
+    for (const [id, entry] of [...incomplete].sort()) {
+      log("");
+      log(
+        `    ${id} — on ${entry.screens} of ${findings.length} screens, ` +
+          `${one(entry.nodes.length, "element")}`,
+      );
+      for (const line of undecidedLines(entry.nodes, screensByNode)) log(line);
+    }
   }
 
   log("");
