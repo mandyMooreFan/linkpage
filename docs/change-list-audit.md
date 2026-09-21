@@ -4,6 +4,12 @@
 [#181](https://github.com/mandyMooreFan/linkpage/issues/181). Audited **2026-08-25** against `main`
 @ `678af9d`.
 
+> **Corrections live in [`change-list-audit-corrections.md`](./change-list-audit-corrections.md).**
+> Dated, keyed to the finding IDs below, and kept beside this snapshot rather than inside it. **R-6
+> has one**: its verdict stands, and all three reasons given for it below are wrong — the caption it
+> says is unaffordable is already on every page, the headroom is 257 B rather than 0.33 KB, and the
+> fix costs 74 B rather than ~100 B. Read that entry before acting on R-6's reasoning here.
+>
 > **Amended since the audit.** The tables below are the audit as it stood, and are left as written.
 > One verdict has moved: **B-21's colour half**, recorded here as _deliberately left_ and as having
 > no ticket, went to the owner and was decided — one ink for every small text-only button — and
